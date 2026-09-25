@@ -1,0 +1,9 @@
+{
+  "id": "rws-1909",
+  "name": "Rider-Waite-Smith (1909)",
+  "license": "Public domain",
+  "source": "Original 1909 printing illustrated by Pamela Colman Smith. Per-card sources in CREDITS.md.",
+  "aspectRatio": 0.58,
+  "back": "back.webp",
+  "faces": {}
+}

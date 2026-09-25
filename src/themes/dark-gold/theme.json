@@ -1,0 +1,62 @@
+{
+  "id": "dark-gold",
+  "name": "Dark and Gold",
+  "description": "A candlelit tarot table: deep oxblood cloth, warm gold accents, soft glow.",
+  "colors": {
+    "panelBackground": "#15100c",
+    "panelBorder": "#8c6b2e",
+    "panelText": "#f3e9d2",
+    "panelMuted": "#bba985",
+    "accent": "#d4af37",
+    "accentText": "#1a130a",
+    "highlight": "#ffd98a",
+    "upright": "#d4af37",
+    "reversed": "#c9825a"
+  },
+  "fonts": {
+    "heading": {
+      "family": "playfair-display"
+    },
+    "body": {
+      "family": "inter"
+    }
+  },
+  "panelRadius": 2,
+  "mat": {
+    "color": "#3b1019",
+    "edgeColor": "#b8923f",
+    "texture": null,
+    "textureRepeat": 4,
+    "roughness": 0.95
+  },
+  "cardHighlight": {
+    "color": "#ffd98a",
+    "intensity": 0.6,
+    "hoverLiftM": 0.012
+  },
+  "ambient": {
+    "candles": null,
+    "particles": null
+  },
+  "lighting": {
+    "sky": [
+      0.93,
+      0.84,
+      0.7,
+      1
+    ],
+    "equator": [
+      0.72,
+      0.58,
+      0.42,
+      1
+    ],
+    "ground": [
+      0.35,
+      0.24,
+      0.18,
+      1
+    ],
+    "intensity": 1
+  }
+}

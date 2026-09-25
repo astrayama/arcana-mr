@@ -5,11 +5,36 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { iwsdkDev } from '@iwsdk/vite-plugin-dev';
 import { defineConfig } from 'vite';
 
+type BundledFont = NonNullable<
+  NonNullable<Parameters<typeof iwsdkDev>[0]>['bundle']
+>['fonts'];
+
+/**
+ * Panels are theme templates, so IWSDK can't see their fonts statically.
+ * Collect the bundled font families every theme asks for, so a new theme
+ * folder never needs a config edit.
+ */
+function themeFonts(): BundledFont {
+  const themesDir = join(import.meta.dirname, 'src/themes');
+  const families = new Set<string>(['inter']);
+  for (const entry of readdirSync(themesDir, { withFileTypes: true })) {
+    const file = join(themesDir, entry.name, 'theme.json');
+    if (!entry.isDirectory() || !existsSync(file)) continue;
+    const theme = JSON.parse(readFileSync(file, 'utf8'));
+    for (const font of [theme.fonts?.heading, theme.fonts?.body]) {
+      if (font && !font.files) families.add(font.family);
+    }
+  }
+  return [...families] as BundledFont;
+}
+
 export default defineConfig({
-  plugins: [iwsdkDev()],
+  plugins: [iwsdkDev({ bundle: { fonts: themeFonts() } })],
   server: { host: '0.0.0.0', port: 8081, open: false },
   build: {
     outDir: 'dist',

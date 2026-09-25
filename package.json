@@ -14,7 +14,8 @@
     "reference:warmup": "iwsdk reference warmup",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@iwsdk/core": "1.0.0-rc.2",
@@ -24,11 +25,12 @@
     "three": "npm:super-three@0.181.0"
   },
   "devDependencies": {
-    "@iwsdk/reference": "1.0.0-rc.2",
     "@iwsdk/cli": "1.0.0-rc.2",
+    "@iwsdk/reference": "1.0.0-rc.2",
     "@iwsdk/vite-plugin-dev": "1.0.0-rc.2",
     "@meta-quest/metavr": "^1.3.2",
     "@types/three": "^0.181.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.5.0",
     "vite": "^7.1.4"
   },

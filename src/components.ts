@@ -1,11 +1,6 @@
-/**
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 import { defineComponents } from '@iwsdk/core';
-import { Robot } from './robot-component.js';
+import { DeckPile, ReadingMat } from './components/table.js';
+import { TarotCard } from './components/tarotCard.js';
+import { ReadingStatus, UiPanel } from './components/ui.js';
 
-export default defineComponents([Robot]);
+export default defineComponents([ReadingMat, DeckPile, TarotCard, UiPanel, ReadingStatus]);
