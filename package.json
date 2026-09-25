@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "validate:cards": "tsx scripts/validate-cards.ts"
   },
   "dependencies": {
     "@iwsdk/core": "1.0.0-rc.2",

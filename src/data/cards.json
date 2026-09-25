@@ -1,1 +1,638 @@
-[]
+[
+  {
+    "id": "major-00-the-fool",
+    "name": "The Fool",
+    "arcana": "major",
+    "suit": null,
+    "number": 0
+  },
+  {
+    "id": "major-01-the-magician",
+    "name": "The Magician",
+    "arcana": "major",
+    "suit": null,
+    "number": 1
+  },
+  {
+    "id": "major-02-the-high-priestess",
+    "name": "The High Priestess",
+    "arcana": "major",
+    "suit": null,
+    "number": 2
+  },
+  {
+    "id": "major-03-the-empress",
+    "name": "The Empress",
+    "arcana": "major",
+    "suit": null,
+    "number": 3
+  },
+  {
+    "id": "major-04-the-emperor",
+    "name": "The Emperor",
+    "arcana": "major",
+    "suit": null,
+    "number": 4
+  },
+  {
+    "id": "major-05-the-hierophant",
+    "name": "The Hierophant",
+    "arcana": "major",
+    "suit": null,
+    "number": 5
+  },
+  {
+    "id": "major-06-the-lovers",
+    "name": "The Lovers",
+    "arcana": "major",
+    "suit": null,
+    "number": 6
+  },
+  {
+    "id": "major-07-the-chariot",
+    "name": "The Chariot",
+    "arcana": "major",
+    "suit": null,
+    "number": 7
+  },
+  {
+    "id": "major-08-strength",
+    "name": "Strength",
+    "arcana": "major",
+    "suit": null,
+    "number": 8
+  },
+  {
+    "id": "major-09-the-hermit",
+    "name": "The Hermit",
+    "arcana": "major",
+    "suit": null,
+    "number": 9
+  },
+  {
+    "id": "major-10-wheel-of-fortune",
+    "name": "Wheel of Fortune",
+    "arcana": "major",
+    "suit": null,
+    "number": 10
+  },
+  {
+    "id": "major-11-justice",
+    "name": "Justice",
+    "arcana": "major",
+    "suit": null,
+    "number": 11
+  },
+  {
+    "id": "major-12-the-hanged-man",
+    "name": "The Hanged Man",
+    "arcana": "major",
+    "suit": null,
+    "number": 12
+  },
+  {
+    "id": "major-13-death",
+    "name": "Death",
+    "arcana": "major",
+    "suit": null,
+    "number": 13
+  },
+  {
+    "id": "major-14-temperance",
+    "name": "Temperance",
+    "arcana": "major",
+    "suit": null,
+    "number": 14
+  },
+  {
+    "id": "major-15-the-devil",
+    "name": "The Devil",
+    "arcana": "major",
+    "suit": null,
+    "number": 15
+  },
+  {
+    "id": "major-16-the-tower",
+    "name": "The Tower",
+    "arcana": "major",
+    "suit": null,
+    "number": 16,
+    "upright": {
+      "keywords": [
+        "sudden change",
+        "revelation",
+        "clearing out"
+      ],
+      "read": "The Tower marks a moment when something built on shaky ground stops holding. It can feel like shock, but it often clears space for what is true. Notice which structures in your life you have been propping up out of habit.",
+      "prompt": "What are you holding together that you already suspect cannot last?"
+    },
+    "reversed": {
+      "keywords": [
+        "resisting change",
+        "slow unraveling",
+        "private reckoning"
+      ],
+      "read": "Reversed, The Tower suggests the shake-up is happening on the inside, or that you are bracing hard to keep it from happening at all. Sometimes the collapse we avoid simply arrives more slowly. This card asks you to look at the cost of holding the walls up.",
+      "prompt": "What change are you working hard to postpone, and what is that effort costing you?"
+    }
+  },
+  {
+    "id": "major-17-the-star",
+    "name": "The Star",
+    "arcana": "major",
+    "suit": null,
+    "number": 17,
+    "upright": {
+      "keywords": [
+        "hope",
+        "renewal",
+        "quiet trust"
+      ],
+      "read": "After a hard stretch, The Star shows up like the first clear night. It points to the part of you that is still willing to hope, even a little, and to the small ways you are already healing. Nothing here has to be rushed.",
+      "prompt": "What small sign of renewal have you noticed in yourself lately, even if it felt too quiet to count?"
+    },
+    "reversed": {
+      "keywords": [
+        "discouragement",
+        "disconnection",
+        "running on empty"
+      ],
+      "read": "Reversed, The Star can appear when hope feels far away or when you have stopped expecting good things for yourself. It is less a verdict than a check-in: notice where you might be withholding care from yourself, or waiting for permission to feel better.",
+      "prompt": "Where have you stopped looking after yourself, and what would one gentle step back toward that look like?"
+    }
+  },
+  {
+    "id": "major-18-the-moon",
+    "name": "The Moon",
+    "arcana": "major",
+    "suit": null,
+    "number": 18
+  },
+  {
+    "id": "major-19-the-sun",
+    "name": "The Sun",
+    "arcana": "major",
+    "suit": null,
+    "number": 19
+  },
+  {
+    "id": "major-20-judgement",
+    "name": "Judgement",
+    "arcana": "major",
+    "suit": null,
+    "number": 20
+  },
+  {
+    "id": "major-21-the-world",
+    "name": "The World",
+    "arcana": "major",
+    "suit": null,
+    "number": 21
+  },
+  {
+    "id": "wands-ace",
+    "name": "Ace of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 1
+  },
+  {
+    "id": "wands-two",
+    "name": "Two of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 2
+  },
+  {
+    "id": "wands-three",
+    "name": "Three of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 3
+  },
+  {
+    "id": "wands-four",
+    "name": "Four of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 4
+  },
+  {
+    "id": "wands-five",
+    "name": "Five of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 5
+  },
+  {
+    "id": "wands-six",
+    "name": "Six of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 6
+  },
+  {
+    "id": "wands-seven",
+    "name": "Seven of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 7
+  },
+  {
+    "id": "wands-eight",
+    "name": "Eight of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 8
+  },
+  {
+    "id": "wands-nine",
+    "name": "Nine of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 9
+  },
+  {
+    "id": "wands-ten",
+    "name": "Ten of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 10
+  },
+  {
+    "id": "wands-page",
+    "name": "Page of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 11
+  },
+  {
+    "id": "wands-knight",
+    "name": "Knight of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 12
+  },
+  {
+    "id": "wands-queen",
+    "name": "Queen of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 13
+  },
+  {
+    "id": "wands-king",
+    "name": "King of Wands",
+    "arcana": "minor",
+    "suit": "wands",
+    "number": 14
+  },
+  {
+    "id": "cups-ace",
+    "name": "Ace of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 1
+  },
+  {
+    "id": "cups-two",
+    "name": "Two of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 2
+  },
+  {
+    "id": "cups-three",
+    "name": "Three of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 3
+  },
+  {
+    "id": "cups-four",
+    "name": "Four of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 4
+  },
+  {
+    "id": "cups-five",
+    "name": "Five of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 5
+  },
+  {
+    "id": "cups-six",
+    "name": "Six of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 6
+  },
+  {
+    "id": "cups-seven",
+    "name": "Seven of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 7
+  },
+  {
+    "id": "cups-eight",
+    "name": "Eight of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 8
+  },
+  {
+    "id": "cups-nine",
+    "name": "Nine of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 9
+  },
+  {
+    "id": "cups-ten",
+    "name": "Ten of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 10
+  },
+  {
+    "id": "cups-page",
+    "name": "Page of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 11
+  },
+  {
+    "id": "cups-knight",
+    "name": "Knight of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 12
+  },
+  {
+    "id": "cups-queen",
+    "name": "Queen of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "compassion",
+        "emotional depth",
+        "intuition"
+      ],
+      "read": "The Queen of Cups feels things fully and does not apologize for it. She points to your capacity to hold your own emotions, and other people's, without drowning in them. Notice where your intuition has been quietly right.",
+      "prompt": "When you listen underneath the noise, what are your feelings trying to tell you right now?"
+    },
+    "reversed": {
+      "keywords": [
+        "overwhelm",
+        "blurred boundaries",
+        "self-neglect"
+      ],
+      "read": "Reversed, the Queen of Cups can point to caring so much for others that your own inner life goes unattended. Or it can show feelings you have kept at arm's length because they seem like too much. Either way, try turning some of that tenderness toward yourself.",
+      "prompt": "Whose feelings have you been carrying that are not yours to hold?"
+    }
+  },
+  {
+    "id": "cups-king",
+    "name": "King of Cups",
+    "arcana": "minor",
+    "suit": "cups",
+    "number": 14
+  },
+  {
+    "id": "swords-ace",
+    "name": "Ace of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 1
+  },
+  {
+    "id": "swords-two",
+    "name": "Two of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 2
+  },
+  {
+    "id": "swords-three",
+    "name": "Three of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 3
+  },
+  {
+    "id": "swords-four",
+    "name": "Four of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 4
+  },
+  {
+    "id": "swords-five",
+    "name": "Five of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 5
+  },
+  {
+    "id": "swords-six",
+    "name": "Six of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 6
+  },
+  {
+    "id": "swords-seven",
+    "name": "Seven of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 7
+  },
+  {
+    "id": "swords-eight",
+    "name": "Eight of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "feeling stuck",
+        "self-imposed limits",
+        "fear"
+      ],
+      "read": "The Eight of Swords describes the feeling of being trapped, often by fears and stories more than by real walls. It points to places where you may have more room to move than you think. Notice which of your limits are facts and which are assumptions.",
+      "prompt": "What would you try if you trusted that the way out is more open than it looks?"
+    },
+    "reversed": {
+      "keywords": [
+        "release",
+        "new perspective",
+        "taking back power"
+      ],
+      "read": "Reversed, the Eight of Swords suggests a loosening. You may be seeing a situation more clearly, or noticing that the rules you were following were never really yours. That clarity can feel exposing before it feels freeing.",
+      "prompt": "Which old rule about what you are allowed to want is ready to be questioned?"
+    }
+  },
+  {
+    "id": "swords-nine",
+    "name": "Nine of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 9
+  },
+  {
+    "id": "swords-ten",
+    "name": "Ten of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 10
+  },
+  {
+    "id": "swords-page",
+    "name": "Page of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 11
+  },
+  {
+    "id": "swords-knight",
+    "name": "Knight of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 12
+  },
+  {
+    "id": "swords-queen",
+    "name": "Queen of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 13
+  },
+  {
+    "id": "swords-king",
+    "name": "King of Swords",
+    "arcana": "minor",
+    "suit": "swords",
+    "number": 14
+  },
+  {
+    "id": "pentacles-ace",
+    "name": "Ace of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 1
+  },
+  {
+    "id": "pentacles-two",
+    "name": "Two of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 2
+  },
+  {
+    "id": "pentacles-three",
+    "name": "Three of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 3
+  },
+  {
+    "id": "pentacles-four",
+    "name": "Four of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "holding on",
+        "security",
+        "control"
+      ],
+      "read": "The Four of Pentacles is about gripping what you have, whether that is money, time, energy, or a sense of control. There is wisdom in protecting what matters. The question is whether your grip is keeping you safe or keeping you small.",
+      "prompt": "What are you holding tightly right now, and what do you fear would happen if you loosened your grip?"
+    },
+    "reversed": {
+      "keywords": [
+        "loosening",
+        "generosity",
+        "scarcity"
+      ],
+      "read": "Reversed, this card can go two ways: you may be learning to loosen your grip and share more freely, or a sense of scarcity may have you spending, giving, or saying yes more than feels steady. Notice which one fits. Both are worth being honest about.",
+      "prompt": "Where in your life does giving feel generous, and where does it feel like leaking?"
+    }
+  },
+  {
+    "id": "pentacles-five",
+    "name": "Five of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 5
+  },
+  {
+    "id": "pentacles-six",
+    "name": "Six of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 6
+  },
+  {
+    "id": "pentacles-seven",
+    "name": "Seven of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 7
+  },
+  {
+    "id": "pentacles-eight",
+    "name": "Eight of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 8
+  },
+  {
+    "id": "pentacles-nine",
+    "name": "Nine of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 9
+  },
+  {
+    "id": "pentacles-ten",
+    "name": "Ten of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 10
+  },
+  {
+    "id": "pentacles-page",
+    "name": "Page of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 11
+  },
+  {
+    "id": "pentacles-knight",
+    "name": "Knight of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 12
+  },
+  {
+    "id": "pentacles-queen",
+    "name": "Queen of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 13
+  },
+  {
+    "id": "pentacles-king",
+    "name": "King of Pentacles",
+    "arcana": "minor",
+    "suit": "pentacles",
+    "number": 14
+  }
+]
