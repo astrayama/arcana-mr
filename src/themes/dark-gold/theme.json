@@ -23,11 +23,12 @@
   },
   "panelRadius": 2,
   "mat": {
-    "color": "#3b1019",
+    "color": "#4a1320",
     "edgeColor": "#b8923f",
-    "texture": null,
+    "texture": "assets/cloth.webp",
     "textureRepeat": 4,
-    "roughness": 0.95
+    "roughness": 0.95,
+    "inlay": true
   },
   "cardHighlight": {
     "color": "#ffd98a",
@@ -35,8 +36,16 @@
     "hoverLiftM": 0.012
   },
   "ambient": {
-    "candles": null,
-    "particles": null
+    "candles": {
+      "count": 2,
+      "color": "#ffb35c",
+      "intensity": 0.45
+    },
+    "particles": {
+      "count": 36,
+      "color": "#ffd98a",
+      "size": 0.004
+    }
   },
   "lighting": {
     "sky": [

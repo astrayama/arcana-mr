@@ -72,6 +72,8 @@ export interface Theme {
     /** How many times the texture repeats across the mat's width. */
     textureRepeat: number;
     roughness: number;
+    /** A thin line in `edgeColor` set in from the mat's edge, like a reading cloth border. */
+    inlay: boolean;
   };
   /** Card feedback when a hand or ray is on it. */
   cardHighlight: {
@@ -183,6 +185,7 @@ export function validateTheme(
     if (t.mat.texture !== null) file('mat.texture', t.mat.texture);
     num('mat.textureRepeat', t.mat.textureRepeat, 0.1, 50);
     num('mat.roughness', t.mat.roughness, 0, 1);
+    if (typeof t.mat.inlay !== 'boolean') errors.push(`${at}: mat.inlay must be true or false`);
   }
 
   if (!t.cardHighlight) {

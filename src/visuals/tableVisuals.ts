@@ -6,6 +6,7 @@
 
 import {
   AssetManager,
+  CanvasTexture,
   Color,
   DoubleSide,
   ExtrudeGeometry,
@@ -93,6 +94,23 @@ export function buildMat(resolved: ResolvedTheme): Object3D {
   }
 
   group.add(trim, cloth);
+
+  if (mat.inlay) {
+    // A thin border line set in from the edge, like a reading cloth.
+    const inset = 0.028;
+    const line = 0.0022;
+    const ring = roundedRect(matWidthM - inset * 2, matDepthM - inset * 2, 0.018);
+    const hole = roundedRect(matWidthM - (inset + line) * 2, matDepthM - (inset + line) * 2, 0.016);
+    ring.holes.push(hole);
+    const inlay = new Mesh(
+      new ShapeGeometry(ring, 6),
+      new MeshStandardMaterial({ color: new Color(mat.edgeColor), roughness: 0.45, metalness: 0.6 }),
+    );
+    inlay.rotation.x = -Math.PI / 2;
+    inlay.position.y = MAT_SURFACE_Y + 0.0002;
+    inlay.name = 'MatInlay';
+    group.add(inlay);
+  }
   return group;
 }
 
@@ -101,6 +119,23 @@ export interface CardMaterials {
   back: MeshStandardMaterial;
   edge: MeshStandardMaterial;
   glow: MeshBasicMaterial;
+}
+
+/** A soft rounded-rectangle falloff used as the glow's alpha, so the halo fades out gently. */
+function makeGlowAlpha(): CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 200;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.filter = 'blur(9px)';
+  ctx.fillStyle = '#fff';
+  const pad = 22;
+  ctx.beginPath();
+  ctx.roundRect(pad, pad, canvas.width - pad * 2, canvas.height - pad * 2, 10);
+  ctx.fill();
+  return new CanvasTexture(canvas);
 }
 
 export function buildCardMaterials(deck: ResolvedDeck, resolved: ResolvedTheme): CardMaterials {
@@ -121,6 +156,7 @@ export function buildCardMaterials(deck: ResolvedDeck, resolved: ResolvedTheme):
     edge: new MeshStandardMaterial({ color: 0xefe6d2, roughness: 0.8 }),
     glow: new MeshBasicMaterial({
       color: new Color(resolved.theme.cardHighlight.color),
+      alphaMap: makeGlowAlpha(),
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -181,7 +217,8 @@ export interface CardGeometry {
 
 export function buildCardGeometry(widthM: number, heightM: number): CardGeometry {
   const r = widthM * CARD_CORNER;
-  const halo = 0.006;
+  // The glow plane extends past the card; its alpha map fades to nothing at the edge.
+  const halo = 0.02;
   return {
     panel: roundedPanelGeometry(widthM, heightM, r),
     edge: roundedSlab(widthM * 0.998, heightM * 0.998, r, config.card.thicknessM)

@@ -26,7 +26,7 @@ in the IWSDK emulator first, then on a real Quest 3.
 | 6 | Menu, shuffle, deal | Done |
 | 7 | Flipping with hands and controllers | Built, awaiting headset test |
 | 8 | Meaning panels | In progress: two layouts proposed, awaiting a pick |
-| 9 | Dark and gold theme | Not started |
+| 9 | Dark and gold theme | Built, awaiting headset sign-off |
 | 10 | QA and performance | Not started |
 | 11 | Deploy | Not started |
 

@@ -20,7 +20,8 @@
     "validate": "npm run -s validate:cards; c=$?; npm run -s validate:decks; d=$?; npm run -s validate:themes; t=$?; exit $((c|d|t))",
     "validate:decks": "tsx scripts/validate-decks.ts",
     "validate:themes": "tsx scripts/validate-themes.ts",
-    "deck:rws-1909": "tsx scripts/fetch-rws-1909.ts"
+    "deck:rws-1909": "tsx scripts/fetch-rws-1909.ts",
+    "theme:dark-gold": "tsx scripts/make-dark-gold-assets.ts"
   },
   "dependencies": {
     "@iwsdk/core": "1.0.0-rc.2",
