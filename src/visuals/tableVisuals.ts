@@ -6,15 +6,14 @@
 
 import {
   AssetManager,
-  BoxGeometry,
   Color,
   DoubleSide,
+  ExtrudeGeometry,
   Group,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
-  PlaneGeometry,
   RepeatWrapping,
   Shape,
   ShapeGeometry,
@@ -130,26 +129,68 @@ export function buildCardMaterials(deck: ResolvedDeck, resolved: ResolvedTheme):
   };
 }
 
+/** Corner radius of a card as a fraction of its width (physical tarot cards have rounded corners). */
+const CARD_CORNER = 0.045;
+
+/** A flat rounded rectangle whose UVs span 0-1 across it, so a card image maps edge to edge. */
+function roundedPanelGeometry(width: number, height: number, radius: number): ShapeGeometry {
+  const geometry = new ShapeGeometry(roundedRect(width, height, radius), 8);
+  const position = geometry.attributes.position;
+  const uv = geometry.attributes.uv;
+  for (let i = 0; i < position.count; i++) {
+    uv.setXY(i, position.getX(i) / width + 0.5, position.getY(i) / height + 0.5);
+  }
+  uv.needsUpdate = true;
+  return geometry;
+}
+
+/** A rounded slab of the given thickness, rising from y = 0. */
+function roundedSlab(width: number, height: number, radius: number, thickness: number): Mesh {
+  const geometry = new ExtrudeGeometry(roundedRect(width, height, radius), {
+    depth: thickness,
+    bevelEnabled: false,
+    curveSegments: 8,
+  });
+  const slab = new Mesh(geometry);
+  slab.rotation.x = -Math.PI / 2;
+  return slab;
+}
+
 /**
  * One card. The hierarchy is:
  *   root  - sits on the mat; rotation.y = PI for a reversed card
  *   pivot - rotation.z = PI when face down, 0 when face up (flip animates this)
- *     face, back, edge, glow
- * The face plane is authored face-up with the image top pointing away from
- * the reader (-Z), so an upright card reads correctly once flipped.
+ *     face, back, edge
+ *   glow  - highlight halo under the card, stays flat on the mat
+ * The face is authored face-up with the image top pointing away from the
+ * reader (-Z), so an upright card reads correctly once flipped.
  */
 export interface CardVisual {
   root: Object3D;
   pivot: Object3D;
-  face: Mesh<PlaneGeometry, MeshStandardMaterial>;
-  glow: Mesh<PlaneGeometry, MeshBasicMaterial>;
+  face: Mesh<ShapeGeometry, MeshStandardMaterial>;
+  glow: Mesh<ShapeGeometry, MeshBasicMaterial>;
 }
 
-export function buildCard(
-  materials: CardMaterials,
-  widthM: number,
-  heightM: number,
-): CardVisual {
+/** Geometry shared by every card of one size. */
+export interface CardGeometry {
+  panel: ShapeGeometry;
+  edge: ExtrudeGeometry;
+  glow: ShapeGeometry;
+}
+
+export function buildCardGeometry(widthM: number, heightM: number): CardGeometry {
+  const r = widthM * CARD_CORNER;
+  const halo = 0.006;
+  return {
+    panel: roundedPanelGeometry(widthM, heightM, r),
+    edge: roundedSlab(widthM * 0.998, heightM * 0.998, r, config.card.thicknessM)
+      .geometry as ExtrudeGeometry,
+    glow: roundedPanelGeometry(widthM + halo * 2, heightM + halo * 2, r + halo),
+  };
+}
+
+export function buildCard(materials: CardMaterials, geometry: CardGeometry): CardVisual {
   const t = config.card.thicknessM;
   const root = new Group();
   const pivot = new Group();
@@ -157,30 +198,28 @@ export function buildCard(
   pivot.position.y = t / 2;
   root.add(pivot);
 
-  const plane = new PlaneGeometry(widthM, heightM);
-
   const face = new Mesh(
-    plane,
+    geometry.panel,
     new MeshStandardMaterial({ color: 0xffffff, roughness: 0.65 }),
   );
   face.rotation.x = -Math.PI / 2;
   face.position.y = t / 2 + 0.0001;
   face.name = 'CardFace';
 
-  const back = new Mesh(plane, materials.back);
+  const back = new Mesh(geometry.panel, materials.back);
   back.rotation.x = Math.PI / 2;
   back.position.y = -(t / 2 + 0.0001);
   back.name = 'CardBack';
 
-  const edge = new Mesh(new BoxGeometry(widthM * 0.998, t, heightM * 0.998), materials.edge);
+  const edge = new Mesh(geometry.edge, materials.edge);
+  edge.rotation.x = -Math.PI / 2;
+  edge.position.y = -t / 2;
   edge.name = 'CardEdge';
 
-  const glow = new Mesh(
-    new PlaneGeometry(widthM + 0.012, heightM + 0.012),
-    materials.glow.clone(),
-  );
+  const glow = new Mesh(geometry.glow, materials.glow.clone());
   glow.rotation.x = -Math.PI / 2;
-  glow.position.y = -t / 2 - 0.0004;
+  glow.position.y = 0.0002;
+  glow.renderOrder = -1;
   glow.name = 'CardGlow';
 
   pivot.add(face, back, edge);
@@ -188,27 +227,27 @@ export function buildCard(
   return { root, pivot, face, glow };
 }
 
-/** The face-down deck: a short stack with the card back on top. */
+/** The face-down deck: a short rounded stack with the card back on top. */
 export function buildDeckPile(
   materials: CardMaterials,
   widthM: number,
   heightM: number,
   cardCount: number,
 ): Object3D {
-  const stackHeight = Math.max(cardCount, 1) * config.card.thicknessM * 0.35;
-  const mats = [
-    materials.edge,
-    materials.edge,
-    materials.back, // +Y: the top of the stack
-    materials.edge,
-    materials.edge,
-    materials.edge,
-  ];
-  const pile = new Mesh(new BoxGeometry(widthM, stackHeight, heightM), mats);
-  pile.position.y = stackHeight / 2;
-  pile.name = 'DeckPileMesh';
+  const r = widthM * CARD_CORNER;
+  const stackHeight = Math.max(cardCount, 1) * config.card.thicknessM * 0.28;
   const group = new Group();
   group.name = 'DeckPile';
-  group.add(pile);
+
+  const sides = roundedSlab(widthM, heightM, r, stackHeight);
+  sides.material = materials.edge;
+  sides.name = 'DeckPileSides';
+
+  const top = new Mesh(roundedPanelGeometry(widthM, heightM, r), materials.back);
+  top.rotation.x = -Math.PI / 2;
+  top.position.y = stackHeight + 0.0001;
+  top.name = 'DeckPileTop';
+
+  group.add(sides, top);
   return group;
 }

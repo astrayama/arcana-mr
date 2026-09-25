@@ -1,5 +1,6 @@
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
+import { app } from './app/context.js';
 import { LandingSystem } from './systems/landingSystem.js';
 import { PlacementSystem } from './systems/placementSystem.js';
 import { ReadingStatusSystem } from './systems/readingStatusSystem.js';
@@ -16,4 +17,9 @@ World.create(
     .registerSystem(TableSystem)
     .registerSystem(PlacementSystem)
     .registerSystem(LandingSystem);
+
+  if (import.meta.env.DEV) {
+    // Handle for automated checks in the IWSDK emulator. Not present in production builds.
+    (window as unknown as { __arcana: unknown }).__arcana = { app, world };
+  }
 });

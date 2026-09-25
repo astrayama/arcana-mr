@@ -16,7 +16,7 @@ with a short read and a question to sit with. Nothing here predicts the future.
 - [x] 1. Scaffold (IWSDK, TypeScript, mixed reality)
 - [x] 2. Architecture skeleton (config, reading state machine, deck and theme loaders)
 - [ ] 3. Card data (78 cards, upright and reversed, with validator)
-- [ ] 4. Art pack (public-domain 1909 Rider-Waite-Smith)
+- [x] 4. Art pack (public-domain 1909 Rider-Waite-Smith)
 - [ ] 5. Table placement
 - [ ] 6. Menu, shuffle, deal
 - [ ] 7. Flipping with hands and controllers

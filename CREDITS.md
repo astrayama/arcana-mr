@@ -1,0 +1,113 @@
+# Credits
+
+## Card art: `src/decks/rws-1909`
+
+The `rws-1909` deck uses scans of an original 1909 printing of the
+Waite-Smith tarot (often called Rider-Waite-Smith), the "Roses & Lilies"
+edition published by William Rider & Son, London. The cards were illustrated
+by Pamela Colman Smith (1878-1951) to designs by Arthur Edward Waite.
+
+**License:** public domain. The art was published in 1909 and its illustrator
+died in 1951, so it is in the public domain in the United States and in
+countries with copyright terms of life plus 70 years or less. The scans are
+faithful reproductions of two-dimensional artwork. Each file's Wikimedia
+Commons page, linked below, records its license template.
+
+The scans come from Wikimedia Commons (category
+[Rider-Waite tarot deck (Roses & Lilies)](https://commons.wikimedia.org/wiki/Category%3ARider-Waite_tarot_deck_(Roses_%26_Lilies))),
+where the uploader notes they were made from an original 1909 deck in a
+private collection. Only these original 1909 scans are used. No modern
+recolored or redrawn edition is included.
+
+Processing: `scripts/fetch-rws-1909.ts` trims about 0.6% from each edge,
+resizes every card to 594 x 1024, and encodes WebP at quality
+82. The 3D cards have rounded corners, like the physical deck.
+
+### Card back
+
+| File | Source | License |
+| --- | --- | --- |
+| `back.webp` | [Waite–Smith Tarot Roses and Lilies cropped.jpg](https://commons.wikimedia.org/wiki/File:Waite%E2%80%93Smith_Tarot_Roses_and_Lilies_cropped.jpg) | PD-US-expired, PD-UK-unknown |
+
+### Card faces
+
+| Card | File | Source | License |
+| --- | --- | --- | --- |
+| The Fool | `faces/major-00-the-fool.webp` | [RWS1909 - 00 Fool.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_00_Fool.jpeg) | PD-old-70-expired |
+| The Magician | `faces/major-01-the-magician.webp` | [RWS1909 - 01 Magician.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_01_Magician.jpeg) | PD-old-70-expired |
+| The High Priestess | `faces/major-02-the-high-priestess.webp` | [RWS1909 - 02 High Priestess.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_02_High_Priestess.jpeg) | PD-old-70-expired |
+| The Empress | `faces/major-03-the-empress.webp` | [RWS1909 - 03 Empress.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_03_Empress.jpeg) | PD-old-70-expired |
+| The Emperor | `faces/major-04-the-emperor.webp` | [RWS1909 - 04 Emperor.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_04_Emperor.jpeg) | PD-old-70-expired |
+| The Hierophant | `faces/major-05-the-hierophant.webp` | [RWS1909 - 05 Hierophant.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_05_Hierophant.jpeg) | PD-old-70-expired |
+| The Lovers | `faces/major-06-the-lovers.webp` | [RWS1909 - 06 Lovers.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_06_Lovers.jpeg) | PD-old-70-expired |
+| The Chariot | `faces/major-07-the-chariot.webp` | [RWS1909 - 07 Chariot.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_07_Chariot.jpeg) | PD-old-70-expired |
+| Strength | `faces/major-08-strength.webp` | [RWS1909 - 08 Strength.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_08_Strength.jpeg) | PD-old-70-expired |
+| The Hermit | `faces/major-09-the-hermit.webp` | [RWS1909 - 09 Hermit.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_09_Hermit.jpeg) | PD-old-70-expired |
+| Wheel of Fortune | `faces/major-10-wheel-of-fortune.webp` | [RWS1909 - 10 Wheel of Fortune.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_10_Wheel_of_Fortune.jpeg) | PD-old-70-expired |
+| Justice | `faces/major-11-justice.webp` | [RWS1909 - 11 Justice.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_11_Justice.jpeg) | PD-old-70-expired |
+| The Hanged Man | `faces/major-12-the-hanged-man.webp` | [RWS1909 - 12 Hanged Man.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_12_Hanged_Man.jpeg) | PD-old-70-expired |
+| Death | `faces/major-13-death.webp` | [RWS1909 - 13 Death.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_13_Death.jpeg) | PD-old-70-expired |
+| Temperance | `faces/major-14-temperance.webp` | [RWS1909 - 14 Temperance.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_14_Temperance.jpeg) | PD-old-70-expired |
+| The Devil | `faces/major-15-the-devil.webp` | [RWS1909 - 15 Devil.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_15_Devil.jpeg) | PD-old-70-expired |
+| The Tower | `faces/major-16-the-tower.webp` | [RWS1909 - 16 Tower.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_16_Tower.jpeg) | PD-old-70-expired |
+| The Star | `faces/major-17-the-star.webp` | [RWS1909 - 17 Star.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_17_Star.jpeg) | PD-old-70-expired |
+| The Moon | `faces/major-18-the-moon.webp` | [RWS1909 - 18 Moon.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_18_Moon.jpeg) | PD-old-70-expired |
+| The Sun | `faces/major-19-the-sun.webp` | [RWS1909 - 19 Sun.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_19_Sun.jpeg) | PD-old-70-expired |
+| Judgement | `faces/major-20-judgement.webp` | [RWS1909 - 20 Judgement.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_20_Judgement.jpeg) | PD-old-70-expired |
+| The World | `faces/major-21-the-world.webp` | [RWS1909 - 21 World.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_21_World.jpeg) | PD-old-70-expired |
+| Ace of Wands | `faces/wands-ace.webp` | [RWS1909 - Wands 01.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_01.jpeg) | PD-old-70-expired |
+| Two of Wands | `faces/wands-two.webp` | [RWS1909 - Wands 02.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_02.jpeg) | PD-old-70-expired |
+| Three of Wands | `faces/wands-three.webp` | [RWS1909 - Wands 03.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_03.jpeg) | PD-old-70-expired |
+| Four of Wands | `faces/wands-four.webp` | [RWS1909 - Wands 04.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_04.jpeg) | PD-old-70-expired |
+| Five of Wands | `faces/wands-five.webp` | [RWS1909 - Wands 05.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_05.jpeg) | PD-old-70-expired |
+| Six of Wands | `faces/wands-six.webp` | [RWS1909 - Wands 06.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_06.jpeg) | PD-old-70-expired |
+| Seven of Wands | `faces/wands-seven.webp` | [RWS1909 - Wands 07.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_07.jpeg) | PD-old-70-expired |
+| Eight of Wands | `faces/wands-eight.webp` | [RWS1909 - Wands 08.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_08.jpeg) | PD-old-70-expired |
+| Nine of Wands | `faces/wands-nine.webp` | [RWS1909 - Wands 09.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_09.jpeg) | PD-old-70-expired |
+| Ten of Wands | `faces/wands-ten.webp` | [RWS1909 - Wands 10.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_10.jpeg) | PD-old-70-expired |
+| Page of Wands | `faces/wands-page.webp` | [RWS1909 - Wands 11.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_11.jpeg) | PD-old-70-expired |
+| Knight of Wands | `faces/wands-knight.webp` | [RWS1909 - Wands 12.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_12.jpeg) | PD-old-70-expired |
+| Queen of Wands | `faces/wands-queen.webp` | [RWS1909 - Wands 13.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_13.jpeg) | PD-old-70-expired |
+| King of Wands | `faces/wands-king.webp` | [RWS1909 - Wands 14.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Wands_14.jpeg) | PD-old-70-expired |
+| Ace of Cups | `faces/cups-ace.webp` | [RWS1909 - Cups 01.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_01.jpeg) | PD-old-70-expired |
+| Two of Cups | `faces/cups-two.webp` | [RWS1909 - Cups 02.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_02.jpeg) | PD-old-70-expired |
+| Three of Cups | `faces/cups-three.webp` | [RWS1909 - Cups 03.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_03.jpeg) | PD-old-70-expired |
+| Four of Cups | `faces/cups-four.webp` | [RWS1909 - Cups 04.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_04.jpeg) | PD-old-70-expired |
+| Five of Cups | `faces/cups-five.webp` | [RWS1909 - Cups 05.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_05.jpeg) | PD-old-70-expired |
+| Six of Cups | `faces/cups-six.webp` | [RWS1909 - Cups 06.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_06.jpeg) | PD-old-70-expired |
+| Seven of Cups | `faces/cups-seven.webp` | [RWS1909 - Cups 07.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_07.jpeg) | PD-old-70-expired |
+| Eight of Cups | `faces/cups-eight.webp` | [RWS1909 - Cups 08.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_08.jpeg) | PD-old-70-expired |
+| Nine of Cups | `faces/cups-nine.webp` | [RWS1909 - Cups 09.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_09.jpeg) | PD-old-70-expired |
+| Ten of Cups | `faces/cups-ten.webp` | [RWS1909 - Cups 10.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_10.jpeg) | PD-old-70-expired |
+| Page of Cups | `faces/cups-page.webp` | [RWS1909 - Cups 11.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_11.jpeg) | PD-old-70-expired |
+| Knight of Cups | `faces/cups-knight.webp` | [RWS1909 - Cups 12.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_12.jpeg) | PD-old-70-expired |
+| Queen of Cups | `faces/cups-queen.webp` | [RWS1909 - Cups 13.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_13.jpeg) | PD-old-70-expired |
+| King of Cups | `faces/cups-king.webp` | [RWS1909 - Cups 14.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Cups_14.jpeg) | PD-old-70-expired |
+| Ace of Swords | `faces/swords-ace.webp` | [RWS1909 - Swords 01.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_01.jpeg) | PD-old-70-expired |
+| Two of Swords | `faces/swords-two.webp` | [RWS1909 - Swords 02.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_02.jpeg) | PD-old-70-expired |
+| Three of Swords | `faces/swords-three.webp` | [RWS1909 - Swords 03.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_03.jpeg) | PD-old-70-expired |
+| Four of Swords | `faces/swords-four.webp` | [RWS1909 - Swords 04.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_04.jpeg) | PD-old-70-expired |
+| Five of Swords | `faces/swords-five.webp` | [RWS1909 - Swords 05.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_05.jpeg) | PD-old-70-expired |
+| Six of Swords | `faces/swords-six.webp` | [RWS1909 - Swords 06.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_06.jpeg) | PD-old-70-expired |
+| Seven of Swords | `faces/swords-seven.webp` | [RWS1909 - Swords 07.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_07.jpeg) | PD-old-70-expired |
+| Eight of Swords | `faces/swords-eight.webp` | [RWS1909 - Swords 08.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_08.jpeg) | PD-old-70-expired |
+| Nine of Swords | `faces/swords-nine.webp` | [RWS1909 - Swords 09.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_09.jpeg) | PD-old-70-expired |
+| Ten of Swords | `faces/swords-ten.webp` | [RWS1909 - Swords 10.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_10.jpeg) | PD-old-70-expired |
+| Page of Swords | `faces/swords-page.webp` | [RWS1909 - Swords 11.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_11.jpeg) | PD-old-70-expired |
+| Knight of Swords | `faces/swords-knight.webp` | [RWS1909 - Swords 12.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_12.jpeg) | PD-old-70-expired |
+| Queen of Swords | `faces/swords-queen.webp` | [RWS1909 - Swords 13.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_13.jpeg) | PD-old-70-expired |
+| King of Swords | `faces/swords-king.webp` | [RWS1909 - Swords 14.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Swords_14.jpeg) | PD-old-70-expired |
+| Ace of Pentacles | `faces/pentacles-ace.webp` | [RWS1909 - Pentacles 01.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_01.jpeg) | PD-old-70-expired |
+| Two of Pentacles | `faces/pentacles-two.webp` | [RWS1909 - Pentacles 02.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_02.jpeg) | PD-old-70-expired |
+| Three of Pentacles | `faces/pentacles-three.webp` | [RWS1909 - Pentacles 03.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_03.jpeg) | PD-old-70-expired |
+| Four of Pentacles | `faces/pentacles-four.webp` | [RWS1909 - Pentacles 04.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_04.jpeg) | PD-old-70-expired |
+| Five of Pentacles | `faces/pentacles-five.webp` | [RWS1909 - Pentacles 05.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_05.jpeg) | PD-old-70-expired |
+| Six of Pentacles | `faces/pentacles-six.webp` | [RWS1909 - Pentacles 06.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_06.jpeg) | PD-old-70-expired |
+| Seven of Pentacles | `faces/pentacles-seven.webp` | [RWS1909 - Pentacles 07.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_07.jpeg) | PD-old-70-expired |
+| Eight of Pentacles | `faces/pentacles-eight.webp` | [RWS1909 - Pentacles 08.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_08.jpeg) | PD-old-70-expired |
+| Nine of Pentacles | `faces/pentacles-nine.webp` | [RWS1909 - Pentacles 09.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_09.jpeg) | PD-old-70-expired |
+| Ten of Pentacles | `faces/pentacles-ten.webp` | [RWS1909 - Pentacles 10.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_10.jpeg) | PD-old-70-expired |
+| Page of Pentacles | `faces/pentacles-page.webp` | [RWS1909 - Pentacles 11.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_11.jpeg) | PD-old-70-expired |
+| Knight of Pentacles | `faces/pentacles-knight.webp` | [RWS1909 - Pentacles 12.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_12.jpeg) | PD-old-70-expired |
+| Queen of Pentacles | `faces/pentacles-queen.webp` | [RWS1909 - Pentacles 13.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_13.jpeg) | PD-old-70-expired |
+| King of Pentacles | `faces/pentacles-king.webp` | [RWS1909 - Pentacles 14.jpeg](https://commons.wikimedia.org/wiki/File:RWS1909_-_Pentacles_14.jpeg) | PD-old-70-expired |
