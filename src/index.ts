@@ -4,6 +4,7 @@ import { app } from './app/context.js';
 import { panelRegistry } from './ui/panels.js';
 import { LandingSystem } from './systems/landingSystem.js';
 import { PlacementSystem } from './systems/placementSystem.js';
+import { ReadingFlowSystem } from './systems/readingFlowSystem.js';
 import { ReadingStatusSystem } from './systems/readingStatusSystem.js';
 import { TableSystem } from './systems/tableSystem.js';
 import { ThemeLightingSystem } from './systems/themeLightingSystem.js';
@@ -17,6 +18,7 @@ World.create(
     .registerSystem(ThemeLightingSystem)
     .registerSystem(TableSystem)
     .registerSystem(PlacementSystem)
+    .registerSystem(ReadingFlowSystem)
     .registerSystem(LandingSystem);
 
   if (import.meta.env.DEV) {
@@ -25,6 +27,7 @@ World.create(
       app,
       world,
       placement: world.getSystem(PlacementSystem),
+      flow: world.getSystem(ReadingFlowSystem),
       panels: panelRegistry,
     };
   }

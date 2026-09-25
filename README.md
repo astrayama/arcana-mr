@@ -23,7 +23,7 @@ in the IWSDK emulator first, then on a real Quest 3.
 | 3 | Card data (78 cards, upright and reversed, with validator) | In progress: voice review of 5 samples |
 | 4 | Art pack (public-domain 1909 Rider-Waite-Smith) | Done |
 | 5 | Table placement | Built, awaiting headset test |
-| 6 | Menu, shuffle, deal | Not started |
+| 6 | Menu, shuffle, deal | Done |
 | 7 | Flipping with hands and controllers | Not started |
 | 8 | Meaning panels | Not started |
 | 9 | Dark and gold theme | Not started |

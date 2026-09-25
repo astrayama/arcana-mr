@@ -227,6 +227,11 @@ export function buildCard(materials: CardMaterials, geometry: CardGeometry): Car
   return { root, pivot, face, glow };
 }
 
+/** Height of the deck pile for a deck of `cardCount` cards. */
+export function deckStackHeight(cardCount: number): number {
+  return Math.max(cardCount, 1) * config.card.thicknessM * 0.28;
+}
+
 /** The face-down deck: a short rounded stack with the card back on top. */
 export function buildDeckPile(
   materials: CardMaterials,
@@ -235,7 +240,7 @@ export function buildDeckPile(
   cardCount: number,
 ): Object3D {
   const r = widthM * CARD_CORNER;
-  const stackHeight = Math.max(cardCount, 1) * config.card.thicknessM * 0.28;
+  const stackHeight = deckStackHeight(cardCount);
   const group = new Group();
   group.name = 'DeckPile';
 
