@@ -16,12 +16,15 @@ import { app } from '../app/context.js';
 import { config } from '../config.js';
 import { CardGrabProxy, TarotCard } from '../components/tarotCard.js';
 import { ease, Tweens } from '../lib/tween.js';
+import { MeaningSystem } from './meaningSystem.js';
 import { ReadingFlowSystem, type DealtCard } from './readingFlowSystem.js';
 
 const FLIP_SECONDS = 0.6;
 const FLIP_LIFT_M = 0.05;
 /** How quickly hover feedback eases in and out (per second). */
 const HOVER_RATE = 12;
+/** Glow on the card whose meaning is showing, as a share of the hover glow. */
+const FOCUS_GLOW = 0.45;
 /** Extra reach around a card for near grabs, in meters. */
 const GRAB_MARGIN_M = 0.012;
 
@@ -48,11 +51,13 @@ export class CardInteractionSystem extends createSystem({
   private readonly feel = new Map<Entity, CardFeel>();
   private readonly baseY = config.card.thicknessM / 2;
   private flow!: ReadingFlowSystem;
+  private meaning!: MeaningSystem;
   private proxyGeometry!: BoxGeometry;
   private proxyMaterial!: MeshBasicMaterial;
 
   init(): void {
     this.flow = this.world.getSystem(ReadingFlowSystem)!;
+    this.meaning = this.world.getSystem(MeaningSystem)!;
     this.proxyGeometry = new BoxGeometry(
       config.card.widthM + GRAB_MARGIN_M * 2,
       GRAB_MARGIN_M * 2,
@@ -92,8 +97,9 @@ export class CardInteractionSystem extends createSystem({
       if (!card || !feel) continue;
       const target = live && entity.hasComponent(Hovered) ? 1 : 0;
       feel.hover += (target - feel.hover) * step;
+      const focused = live && this.meaning.focusedSlot === card.slot ? FOCUS_GLOW : 0;
       card.visual.pivot.position.y = this.baseY + feel.hover * hoverLiftM + feel.flipLift;
-      card.visual.glow.material.opacity = feel.hover * intensity;
+      card.visual.glow.material.opacity = Math.max(feel.hover, focused) * intensity;
     }
   }
 

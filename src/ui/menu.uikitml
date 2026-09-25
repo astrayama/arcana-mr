@@ -145,7 +145,7 @@
   }
 </style>
 <div id="menu" class="mn-root">
-  <div class="mn-title">Arcana</div>
+  <div id="mn-title" class="mn-title">Arcana</div>
   <div id="mn-status" class="mn-status">Take a breath. When you are ready, choose a reading.</div>
 
   <div id="mn-choices" class="mn-choices">

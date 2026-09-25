@@ -16,6 +16,8 @@ export const config = {
     theme: 'theme',
     /** `?placement=fallback` skips table detection, for testing the no-table path. */
     placement: 'placement',
+    /** `?layout=focus` or `?layout=triptych` picks the meaning panel layout (under review). */
+    layout: 'layout',
   },
 
   reading: {
@@ -49,6 +51,18 @@ export const config = {
     deckZ: -0.1,
     /** How far the mat sits above the detected surface, to avoid flicker. */
     surfaceOffsetM: 0.002,
+  },
+
+  ui: {
+    /**
+     * Size multiplier for the in-world panels (menu, placement, meanings).
+     * Meta's guidance is about 1.5 degrees of visual angle for body text; at
+     * 1.15 the meaning text is roughly 1.2 degrees at a 75 cm reading distance.
+     * Raise this if text feels small in the headset.
+     */
+    panelScale: 1.15,
+    /** Size multiplier for the small labels by each flipped card. */
+    labelScale: 1,
   },
 
   placement: {

@@ -4,6 +4,7 @@ import { app } from './app/context.js';
 import { panelRegistry } from './ui/panels.js';
 import { CardInteractionSystem } from './systems/cardInteractionSystem.js';
 import { LandingSystem } from './systems/landingSystem.js';
+import { MeaningSystem } from './systems/meaningSystem.js';
 import { PlacementSystem } from './systems/placementSystem.js';
 import { ReadingFlowSystem } from './systems/readingFlowSystem.js';
 import { ReadingStatusSystem } from './systems/readingStatusSystem.js';
@@ -20,6 +21,7 @@ World.create(
     .registerSystem(TableSystem)
     .registerSystem(PlacementSystem)
     .registerSystem(ReadingFlowSystem)
+    .registerSystem(MeaningSystem)
     .registerSystem(CardInteractionSystem)
     .registerSystem(LandingSystem);
 
@@ -30,6 +32,7 @@ World.create(
       world,
       placement: world.getSystem(PlacementSystem),
       flow: world.getSystem(ReadingFlowSystem),
+      meaning: world.getSystem(MeaningSystem),
       panels: panelRegistry,
       Raycaster,
     };

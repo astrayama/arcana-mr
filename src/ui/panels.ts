@@ -23,6 +23,8 @@ export interface PanelOptions {
   parent?: Entity;
   slot?: number;
   name?: string;
+  /** Uniform size multiplier for the whole panel. */
+  scale?: number;
 }
 
 /** Live panels by key ("placement", "menu", "meaning-0", ...), for dev tooling and tests. */
@@ -32,6 +34,7 @@ export const panelRegistry = new Map<string, Entity>();
 export function createPanel(world: World, options: PanelOptions): Entity {
   const entity = world.createTransformEntity(undefined, options.parent ?? { persistent: true });
   entity.object3D!.name = options.name ?? `${options.kind}Panel`;
+  entity.object3D!.scale.setScalar(options.scale ?? 1);
   entity.addComponent(UiPanel, { kind: options.kind, slot: options.slot ?? -1 });
   entity.addComponent(PanelUI, {
     config: themedPanelUrl(options.kind, options.template, app.theme),

@@ -1,0 +1,65 @@
+<!--
+  Compact label that stands in front of a flipped card (focus layout).
+  Theme template: double-brace tokens are filled from the active theme.
+-->
+<style>
+  {{fontFaces}}
+
+  .lb-root {
+    flex-direction: column;
+    align-items: center;
+    width: 11;
+    padding-top: 0.6;
+    padding-bottom: 0.7;
+    padding-left: 0.6;
+    padding-right: 0.6;
+    background-color: {{colors.panelBackground}};
+    border-color: {{colors.panelBorder}};
+    border-width: 0.1;
+    border-radius: 1;
+    cursor: pointer;
+  }
+
+  .lb-root:hover {
+    border-color: {{colors.highlight}};
+  }
+
+  .lb-position {
+    {{bodyFont}}
+    font-size: 0.95;
+    font-weight: semi-bold;
+    letter-spacing: 0.15;
+    color: {{colors.panelMuted}};
+  }
+
+  .lb-name {
+    {{headingFont}}
+    margin-top: 0.2;
+    font-size: 1.25;
+    font-weight: semi-bold;
+    text-align: center;
+    color: {{colors.panelText}};
+  }
+
+  .lb-up {
+    {{bodyFont}}
+    margin-top: 0.2;
+    font-size: 0.95;
+    font-weight: semi-bold;
+    color: {{colors.upright}};
+  }
+
+  .lb-rev {
+    {{bodyFont}}
+    margin-top: 0.2;
+    font-size: 0.95;
+    font-weight: semi-bold;
+    color: {{colors.reversed}};
+  }
+</style>
+<div id="label" class="lb-root">
+  <div id="lb-position" class="lb-position">PAST</div>
+  <div id="lb-name" class="lb-name">Card name</div>
+  <div id="lb-up" class="lb-up">Upright</div>
+  <div id="lb-rev" class="lb-rev" style="display: none">Reversed</div>
+</div>

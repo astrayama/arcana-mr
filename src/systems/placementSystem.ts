@@ -94,6 +94,7 @@ export class PlacementSystem extends createSystem({
       template: placementTemplate,
       parent: this.matEntity,
       name: 'PlacementPanel',
+      scale: config.ui.panelScale,
     });
     // Stand the panel just past the far edge of the mat, tipped back toward the reader.
     this.panel.object3D!.position.set(0, 0.2, -matDepthM / 2 - 0.03);

@@ -75,9 +75,9 @@ export class ReadingFlowSystem extends createSystem({
       template: menuTemplate,
       parent: this.table.mat,
       name: 'MenuPanel',
+      scale: config.ui.panelScale,
     });
-    this.menu.object3D!.position.set(0, 0.2, -config.layout.matDepthM / 2 - 0.03);
-    this.menu.object3D!.rotation.x = -0.35;
+    this.placeMenu('IDLE');
 
     // Loose cards used only for the shuffle animation, kept hidden otherwise.
     this.shuffleRig = this.world.createTransformEntity(undefined, { parent: this.table.mat });
@@ -132,14 +132,33 @@ export class ReadingFlowSystem extends createSystem({
     }
   }
 
+  /**
+   * Between readings the menu stands above the far edge of the mat. During a
+   * reading it drops to a low, compact spot behind the deck so the meaning
+   * panels have the space above the table.
+   */
+  private placeMenu(state: ReadingStateName): void {
+    const menu = this.menu.object3D!;
+    const farEdge = -config.layout.matDepthM / 2;
+    if (state === 'IDLE' || state === 'PLACING') {
+      menu.position.set(0, 0.2, farEdge - 0.03);
+      menu.rotation.set(-0.35, 0, 0);
+    } else {
+      menu.position.set(0, 0.045, farEdge - 0.03);
+      menu.rotation.set(-0.75, 0, 0);
+    }
+  }
+
   private refreshMenu(snapshot: ReadingSnapshot): void {
     const state = snapshot.state;
     setPanelActive(this.menu, state !== 'PLACING');
+    this.placeMenu(state);
     const document = panelDocument(this.menu);
     if (!document || state === 'PLACING') return;
     setText(document, 'mn-status', STATUS[state](snapshot));
     const show = (id: string, visible: boolean) =>
       document.getElementById(id)?.setProperties({ display: visible ? 'flex' : 'none' });
+    show('mn-title', state === 'IDLE');
     show('mn-choices', state === 'IDLE');
     show('mn-move', state === 'IDLE');
     show('mn-new', state === 'AWAITING_FLIPS' || state === 'REVEALED');

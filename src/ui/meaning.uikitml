@@ -1,0 +1,151 @@
+<!--
+  Meaning panel: everything about one flipped card. Filled in by MeaningSystem.
+  Theme template: double-brace tokens are filled from the active theme.
+  Sized in UIKit units (centimeters) for reading at roughly 60 to 80 cm.
+-->
+<style>
+  {{fontFaces}}
+
+  .mg-root {
+    flex-direction: column;
+    width: 30;
+    padding-top: 1.8;
+    padding-bottom: 2;
+    padding-left: 2.2;
+    padding-right: 2.2;
+    background-color: {{colors.panelBackground}};
+    border-color: {{colors.panelBorder}};
+    border-width: 0.12;
+    border-radius: {{panelRadius}};
+  }
+
+  .mg-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mg-position {
+    {{bodyFont}}
+    font-size: 1.2;
+    font-weight: semi-bold;
+    letter-spacing: 0.2;
+    color: {{colors.panelMuted}};
+  }
+
+  .mg-badge {
+    padding-top: 0.35;
+    padding-bottom: 0.35;
+    padding-left: 1;
+    padding-right: 1;
+    border-radius: 1;
+  }
+
+  .mg-badge-up {
+    background-color: {{colors.upright}};
+  }
+
+  .mg-badge-rev {
+    background-color: {{colors.reversed}};
+  }
+
+  .mg-badge-text {
+    {{bodyFont}}
+    font-size: 1.15;
+    font-weight: semi-bold;
+    color: {{colors.accentText}};
+  }
+
+  .mg-name {
+    {{headingFont}}
+    margin-top: 0.6;
+    font-size: 2.5;
+    font-weight: semi-bold;
+    color: {{colors.accent}};
+  }
+
+  .mg-keywords {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.6;
+    margin-top: 1;
+  }
+
+  .mg-keyword {
+    {{bodyFont}}
+    padding-top: 0.3;
+    padding-bottom: 0.3;
+    padding-left: 0.9;
+    padding-right: 0.9;
+    border-radius: 1;
+    border-width: 0.1;
+    border-color: {{colors.panelBorder}};
+    font-size: 1.2;
+    color: {{colors.panelText}};
+  }
+
+  .mg-divider {
+    height: 0.1;
+    margin-top: 1.4;
+    margin-bottom: 1.2;
+    background-color: {{colors.panelBorder}};
+  }
+
+  .mg-read {
+    {{bodyFont}}
+    font-size: 1.4;
+    line-height: 1.45;
+    color: {{colors.panelText}};
+  }
+
+  .mg-prompt-box {
+    flex-direction: column;
+    margin-top: 1.6;
+    padding-top: 1.1;
+    padding-bottom: 1.2;
+    padding-left: 1.4;
+    padding-right: 1.4;
+    border-radius: 1.2;
+    border-width: 0.1;
+    border-color: {{colors.accent}};
+  }
+
+  .mg-prompt-label {
+    {{bodyFont}}
+    font-size: 1.1;
+    font-weight: semi-bold;
+    letter-spacing: 0.2;
+    color: {{colors.accent}};
+  }
+
+  .mg-prompt {
+    {{headingFont}}
+    margin-top: 0.5;
+    font-size: 1.55;
+    line-height: 1.4;
+    color: {{colors.panelText}};
+  }
+</style>
+<div id="meaning" class="mg-root">
+  <div class="mg-header">
+    <div id="mg-position" class="mg-position">YOUR CARD</div>
+    <div id="mg-badge-up" class="mg-badge mg-badge-up">
+      <div class="mg-badge-text">Upright</div>
+    </div>
+    <div id="mg-badge-rev" class="mg-badge mg-badge-rev" style="display: none">
+      <div class="mg-badge-text">Reversed</div>
+    </div>
+  </div>
+  <div id="mg-name" class="mg-name">Card name</div>
+  <div class="mg-keywords">
+    <div id="mg-kw-0" class="mg-keyword">one</div>
+    <div id="mg-kw-1" class="mg-keyword">two</div>
+    <div id="mg-kw-2" class="mg-keyword">three</div>
+  </div>
+  <div class="mg-divider"></div>
+  <div id="mg-read" class="mg-read">The read goes here.</div>
+  <div class="mg-prompt-box">
+    <div class="mg-prompt-label">TO REFLECT ON</div>
+    <div id="mg-prompt" class="mg-prompt">The reflection question goes here?</div>
+  </div>
+</div>

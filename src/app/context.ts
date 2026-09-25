@@ -8,6 +8,7 @@ import cardsJson from '../data/cards.json';
 import { validateCards, type CardData } from '../data/cards.schema.js';
 import { getDeck, listDeckIds, type ResolvedDeck } from '../decks/registry.js';
 import { pickFromUrl } from '../lib/urlOverrides.js';
+import { drawCards, type DrawnCard } from '../lib/shuffle.js';
 import { ReadingMachine } from '../state/readingMachine.js';
 import { getTheme, listThemeIds, type ResolvedTheme } from '../themes/registry.js';
 
@@ -52,6 +53,25 @@ export function createAppContext(search: string): AppContext {
 
   console.info(`[arcana] deck=${deck.manifest.id} theme=${theme.theme.id} cards=${cards.length}`);
 
+  // Dev builds only: `?draw=id,id:R,id` deals those cards (":R" = reversed) so
+  // specific cards can be checked in the headset. Ignored in production.
+  let draw = drawCards;
+  const forced = import.meta.env.DEV ? new URLSearchParams(search).get('draw') : null;
+  if (forced) {
+    const picks: DrawnCard[] = forced.split(',').map((token) => {
+      const [cardId, flag] = token.trim().split(':');
+      return { cardId, reversed: flag?.toUpperCase() === 'R' };
+    });
+    const valid = picks.filter((p) => cards.some((c) => c.id === p.cardId));
+    if (valid.length > 0) {
+      console.info(`[arcana] dev draw override: ${valid.map((p) => p.cardId).join(', ')}`);
+      draw = (ids, count, chance) => {
+        const fill = drawCards(ids.filter((id) => !valid.some((p) => p.cardId === id)), count, chance);
+        return [...valid, ...fill].slice(0, count);
+      };
+    }
+  }
+
   return {
     cards: new Map(cards.map((card) => [card.id, card])),
     deck,
@@ -59,6 +79,7 @@ export function createAppContext(search: string): AppContext {
     machine: new ReadingMachine({
       cardIds: drawable,
       reversalChance: config.reading.reversalChance,
+      draw,
     }),
     cardHeightM: config.card.widthM / deck.manifest.aspectRatio,
   };
