@@ -9,6 +9,7 @@ import { MeaningSystem } from './systems/meaningSystem.js';
 import { PlacementSystem } from './systems/placementSystem.js';
 import { ReadingFlowSystem } from './systems/readingFlowSystem.js';
 import { ReadingStatusSystem } from './systems/readingStatusSystem.js';
+import { SessionSystem } from './systems/sessionSystem.js';
 import { TableSystem } from './systems/tableSystem.js';
 import { ThemeLightingSystem } from './systems/themeLightingSystem.js';
 
@@ -18,6 +19,7 @@ World.create(
 ).then((world) => {
   world
     .registerSystem(ReadingStatusSystem)
+    .registerSystem(SessionSystem)
     .registerSystem(ThemeLightingSystem)
     .registerSystem(TableSystem)
     .registerSystem(AmbientSystem)

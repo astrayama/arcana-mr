@@ -53,6 +53,14 @@ export const config = {
     surfaceOffsetM: 0.002,
   },
 
+  xr: {
+    /**
+     * Quest Browser starts WebXR at 72 Hz. Ask for this rate when the headset
+     * supports it; set to null to keep the browser default.
+     */
+    targetFrameRate: 90 as number | null,
+  },
+
   ui: {
     /**
      * Size multiplier for the in-world panels (menu, placement, meanings).

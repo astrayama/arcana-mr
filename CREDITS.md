@@ -10,6 +10,15 @@
   `@pmndrs/msdfonts`.
 - **Icons:** Lucide (ISC license), through `@pmndrs/uikit-lucide`.
 
+## Controller and hand models: `public/input-profiles`
+
+Copies of the Meta Quest controller and generic hand models from
+[@webxr-input-profiles/assets](https://github.com/immersive-web/webxr-input-profiles)
+1.0.20, MIT License, Copyright (c) 2019 Amazon (see
+`public/input-profiles/LICENSE.md`). They are served from this site so the app
+makes no requests to a public CDN. Device names and shapes are trademarks of
+their owners.
+
 ## Card art: `src/decks/rws-1909`
 
 The `rws-1909` deck uses scans of an original 1909 printing of the
