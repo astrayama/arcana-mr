@@ -12,18 +12,23 @@ with a short read and a question to sit with. Nothing here predicts the future.
 
 ## Progress
 
-- [x] 0. Recon and defaults confirmed
-- [x] 1. Scaffold (IWSDK, TypeScript, mixed reality)
-- [x] 2. Architecture skeleton (config, reading state machine, deck and theme loaders)
-- [ ] 3. Card data (78 cards, upright and reversed, with validator)
-- [x] 4. Art pack (public-domain 1909 Rider-Waite-Smith)
-- [ ] 5. Table placement
-- [ ] 6. Menu, shuffle, deal
-- [ ] 7. Flipping with hands and controllers
-- [ ] 8. Meaning panels
-- [ ] 9. Dark and gold theme
-- [ ] 10. QA and performance
-- [ ] 11. Deploy
+Built one checkpoint at a time. Checkpoints marked "headset test" are verified
+in the IWSDK emulator first, then on a real Quest 3.
+
+| # | Checkpoint | Status |
+| --- | --- | --- |
+| 0 | Recon and defaults confirmed | Done |
+| 1 | Scaffold (IWSDK, TypeScript, mixed reality) | Built, awaiting headset test |
+| 2 | Architecture skeleton (config, reading state machine, deck and theme loaders) | Done |
+| 3 | Card data (78 cards, upright and reversed, with validator) | In progress: voice review of 5 samples |
+| 4 | Art pack (public-domain 1909 Rider-Waite-Smith) | Done |
+| 5 | Table placement | Built, awaiting headset test |
+| 6 | Menu, shuffle, deal | Not started |
+| 7 | Flipping with hands and controllers | Not started |
+| 8 | Meaning panels | Not started |
+| 9 | Dark and gold theme | Not started |
+| 10 | QA and performance | Not started |
+| 11 | Deploy | Not started |
 
 ## Run it
 

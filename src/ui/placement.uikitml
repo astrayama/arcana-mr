@@ -1,0 +1,179 @@
+<!--
+  Placement panel: confirm or adjust where the reading mat landed.
+  Theme template: double-brace tokens are filled from the active theme.
+  Sizes are in UIKit units (centimeters) for a panel about 70 cm from the eyes.
+-->
+<style>
+  {{fontFaces}}
+
+  .pl-root {
+    flex-direction: column;
+    align-items: center;
+    width: 36;
+    padding-top: 2;
+    padding-bottom: 2;
+    padding-left: 2;
+    padding-right: 2;
+    background-color: {{colors.panelBackground}};
+    border-color: {{colors.panelBorder}};
+    border-width: 0.12;
+    border-radius: {{panelRadius}};
+  }
+
+  .pl-title {
+    {{headingFont}}
+    font-size: 2.2;
+    font-weight: semi-bold;
+    color: {{colors.accent}};
+  }
+
+  .pl-status {
+    {{bodyFont}}
+    margin-top: 0.8;
+    width: 31;
+    font-size: 1.35;
+    line-height: 1.35;
+    text-align: center;
+    color: {{colors.panelText}};
+  }
+
+  .pl-group {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7;
+    margin-top: 1.4;
+  }
+
+  .pl-label {
+    {{bodyFont}}
+    width: 5.2;
+    font-size: 1.2;
+    color: {{colors.panelMuted}};
+  }
+
+  .pl-icon-btn {
+    width: 4.2;
+    height: 4.2;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1;
+    border-width: 0.1;
+    border-color: {{colors.panelBorder}};
+    cursor: pointer;
+  }
+
+  .pl-icon-btn:hover {
+    background-color: {{colors.panelBorder}};
+  }
+
+  .pl-icon {
+    width: 2.2;
+    height: 2.2;
+    color: {{colors.panelText}};
+  }
+
+  .pl-spacer {
+    width: 1.4;
+  }
+
+  .pl-actions {
+    flex-direction: row;
+    gap: 1;
+    margin-top: 1.8;
+  }
+
+  .pl-btn {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6;
+    padding-top: 1;
+    padding-bottom: 1;
+    padding-left: 1.6;
+    padding-right: 1.6;
+    border-radius: 1.2;
+    cursor: pointer;
+  }
+
+  .pl-secondary {
+    border-width: 0.1;
+    border-color: {{colors.panelBorder}};
+  }
+
+  .pl-secondary:hover {
+    background-color: {{colors.panelBorder}};
+  }
+
+  .pl-primary {
+    margin-top: 1.4;
+    padding-left: 3;
+    padding-right: 3;
+    background-color: {{colors.accent}};
+  }
+
+  .pl-primary:hover {
+    background-color: {{colors.highlight}};
+  }
+
+  .pl-btn-icon {
+    width: 1.8;
+    height: 1.8;
+    color: {{colors.panelText}};
+  }
+
+  .pl-btn-text {
+    {{bodyFont}}
+    font-size: 1.4;
+    font-weight: medium;
+    color: {{colors.panelText}};
+  }
+
+  .pl-primary-icon {
+    width: 1.9;
+    height: 1.9;
+    color: {{colors.accentText}};
+  }
+
+  .pl-primary-text {
+    {{bodyFont}}
+    font-size: 1.6;
+    font-weight: semi-bold;
+    color: {{colors.accentText}};
+  }
+</style>
+<div id="placement" class="pl-root">
+  <div class="pl-title">Is this the right spot?</div>
+  <div id="pl-status" class="pl-status">Looking for your table...</div>
+
+  <div class="pl-group">
+    <div class="pl-label">Slide</div>
+    <div id="pl-left" class="pl-icon-btn"><MoveLeft class="pl-icon"></MoveLeft></div>
+    <div id="pl-right" class="pl-icon-btn"><MoveRight class="pl-icon"></MoveRight></div>
+    <div id="pl-farther" class="pl-icon-btn"><MoveUp class="pl-icon"></MoveUp></div>
+    <div id="pl-closer" class="pl-icon-btn"><MoveDown class="pl-icon"></MoveDown></div>
+  </div>
+  <div class="pl-group">
+    <div class="pl-label">Turn</div>
+    <div id="pl-turn-left" class="pl-icon-btn"><RotateCcw class="pl-icon"></RotateCcw></div>
+    <div id="pl-turn-right" class="pl-icon-btn"><RotateCw class="pl-icon"></RotateCw></div>
+    <div class="pl-spacer"></div>
+    <div class="pl-label">Height</div>
+    <div id="pl-lower" class="pl-icon-btn"><ChevronsDown class="pl-icon"></ChevronsDown></div>
+    <div id="pl-higher" class="pl-icon-btn"><ChevronsUp class="pl-icon"></ChevronsUp></div>
+  </div>
+
+  <div class="pl-actions">
+    <div id="pl-find" class="pl-btn pl-secondary">
+      <ScanSearch class="pl-btn-icon"></ScanSearch>
+      <div class="pl-btn-text">Find my table</div>
+    </div>
+    <div id="pl-here" class="pl-btn pl-secondary">
+      <LocateFixed class="pl-btn-icon"></LocateFixed>
+      <div class="pl-btn-text">In front of me</div>
+    </div>
+  </div>
+  <div id="pl-confirm" class="pl-btn pl-primary">
+    <Check class="pl-primary-icon"></Check>
+    <div class="pl-primary-text">Looks good</div>
+  </div>
+</div>

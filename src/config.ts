@@ -14,6 +14,8 @@ export const config = {
   urlParams: {
     deck: 'deck',
     theme: 'theme',
+    /** `?placement=fallback` skips table detection, for testing the no-table path. */
+    placement: 'placement',
   },
 
   reading: {
@@ -62,6 +64,8 @@ export const config = {
     tableHeightRangeM: [0.35, 1.2] as const,
     /** Smallest plane edge (meters) that can hold the mat. */
     minTableEdgeM: 0.3,
+    /** Surfaces farther than this from the reader (meters) are ignored. */
+    maxTableDistanceM: 2.5,
   },
 } as const;
 
