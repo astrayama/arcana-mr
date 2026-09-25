@@ -1,7 +1,8 @@
-import { World } from '@iwsdk/core';
+import { Raycaster, World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { app } from './app/context.js';
 import { panelRegistry } from './ui/panels.js';
+import { CardInteractionSystem } from './systems/cardInteractionSystem.js';
 import { LandingSystem } from './systems/landingSystem.js';
 import { PlacementSystem } from './systems/placementSystem.js';
 import { ReadingFlowSystem } from './systems/readingFlowSystem.js';
@@ -19,6 +20,7 @@ World.create(
     .registerSystem(TableSystem)
     .registerSystem(PlacementSystem)
     .registerSystem(ReadingFlowSystem)
+    .registerSystem(CardInteractionSystem)
     .registerSystem(LandingSystem);
 
   if (import.meta.env.DEV) {
@@ -29,6 +31,7 @@ World.create(
       placement: world.getSystem(PlacementSystem),
       flow: world.getSystem(ReadingFlowSystem),
       panels: panelRegistry,
+      Raycaster,
     };
   }
 });

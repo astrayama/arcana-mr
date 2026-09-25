@@ -32,15 +32,18 @@ export class LandingSystem extends createSystem({
       width: '36vw',
       height: '40vh',
     });
-    this.panel.addComponent(RayInteractable);
 
     this.cleanupFuncs.push(
       this.queries.panels.subscribe('qualify', (entity) => {
         if (entity === this.panel) this.wire(entity);
       }),
       this.world.visibilityState.subscribe((state) => {
-        // The landing card only belongs in the flat browser view.
-        this.panel.object3D!.visible = state === VisibilityState.NonImmersive;
+        // The landing card only belongs in the flat browser view; in the headset
+        // it is hidden and must not catch rays.
+        const flat = state === VisibilityState.NonImmersive;
+        this.panel.object3D!.visible = flat;
+        if (flat && !this.panel.hasComponent(RayInteractable)) this.panel.addComponent(RayInteractable);
+        if (!flat && this.panel.hasComponent(RayInteractable)) this.panel.removeComponent(RayInteractable);
       }),
     );
   }
