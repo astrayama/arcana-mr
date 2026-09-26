@@ -8,7 +8,34 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { iwsdkDev } from '@iwsdk/vite-plugin-dev';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+
+/**
+ * Dev server only: receives log lines from src/dev/deviceLog.ts so errors
+ * that happen in the headset show up in the dev server log on the computer.
+ */
+function deviceLogRelay(): Plugin {
+  return {
+    name: 'arcana-device-log',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__arcana/log', (req, res) => {
+        let body = '';
+        req.on('data', (chunk) => (body += chunk));
+        req.on('end', () => {
+          try {
+            const { client, device, level, message } = JSON.parse(body);
+            server.config.logger.info(`[device ${device} ${client}] ${level}: ${message}`);
+          } catch {
+            // Ignore malformed lines.
+          }
+          res.statusCode = 204;
+          res.end();
+        });
+      });
+    },
+  };
+}
 
 type BundledFont = NonNullable<
   NonNullable<Parameters<typeof iwsdkDev>[0]>['bundle']
@@ -34,7 +61,7 @@ function themeFonts(): BundledFont {
 }
 
 export default defineConfig({
-  plugins: [iwsdkDev({ bundle: { fonts: themeFonts() } })],
+  plugins: [iwsdkDev({ bundle: { fonts: themeFonts() } }), deviceLogRelay()],
   server: { host: '0.0.0.0', port: 8081, open: false },
   build: {
     outDir: 'dist',

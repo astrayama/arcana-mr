@@ -11,7 +11,17 @@ import {
 import { app } from '../app/context.js';
 import { UiPanel } from '../components/ui.js';
 import landingTemplate from '../ui/landing.uikitml?raw';
+import { setText } from '../ui/panels.js';
 import { themedPanelUrl } from '../ui/themedPanel.js';
+
+/** How long to wait for the headset view after tapping Begin before explaining. */
+const START_TIMEOUT_MS = 5000;
+
+const NOTES = {
+  noXR: 'This page opens in a headset. Visit it in the Meta Quest Browser to begin.',
+  didNotStart:
+    'The headset view did not open. Reload the page and tap Begin again. If it keeps happening, make sure the address starts with https://.',
+} as const;
 
 /** The flat-browser welcome card with the button that starts the headset session. */
 export class LandingSystem extends createSystem({
@@ -52,8 +62,42 @@ export class LandingSystem extends createSystem({
     const document = entity.getValue(PanelDocument, 'document') as UIKitDocument;
     const enter = document.getElementById('landing-enter');
     if (!enter) return;
-    const launch = () => this.world.launchXR();
+    const note = (text: string | null) => {
+      if (text) setText(document, 'landing-note', text);
+      document.getElementById('landing-note')?.setProperties({ display: text ? 'flex' : 'none' });
+    };
+
+    navigator.xr?.isSessionSupported('immersive-ar').then(
+      (supported) => {
+        if (!supported) note(NOTES.noXR);
+      },
+      () => note(NOTES.noXR),
+    );
+    if (!navigator.xr) note(NOTES.noXR);
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const launch = () => {
+      note(null);
+      try {
+        this.world.launchXR();
+      } catch (error) {
+        console.error('[arcana] could not start the headset view', error);
+        note(NOTES.didNotStart);
+        return;
+      }
+      // IWSDK only logs a failed start, so check back and explain if nothing opened.
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (this.world.visibilityState.peek() === VisibilityState.NonImmersive) {
+          console.warn('[arcana] headset view did not start after Begin');
+          note(NOTES.didNotStart);
+        }
+      }, START_TIMEOUT_MS);
+    };
     enter.addEventListener('click', launch);
-    this.cleanupFuncs.push(() => enter.removeEventListener('click', launch));
+    this.cleanupFuncs.push(
+      () => enter.removeEventListener('click', launch),
+      () => clearTimeout(timer),
+    );
   }
 }

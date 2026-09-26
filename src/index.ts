@@ -13,6 +13,11 @@ import { SessionSystem } from './systems/sessionSystem.js';
 import { TableSystem } from './systems/tableSystem.js';
 import { ThemeLightingSystem } from './systems/themeLightingSystem.js';
 
+if (import.meta.env.DEV) {
+  // Relay headset errors and XR attempts to the dev server log (dev builds only).
+  await import('./dev/deviceLog.js');
+}
+
 World.create(
   document.getElementById('scene-container') as HTMLDivElement,
   projectOptions,
