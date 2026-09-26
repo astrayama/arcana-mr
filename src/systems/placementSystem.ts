@@ -34,13 +34,14 @@ const NUDGE_HEIGHT_M = 0.01;
 const NUDGE_TURN = Math.PI / 12;
 const UP_DOT = 0.9;
 
-const STATUS = {
+export const PLACEMENT_STATUS = {
   searching: 'Looking for your table...',
-  table: 'Found your table. Nudge the mat if you like, then tap Looks good.',
-  surface: 'Found a flat surface. If it is not your table, slide the mat or tap Find my table.',
+  table: 'Found your table. Grab the mat to move it, or use the arrows, then tap Looks good.',
+  surface: 'Found a flat surface. If it is not your table, grab the mat and slide it, or tap Find my table.',
   fallback:
     "No table found, so the mat is floating in front of you. For a better fit, run Space Setup in your headset's settings, then tap Find my table.",
-  adjusting: 'Move the mat wherever you like, then tap Looks good.',
+  adjusting: 'Grab the mat and move it wherever you like, then tap Looks good.',
+  moved: 'Tap Looks good when it feels right.',
 } as const;
 
 type Mode = 'waiting' | 'searching' | 'adjusting';
@@ -60,13 +61,13 @@ export class PlacementSystem extends createSystem({
   meshes: { required: [XRMesh] },
   panels: { required: [UiPanel, PanelDocument] },
 }) {
-  private mode: Mode = 'waiting';
+  mode: Mode = 'waiting';
   private searchElapsed = 0;
   private sinceLastLook = 0;
   private mat!: Object3D;
   private matEntity!: Entity;
   private panel!: Entity;
-  private status: string = STATUS.searching;
+  private status: string = PLACEMENT_STATUS.searching;
   private forceFallback = false;
 
   private readonly head = new Vector3();
@@ -112,7 +113,7 @@ export class PlacementSystem extends createSystem({
       app.machine.subscribe((snapshot, event) => {
         if (event.type === 'REPLACE_MAT') {
           this.mode = 'adjusting';
-          this.setStatus(STATUS.adjusting);
+          this.setStatus(PLACEMENT_STATUS.adjusting);
           setPanelActive(this.panel, true);
         }
         if (snapshot.state !== 'PLACING') {
@@ -160,11 +161,11 @@ export class PlacementSystem extends createSystem({
           surfaceOffset: surfaceOffsetM,
         }),
       );
-      this.setStatus(isTable ? STATUS.table : STATUS.surface);
+      this.setStatus(isTable ? PLACEMENT_STATUS.table : PLACEMENT_STATUS.surface);
       console.info(`[arcana] mat placed on ${best.source} "${best.label || 'unlabeled'}" at ${best.y.toFixed(2)} m`);
     } else {
       this.applyPose(fallbackPose(this.head, this.forward.x, this.forward.z, config.placement.fallback));
-      this.setStatus(STATUS.fallback);
+      this.setStatus(PLACEMENT_STATUS.fallback);
       console.info('[arcana] no table found; using the fallback mat position');
     }
     this.mode = 'adjusting';
@@ -192,7 +193,7 @@ export class PlacementSystem extends createSystem({
     this.mode = 'searching';
     this.searchElapsed = 0;
     this.sinceLastLook = SEARCH_INTERVAL;
-    this.setStatus(STATUS.searching);
+    this.setStatus(PLACEMENT_STATUS.searching);
   }
 
   /** Read the head pose and a level forward direction. False until tracking has a pose. */
@@ -213,7 +214,7 @@ export class PlacementSystem extends createSystem({
    * and scene meshes may stand on local Z instead of Y), so this works from
    * whichever local axis is vertical and measures footprints in world space.
    */
-  private collectSurfaces(): SurfaceRect[] {
+  collectSurfaces(): SurfaceRect[] {
     this.rects.length = 0;
 
     for (const entity of this.queries.planes.entities) {
@@ -321,7 +322,7 @@ export class PlacementSystem extends createSystem({
   }
 
   /** Set the mat's world pose, whatever it is currently parented to. */
-  private applyPose(pose: MatPose): void {
+  applyPose(pose: MatPose): void {
     const parent = this.mat.parent;
     this.tmpVec.set(pose.x, pose.y, pose.z);
     this.tmpQuat.setFromAxisAngle(this.yAxis, pose.yaw);
@@ -335,7 +336,7 @@ export class PlacementSystem extends createSystem({
     this.mat.quaternion.copy(this.tmpQuat);
   }
 
-  private currentPose(): MatPose {
+  currentPose(): MatPose {
     const position = this.mat.getWorldPosition(this.worldPos);
     this.mat.getWorldQuaternion(this.tmpQuat);
     this.axis.set(0, 0, 1).applyQuaternion(this.tmpQuat);
@@ -355,7 +356,7 @@ export class PlacementSystem extends createSystem({
     });
   }
 
-  private setStatus(text: string): void {
+  setStatus(text: string): void {
     this.status = text;
     const document = panelDocument(this.panel);
     if (document) setText(document, 'pl-status', text);
@@ -382,7 +383,7 @@ export class PlacementSystem extends createSystem({
           if (!this.readHead()) return;
           this.mode = 'adjusting';
           this.applyPose(fallbackPose(this.head, this.forward.x, this.forward.z, config.placement.fallback));
-          this.setStatus(STATUS.adjusting);
+          this.setStatus(PLACEMENT_STATUS.adjusting);
         },
         'pl-confirm': () => this.confirm(),
       }),
