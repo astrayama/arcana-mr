@@ -53,6 +53,27 @@ export interface ThemeColors {
   reversed: string;
 }
 
+/** Built-in environment generators a theme can use for its VR surroundings. */
+export const ENVIRONMENT_KINDS = ['night-sanctum'] as const;
+
+/**
+ * VR surroundings shown instead of passthrough when the reader chooses them.
+ * `kind` picks a generator in src/environments; the rest tunes its look.
+ */
+export interface ThemeEnvironment {
+  kind: (typeof ENVIRONMENT_KINDS)[number];
+  /** Label on the menu toggle, e.g. "Night sky". */
+  label: string;
+  sky: { top: string; horizon: string; bottom: string };
+  stars: { count: number; color: string };
+  moon: { color: string } | null;
+  fog: { color: string; density: number };
+  floor: { texture: string; normal: string | null; color: string; radiusM: number };
+  stones: { texture: string; normal: string | null; color: string; count: number; ringRadiusM: number };
+  flameColor: string;
+  fireflies: { count: number; color: string } | null;
+}
+
 export interface Theme {
   /** Must match the folder name. */
   id: string;
@@ -88,6 +109,8 @@ export interface Theme {
     candles: { count: number; color: string; intensity: number } | null;
     particles: { count: number; color: string; size: number } | null;
   };
+  /** Optional VR surroundings; null means passthrough only. */
+  environment: ThemeEnvironment | null;
   /** Image-based light gradient for card and mat materials (RGBA, 0-1). */
   lighting: {
     sky: [number, number, number, number];
@@ -208,6 +231,36 @@ export function validateTheme(
       num('ambient.particles.count', t.ambient.particles.count, 0, 500);
       hex('ambient.particles.color', t.ambient.particles.color);
       num('ambient.particles.size', t.ambient.particles.size, 0, 0.05);
+    }
+  }
+
+  if (t.environment === undefined) {
+    errors.push(`${at}: "environment" missing (use null for passthrough only)`);
+  } else if (t.environment !== null) {
+    const e = t.environment;
+    if (!(ENVIRONMENT_KINDS as readonly string[]).includes(e.kind)) {
+      errors.push(`${at}: environment.kind must be one of ${ENVIRONMENT_KINDS.join(', ')}`);
+    }
+    if (typeof e.label !== 'string' || !e.label) errors.push(`${at}: environment.label missing`);
+    for (const key of ['top', 'horizon', 'bottom'] as const) hex(`environment.sky.${key}`, e.sky?.[key]);
+    num('environment.stars.count', e.stars?.count, 0, 5000);
+    hex('environment.stars.color', e.stars?.color);
+    if (e.moon) hex('environment.moon.color', e.moon.color);
+    hex('environment.fog.color', e.fog?.color);
+    num('environment.fog.density', e.fog?.density, 0, 1);
+    file('environment.floor.texture', e.floor?.texture);
+    if (e.floor?.normal) file('environment.floor.normal', e.floor.normal);
+    hex('environment.floor.color', e.floor?.color);
+    num('environment.floor.radiusM', e.floor?.radiusM, 1, 20);
+    file('environment.stones.texture', e.stones?.texture);
+    if (e.stones?.normal) file('environment.stones.normal', e.stones.normal);
+    hex('environment.stones.color', e.stones?.color);
+    num('environment.stones.count', e.stones?.count, 0, 24);
+    num('environment.stones.ringRadiusM', e.stones?.ringRadiusM, 1, 20);
+    hex('environment.flameColor', e.flameColor);
+    if (e.fireflies) {
+      num('environment.fireflies.count', e.fireflies.count, 0, 500);
+      hex('environment.fireflies.color', e.fireflies.color);
     }
   }
 

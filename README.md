@@ -63,6 +63,7 @@ Add these to the page URL while testing:
 | `?deck=rws-1909` | Use a specific deck folder. Unknown names fall back to the default with a console warning. |
 | `?theme=dark-gold` | Use a specific theme folder, with the same fallback. |
 | `?placement=fallback` | Skip table detection and use the floating fallback mat. Denying the spatial data prompt does the same on the headset. |
+| `?view=vr` | Start in the theme's VR surroundings (the night-sky sanctum) instead of passthrough. |
 | `?layout=focus` or `?layout=triptych` | Meaning panel layout for the 3-card spread (under review). |
 | `?draw=cups-queen:R,major-17-the-star` | Dev server only: deal these cards (`:R` = reversed). Ignored in production builds. |
 
@@ -75,10 +76,14 @@ separate from rendering:
 
 1. **Placing.** Arcana looks for your table: a Space Setup table first, then
    the nearest flat surface at table height that fits the mat, then a floating
-   mat in front of you. A small panel lets you slide, turn, or raise the mat,
-   search again, or confirm. Confirming anchors the mat to the room.
+   mat in front of you. Reach out and grab the mat to move it, point at it and
+   hold the trigger (or pinch) to slide it, or use the panel's arrows. It
+   settles onto the table when you let go. Confirming anchors the mat to the
+   room.
 2. **Choosing.** The menu on the mat offers a Single Card pull or a 3-Card
-   Spread (Past, Present, Future). You can also move the mat from here.
+   Spread (Past, Present, Future). You can also move the mat from here, and
+   choose what surrounds you: your own room through passthrough, or the
+   theme's VR surroundings (a night-sky sanctum in the dark and gold theme).
 3. **Shuffling and dealing.** Cards are shuffled with a Fisher-Yates shuffle
    driven by `crypto.getRandomValues`. Each drawn card can land reversed
    (50% by default, set in `src/config.ts`). A reading never repeats a card.
@@ -102,6 +107,7 @@ src/
   components/              ECS components
   ui/                      UIKitML panel templates, filled from the active theme
   visuals/                 mat, card, and deck meshes
+  environments/            VR surroundings generators (night-sky sanctum)
   data/cards.json          78 cards: keywords, reads, and reflection prompts
   data/cards.schema.ts     card types and validation rules
   decks/<id>/              art packs (deck.json + images)
@@ -160,6 +166,10 @@ A theme is a folder in `src/themes/`. Adding one needs no code changes.
      inlay line
    - `cardHighlight`: hover glow color, strength, and lift
    - `ambient`: candles and floating motes, or `null` to turn either off
+   - `environment`: the VR surroundings offered instead of passthrough, or
+     `null` for passthrough only. `kind` picks a generator in
+     `src/environments/` (currently `night-sanctum`); the other fields set its
+     sky colors, stars, moon, fog, floor and stone textures, and fireflies.
    - `lighting`: the soft light gradient on the cards and cloth
 3. Run `npm run validate:themes`, then try it with `?theme=<your-theme-id>`.
 
@@ -190,6 +200,7 @@ keywords, reads, and reflection prompts. `npm run validate` checks:
 | `npm run validate` | Card, deck, and theme validation |
 | `npm run deck:rws-1909` | Rebuild the public-domain deck from Wikimedia Commons |
 | `npm run theme:dark-gold` | Regenerate the dark-gold cloth texture |
+| `npm run theme:sanctum` | Re-download the sanctum's CC0 stone textures from Poly Haven |
 
 ## Deploy
 

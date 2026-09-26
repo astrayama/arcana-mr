@@ -3,6 +3,7 @@
  * state machine. Resolved once at startup; systems import `app` from here.
  */
 
+import { signal, type Signal } from '@iwsdk/core';
 import { config } from '../config.js';
 import cardsJson from '../data/cards.json';
 import { validateCards, type CardData } from '../data/cards.schema.js';
@@ -19,7 +20,14 @@ export interface AppContext {
   machine: ReadingMachine;
   /** Card height in meters, from the configured width and the deck's aspect ratio. */
   cardHeightM: number;
+  /**
+   * What surrounds the reading in the headset: the real room through
+   * passthrough, or the theme's VR environment. Separate from the reading flow.
+   */
+  surroundings: Signal<Surroundings>;
 }
+
+export type Surroundings = 'room' | 'vr';
 
 function loadCards(): CardData[] {
   if (import.meta.env.DEV) {
@@ -82,6 +90,11 @@ export function createAppContext(search: string): AppContext {
       draw,
     }),
     cardHeightM: config.card.widthM / deck.manifest.aspectRatio,
+    surroundings: signal<Surroundings>(
+      theme.theme.environment && new URLSearchParams(search).get(config.urlParams.view) === 'vr'
+        ? 'vr'
+        : 'room',
+    ),
   };
 }
 

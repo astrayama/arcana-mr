@@ -22,8 +22,12 @@ import { snapYaw, type MatPose, type SurfaceRect } from '../placement/tableMath.
 import { PLACEMENT_STATUS, PlacementSystem } from './placementSystem.js';
 import { TableSystem } from './tableSystem.js';
 
-/** Handles sit this far above the mat's origin so hands and rays find them easily. */
-const HANDLE_LIFT = 0.03;
+/**
+ * Handles are a thin slab just over the cloth: easy to grab or point at, but
+ * low enough that rays aimed at the placement panel above pass over them.
+ */
+const HANDLE_LIFT = 0.012;
+const HANDLE_THICKNESS = 0.03;
 /** On release, the mat settles onto a surface within this height. */
 const SNAP_HEIGHT_M = 0.12;
 /** On release, the mat squares up to the table if it is within this angle. */
@@ -68,7 +72,7 @@ export class MatDragSystem extends createSystem({
     this.glow.set(app.theme.theme.cardHighlight.color);
 
     const { matWidthM, matDepthM } = config.layout;
-    const geometry = new BoxGeometry(matWidthM + 0.04, 0.08, matDepthM + 0.04);
+    const geometry = new BoxGeometry(matWidthM + 0.02, HANDLE_THICKNESS, matDepthM + 0.02);
     // Invisible but hit-testable: raycasts ignore material visibility.
     const material = new MeshBasicMaterial({ visible: false });
     const makeHandle = (kind: 'near' | 'ray') => {

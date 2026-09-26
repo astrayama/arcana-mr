@@ -18,6 +18,8 @@ export const config = {
     placement: 'placement',
     /** `?layout=focus` or `?layout=triptych` picks the meaning panel layout (under review). */
     layout: 'layout',
+    /** `?view=vr` starts in the theme's VR surroundings instead of passthrough. */
+    view: 'view',
   },
 
   reading: {

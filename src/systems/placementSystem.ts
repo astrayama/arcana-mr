@@ -98,7 +98,8 @@ export class PlacementSystem extends createSystem({
       scale: config.ui.panelScale,
     });
     // Stand the panel just past the far edge of the mat, tipped back toward the reader.
-    this.panel.object3D!.position.set(0, 0.2, -matDepthM / 2 - 0.03);
+    // High enough that its bottom buttons sit well clear of the table.
+    this.panel.object3D!.position.set(0, 0.27, -matDepthM / 2 - 0.05);
     this.panel.object3D!.rotation.x = -0.35;
 
     this.cleanupFuncs.push(

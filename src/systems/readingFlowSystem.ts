@@ -112,9 +112,32 @@ export class ReadingFlowSystem extends createSystem({
         'mn-three': () => app.machine.send({ type: 'START_READING', spread: 'three' }),
         'mn-new': () => app.machine.send({ type: 'NEW_READING' }),
         'mn-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
+        'mn-view-room': () => (app.surroundings.value = 'room'),
+        'mn-view-vr': () => (app.surroundings.value = 'vr'),
       }),
+      app.surroundings.subscribe(() => this.refreshViewToggle()),
     );
+    const environment = app.theme.theme.environment;
+    if (environment) setText(document, 'mn-view-vr-text', environment.label);
     this.refreshMenu(app.machine.current);
+  }
+
+  /** Highlight whichever surroundings are active, using the theme's accent. */
+  private refreshViewToggle(): void {
+    const document = panelDocument(this.menu);
+    if (!document) return;
+    const { colors } = app.theme.theme;
+    const current = app.surroundings.peek();
+    for (const option of ['room', 'vr'] as const) {
+      const on = option === current;
+      document.getElementById(`mn-view-${option}`)?.setProperties({
+        backgroundColor: on ? colors.accent : 'transparent',
+        borderColor: on ? colors.accent : colors.panelBorder,
+      });
+      const ink = on ? colors.accentText : colors.panelText;
+      document.getElementById(`mn-view-${option}-text`)?.setProperties({ color: ink });
+      document.getElementById(`mn-view-${option}-icon`)?.setProperties({ color: ink });
+    }
   }
 
   private onState(snapshot: ReadingSnapshot, eventType: string): void {
@@ -161,6 +184,8 @@ export class ReadingFlowSystem extends createSystem({
     show('mn-title', state === 'IDLE');
     show('mn-choices', state === 'IDLE');
     show('mn-move', state === 'IDLE');
+    // The surroundings toggle only appears when the theme has VR surroundings.
+    show('mn-view', state === 'IDLE' && app.theme.theme.environment !== null);
     show('mn-new', state === 'AWAITING_FLIPS' || state === 'REVEALED');
   }
 

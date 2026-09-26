@@ -47,6 +47,44 @@
       "size": 0.004
     }
   },
+  "environment": {
+    "kind": "night-sanctum",
+    "label": "Night sky",
+    "sky": {
+      "top": "#03040b",
+      "horizon": "#1f1838",
+      "bottom": "#020206"
+    },
+    "stars": {
+      "count": 1600,
+      "color": "#fff4dc"
+    },
+    "moon": {
+      "color": "#f3ead2"
+    },
+    "fog": {
+      "color": "#0b0a16",
+      "density": 0.1
+    },
+    "floor": {
+      "texture": "assets/sanctum/floor-diff.webp",
+      "normal": "assets/sanctum/floor-nor.webp",
+      "color": "#8f8a96",
+      "radiusM": 4.2
+    },
+    "stones": {
+      "texture": "assets/sanctum/stone-diff.webp",
+      "normal": "assets/sanctum/stone-nor.webp",
+      "color": "#7d7885",
+      "count": 9,
+      "ringRadiusM": 3.5
+    },
+    "flameColor": "#ffb35c",
+    "fireflies": {
+      "count": 60,
+      "color": "#ffd98a"
+    }
+  },
   "lighting": {
     "sky": [
       0.93,

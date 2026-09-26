@@ -4,6 +4,7 @@ import { app } from './app/context.js';
 import { panelRegistry } from './ui/panels.js';
 import { AmbientSystem } from './systems/ambientSystem.js';
 import { CardInteractionSystem } from './systems/cardInteractionSystem.js';
+import { EnvironmentSystem } from './systems/environmentSystem.js';
 import { LandingSystem } from './systems/landingSystem.js';
 import { MatDragSystem } from './systems/matDragSystem.js';
 import { MeaningSystem } from './systems/meaningSystem.js';
@@ -29,6 +30,7 @@ World.create(
     .registerSystem(ThemeLightingSystem)
     .registerSystem(TableSystem)
     .registerSystem(AmbientSystem)
+    .registerSystem(EnvironmentSystem)
     .registerSystem(PlacementSystem)
     .registerSystem(MatDragSystem)
     .registerSystem(ReadingFlowSystem)
