@@ -3,11 +3,16 @@ import projectOptions from 'virtual:iwsdk-project';
 import { app } from './app/context.js';
 import { panelRegistry } from './ui/panels.js';
 import { AmbientSystem } from './systems/ambientSystem.js';
+import { FocusSystem } from './interaction/focusSystem.js';
 import { CardInteractionSystem } from './systems/cardInteractionSystem.js';
+import { DeckSystem } from './systems/deckSystem.js';
+import { DrawSystem } from './systems/drawSystem.js';
 import { EnvironmentSystem } from './systems/environmentSystem.js';
 import { LandingSystem } from './systems/landingSystem.js';
 import { MatDragSystem } from './systems/matDragSystem.js';
 import { MeaningSystem } from './systems/meaningSystem.js';
+import { NearTriggerSystem } from './systems/nearTriggerSystem.js';
+import { PointerSafetySystem } from './systems/pointerSafetySystem.js';
 import { PlacementSystem } from './systems/placementSystem.js';
 import { ReadingFlowSystem } from './systems/readingFlowSystem.js';
 import { ReadingStatusSystem } from './systems/readingStatusSystem.js';
@@ -28,6 +33,9 @@ World.create(
     .registerSystem(ReadingStatusSystem)
     .registerSystem(SessionSystem)
     .registerSystem(ThemeLightingSystem)
+    .registerSystem(FocusSystem)
+    .registerSystem(NearTriggerSystem)
+    .registerSystem(PointerSafetySystem)
     .registerSystem(TableSystem)
     .registerSystem(AmbientSystem)
     .registerSystem(EnvironmentSystem)
@@ -35,6 +43,8 @@ World.create(
     .registerSystem(MatDragSystem)
     .registerSystem(ReadingFlowSystem)
     .registerSystem(MeaningSystem)
+    .registerSystem(DeckSystem)
+    .registerSystem(DrawSystem)
     .registerSystem(CardInteractionSystem)
     .registerSystem(LandingSystem);
 
@@ -46,6 +56,9 @@ World.create(
       placement: world.getSystem(PlacementSystem),
       flow: world.getSystem(ReadingFlowSystem),
       meaning: world.getSystem(MeaningSystem),
+      table: world.getSystem(TableSystem),
+      deck: world.getSystem(DeckSystem),
+      draw: world.getSystem(DrawSystem),
       panels: panelRegistry,
       Raycaster,
     };

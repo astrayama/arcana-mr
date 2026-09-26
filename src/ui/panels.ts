@@ -50,12 +50,18 @@ export function panelDocument(entity: Entity): UIKitDocument | null {
   return entity.getValue(PanelDocument, 'document') as UIKitDocument;
 }
 
-/** Show or hide a panel. Hidden panels also stop taking ray and poke input. */
-export function setPanelActive(entity: Entity, active: boolean): void {
+/**
+ * Show or hide a panel. Hidden panels also stop taking ray and poke input.
+ * Pass `poke: false` for panels that sit near things you grab: a fingertip
+ * near a pokeable panel takes over the hand's input and blocks grabbing.
+ */
+export function setPanelActive(entity: Entity, active: boolean, options: { poke?: boolean } = {}): void {
   entity.object3D!.visible = active;
   if (active) {
     if (!entity.hasComponent(RayInteractable)) entity.addComponent(RayInteractable);
-    if (!entity.hasComponent(PokeInteractable)) entity.addComponent(PokeInteractable);
+    const poke = options.poke ?? true;
+    if (poke && !entity.hasComponent(PokeInteractable)) entity.addComponent(PokeInteractable);
+    if (!poke && entity.hasComponent(PokeInteractable)) entity.removeComponent(PokeInteractable);
   } else {
     if (entity.hasComponent(RayInteractable)) entity.removeComponent(RayInteractable);
     if (entity.hasComponent(PokeInteractable)) entity.removeComponent(PokeInteractable);

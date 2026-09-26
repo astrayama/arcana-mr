@@ -31,6 +31,13 @@ export interface TweenOptions {
 interface Tween extends TweenOptions {
   elapsed: number;
   started: boolean;
+  cancelled: boolean;
+  onCancel?: () => void;
+}
+
+/** Stops a running tween where it is, without calling onDone. */
+export interface TweenHandle {
+  cancel(): void;
 }
 
 export class Tweens {
@@ -41,13 +48,32 @@ export class Tweens {
     return this.active.length + this.added.length > 0;
   }
 
-  add(options: TweenOptions): void {
-    this.added.push({ ...options, elapsed: 0, started: false });
+  add(options: TweenOptions): TweenHandle {
+    const tween: Tween = { ...options, elapsed: 0, started: false, cancelled: false };
+    this.added.push(tween);
+    return {
+      cancel: () => {
+        if (tween.cancelled) return;
+        tween.cancelled = true;
+        tween.onCancel?.();
+      },
+    };
   }
 
-  /** Add a tween and resolve when it finishes. */
-  play(options: Omit<TweenOptions, 'onDone'>): Promise<void> {
-    return new Promise((resolve) => this.add({ ...options, onDone: resolve }));
+  /**
+   * Add a tween and resolve when it ends: true if it finished, false if it was
+   * cancelled. Pass `handle` to receive its cancel handle.
+   */
+  play(
+    options: Omit<TweenOptions, 'onDone'>,
+    handle?: (h: TweenHandle) => void,
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
+      const h = this.add({ ...options, onDone: () => resolve(true) });
+      const tween = this.added[this.added.length - 1];
+      tween.onCancel = () => resolve(false);
+      handle?.(h);
+    });
   }
 
   update(delta: number): void {
@@ -60,6 +86,7 @@ export class Tweens {
     let write = 0;
     for (let read = 0; read < this.active.length; read++) {
       const tween = this.active[read];
+      if (tween.cancelled) continue;
       const delay = tween.delay ?? 0;
       tween.elapsed += delta;
       if (tween.elapsed < delay) {
@@ -81,8 +108,14 @@ export class Tweens {
     this.active.length = write;
   }
 
-  /** Drop every running tween without finishing it. */
+  /** Cancel every running tween. */
   clear(): void {
+    for (const tween of [...this.active, ...this.added]) {
+      if (!tween.cancelled) {
+        tween.cancelled = true;
+        tween.onCancel?.();
+      }
+    }
     this.active.length = 0;
     this.added.length = 0;
   }

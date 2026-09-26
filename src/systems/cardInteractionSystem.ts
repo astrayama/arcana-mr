@@ -1,156 +1,112 @@
-import {
-  BoxGeometry,
-  createSystem,
-  Grabbed,
-  GrabSystem,
-  Hovered,
-  Mesh,
-  MeshBasicMaterial,
-  OneHandGrabbable,
-  PokeInteractable,
-  Pressed,
-  RayInteractable,
-  type Entity,
-} from '@iwsdk/core';
+import { createSystem, Grabbed, Pressed, type Entity } from '@iwsdk/core';
 import { app } from '../app/context.js';
-import { config } from '../config.js';
-import { CardGrabProxy, TarotCard } from '../components/tarotCard.js';
-import { ease, Tweens } from '../lib/tween.js';
+import { TableHandle } from '../components/table.js';
+import { TarotCard } from '../components/tarotCard.js';
+import { ease, lerp } from '../lib/tween.js';
+import { slotPosition } from '../visuals/layout.js';
+import { MAT_SURFACE_Y } from '../visuals/tableVisuals.js';
 import { MeaningSystem } from './meaningSystem.js';
-import { ReadingFlowSystem, type DealtCard } from './readingFlowSystem.js';
+import { TableSystem, type TableCard } from './tableSystem.js';
 
 const FLIP_SECONDS = 0.6;
 const FLIP_LIFT_M = 0.05;
-/** How quickly hover feedback eases in and out (per second). */
-const HOVER_RATE = 12;
-/** Glow on the card whose meaning is showing, as a share of the hover glow. */
-const FOCUS_GLOW = 0.45;
-/** Extra reach around a card for near grabs, in meters. */
-const GRAB_MARGIN_M = 0.012;
-
-interface CardFeel {
-  hover: number;
-  flipLift: number;
-  proxy: Entity | null;
-}
+const RETURN_SECONDS = 0.3;
+/** Ignore presses that began before the card landed (a trigger still held from drawing). */
+const LANDING_GRACE_S = 0.1;
 
 /**
- * Lets the reader turn cards over with whatever they have:
- *   - a controller ray and trigger, or a hand ray and pinch (RayInteractable)
- *   - a fingertip tap (PokeInteractable)
- *   - reaching out and grabbing the card with a hand or grip (OneHandGrabbable
- *     on an invisible proxy, since IWSDK grabbables deliberately ignore rays)
- * Hovering lifts the card slightly and lights a halo in the theme's highlight.
+ * Cards in the spread. Tap one (controller trigger or hand pinch from a
+ * distance, or a quick grab up close) to turn it over, or to bring its meaning
+ * into focus once it's face up. Pick one up to look at it closely: when you
+ * let go it glides back to its own spot, the way it was.
  */
 export class CardInteractionSystem extends createSystem({
-  cards: { required: [TarotCard] },
   pressed: { required: [TarotCard, Pressed] },
-  grabbedProxies: { required: [CardGrabProxy, Grabbed] },
+  heldHandles: { required: [TableHandle, Grabbed] },
 }) {
-  private readonly tweens = new Tweens();
-  private readonly feel = new Map<Entity, CardFeel>();
-  private readonly baseY = config.card.thicknessM / 2;
-  private flow!: ReadingFlowSystem;
+  private table!: TableSystem;
   private meaning!: MeaningSystem;
-  private proxyGeometry!: BoxGeometry;
-  private proxyMaterial!: MeshBasicMaterial;
 
   init(): void {
-    this.flow = this.world.getSystem(ReadingFlowSystem)!;
+    this.table = this.world.getSystem(TableSystem)!;
     this.meaning = this.world.getSystem(MeaningSystem)!;
-    this.proxyGeometry = new BoxGeometry(
-      config.card.widthM + GRAB_MARGIN_M * 2,
-      GRAB_MARGIN_M * 2,
-      app.cardHeightM + GRAB_MARGIN_M * 2,
-    );
-    // Invisible but still hit-testable: raycasts ignore material visibility.
-    this.proxyMaterial = new MeshBasicMaterial({ visible: false });
 
     this.cleanupFuncs.push(
-      this.queries.cards.subscribe('qualify', (entity) => this.makeInteractive(entity)),
-      this.queries.cards.subscribe('disqualify', (entity) => {
-        this.removeProxy(entity);
-        this.feel.delete(entity);
+      this.queries.pressed.subscribe('qualify', (entity) => {
+        const card = this.table.cardForEntity(entity);
+        if (!card || card.phase !== 'placed' || card.handle.held) return;
+        if (this.table.now - card.landedAt < LANDING_GRACE_S) return;
+        this.tap(card);
       }),
-      this.queries.pressed.subscribe('qualify', (entity) => this.flip(entity)),
-      this.queries.grabbedProxies.subscribe('qualify', (proxy) => {
-        this.world.getSystem(GrabSystem)?.forceRelease(proxy);
-        const slot = proxy.getValue(CardGrabProxy, 'slot') ?? -1;
-        const card = this.flow.dealt[slot];
-        if (card) this.flip(card.entity);
+      this.queries.heldHandles.subscribe('qualify', (entity) => {
+        const card = this.placedByHandle(entity);
+        if (!card) return;
+        card.motion?.cancel();
+        card.handle.markGrabStart(this.table.now);
       }),
-      () => {
-        this.proxyGeometry.dispose();
-        this.proxyMaterial.dispose();
-      },
+      this.queries.heldHandles.subscribe('disqualify', (entity) => {
+        const card = this.placedByHandle(entity);
+        if (!card) return;
+        if (card.handle.wasTap(this.table.now)) this.tap(card);
+        this.returnToSpot(card);
+      }),
     );
   }
 
-  update(delta: number): void {
-    this.tweens.update(delta);
-    const { hoverLiftM, intensity } = app.theme.theme.cardHighlight;
-    const live = app.machine.state === 'AWAITING_FLIPS' || app.machine.state === 'REVEALED';
-    const step = Math.min(1, delta * HOVER_RATE);
-    for (const entity of this.queries.cards.entities) {
-      const card = this.dealtFor(entity);
-      const feel = this.feel.get(entity);
-      if (!card || !feel) continue;
-      const target = live && entity.hasComponent(Hovered) ? 1 : 0;
-      feel.hover += (target - feel.hover) * step;
-      const focused = live && this.meaning.focusedSlot === card.slot ? FOCUS_GLOW : 0;
-      card.visual.pivot.position.y = this.baseY + feel.hover * hoverLiftM + feel.flipLift;
-      card.visual.glow.material.opacity = Math.max(feel.hover, focused) * intensity;
+  update(): void {
+    for (const card of this.table.cards) {
+      if (card.phase !== 'placed') continue;
+      if (card.handle.held) card.handle.readInto(card.visual.root);
+      else if (!card.motion) card.handle.syncFrom(card.visual.root);
     }
   }
 
-  private makeInteractive(entity: Entity): void {
-    entity.addComponent(RayInteractable);
-    entity.addComponent(PokeInteractable);
-    const proxyMesh = new Mesh(this.proxyGeometry, this.proxyMaterial);
-    proxyMesh.name = `CardGrab-${entity.getValue(TarotCard, 'slot')}`;
-    proxyMesh.position.y = config.card.thicknessM / 2;
-    const proxy = this.world.createTransformEntity(proxyMesh, { parent: entity });
-    proxy.addComponent(CardGrabProxy, { slot: entity.getValue(TarotCard, 'slot') ?? 0 });
-    // Grabbing only turns the card over; it never pulls it off the mat.
-    proxy.addComponent(OneHandGrabbable, { translate: false, rotate: false });
-    this.feel.set(entity, { hover: 0, flipLift: 0, proxy });
+  private placedByHandle(entity: Entity): TableCard | undefined {
+    const card = this.table.cardForHandle(entity);
+    return card?.phase === 'placed' ? card : undefined;
   }
 
-  private removeProxy(entity: Entity): void {
-    const feel = this.feel.get(entity);
-    if (!feel?.proxy) return;
-    feel.proxy.object3D?.removeFromParent();
-    feel.proxy.destroy();
-    feel.proxy = null;
-  }
-
-  private dealtFor(entity: Entity): DealtCard | undefined {
-    const slot = entity.getValue(TarotCard, 'slot') ?? -1;
-    const card = this.flow.dealt[slot];
-    return card?.entity === entity ? card : undefined;
-  }
-
-  private flip(entity: Entity): void {
-    if (entity.getValue(TarotCard, 'faceUp')) return;
-    const slot = entity.getValue(TarotCard, 'slot') ?? -1;
-    // The state machine is the gatekeeper: it ignores flips outside AWAITING_FLIPS.
-    if (!app.machine.send({ type: 'FLIP', slot })) return;
-    entity.setValue(TarotCard, 'faceUp', true);
-    this.removeProxy(entity);
-
-    const card = this.dealtFor(entity);
-    const feel = this.feel.get(entity);
-    if (!card || !feel) return;
+  /** Turn a face-down card over; a face-up one brings its meaning into focus. */
+  private tap(card: TableCard): void {
+    if (card.faceUp) {
+      this.meaning.focus(card.slot);
+      return;
+    }
+    // The state machine is the gatekeeper: it ignores flips it doesn't allow.
+    if (!app.machine.send({ type: 'FLIP', slot: card.slot })) return;
+    card.faceUp = true;
+    card.entity.setValue(TarotCard, 'faceUp', true);
     const pivot = card.visual.pivot;
-    this.tweens.add({
+    this.table.tweens.add({
       duration: FLIP_SECONDS,
       easing: ease.inOutCubic,
       onUpdate: (k) => {
         pivot.rotation.z = Math.PI * (1 - k);
-        feel.flipLift = Math.sin(Math.PI * k) * FLIP_LIFT_M;
+        card.flipLift = Math.sin(Math.PI * k) * FLIP_LIFT_M;
       },
       onDone: () => {
-        feel.flipLift = 0;
+        card.flipLift = 0;
+      },
+    });
+  }
+
+  /** Glide back to the card's own spot and orientation. */
+  private returnToSpot(card: TableCard): void {
+    const spread = app.machine.current.spread;
+    if (!spread || card.phase !== 'placed') return;
+    const root = card.visual.root;
+    const to = slotPosition(spread, card.slot);
+    const toYaw = card.reversed ? Math.PI : 0;
+    const from = root.position.clone();
+    const fromYaw = root.rotation.y;
+    // Turn the short way round.
+    const turn = Math.atan2(Math.sin(toYaw - fromYaw), Math.cos(toYaw - fromYaw));
+    void this.table.move(card, {
+      duration: RETURN_SECONDS,
+      easing: ease.outCubic,
+      onUpdate: (k) => {
+        root.position.set(lerp(from.x, to.x, k), lerp(from.y, MAT_SURFACE_Y, k), lerp(from.z, to.z, k));
+        root.rotation.set(0, fromYaw + turn * k, 0);
       },
     });
   }

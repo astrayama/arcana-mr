@@ -16,11 +16,14 @@ export class ReadingStatusSystem extends createSystem({}) {
       entity.setValue(ReadingStatus, 'state', s.state);
       entity.setValue(ReadingStatus, 'spread', s.spread ?? '');
       entity.setValue(ReadingStatus, 'readingNumber', s.readingNumber);
+      entity.setValue(ReadingStatus, 'shuffles', s.shuffles);
       entity.setValue(
         ReadingStatus,
         'slots',
         s.slots
-          .map((slot) => `${slot.cardId}:${slot.reversed ? 'R' : 'U'}:${slot.faceUp ? 'up' : 'down'}`)
+          .map((slot) =>
+            slot.cardId === null ? '-' : `${slot.cardId}:${slot.reversed ? 'R' : 'U'}:${slot.faceUp ? 'up' : 'down'}`,
+          )
           .join(','),
       );
     };

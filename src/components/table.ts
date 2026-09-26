@@ -16,3 +16,29 @@ export const MatHandle = createComponent(
   { kind: { type: Types.String, default: 'near' } },
   'Grab target for moving the reading mat',
 );
+
+/**
+ * An invisible near-grab target on the table (deck or card). Kept as a sibling
+ * of the thing it moves, because IWSDK grabbables stop rays reaching anything
+ * beneath them in the scene graph.
+ */
+export const TableHandle = createComponent(
+  'TableHandle',
+  {
+    /** "deck" or "card". */
+    kind: { type: Types.String, default: 'card' },
+    /** For cards, the table card's key. */
+    key: { type: Types.Int32, default: -1 },
+  },
+  'Near-grab target for the deck or a card',
+);
+
+/** An empty spot in the spread that can be tapped to draw a card into it. */
+export const SlotMarker = createComponent(
+  'SlotMarker',
+  { slot: { type: Types.Int8, default: 0 } },
+  'An open spot in the spread',
+);
+
+/** The card waiting beside the deck to be drawn next. */
+export const OfferedCard = createComponent('OfferedCard', {}, 'The next card to draw');

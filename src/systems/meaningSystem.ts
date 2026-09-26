@@ -15,6 +15,7 @@ import labelTemplate from '../ui/cardLabel.uikitml?raw';
 import meaningTemplate from '../ui/meaning.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
 import { slotPosition } from '../visuals/layout.js';
+import type { SpreadId } from '../data/spreads.js';
 import { TableSystem } from './tableSystem.js';
 
 /**
@@ -92,11 +93,11 @@ export class MeaningSystem extends createSystem({
         }
       }),
       app.machine.subscribe((snapshot, event) => {
-        if (event.type === 'FLIP') {
+        if (event.type === 'FLIP' && snapshot.spread) {
           const slot = snapshot.slots[event.slot];
-          if (slot) this.reveal(slot, snapshot.slots.length);
+          if (slot?.cardId) this.reveal(slot, snapshot.spread);
         }
-        if (snapshot.state === 'IDLE' || snapshot.state === 'PLACING' || event.type === 'START_READING') {
+        if (snapshot.state === 'IDLE' || snapshot.state === 'PLACING' || event.type === 'CHOOSE_SPREAD') {
           this.hideAll();
         }
       }),
@@ -115,16 +116,18 @@ export class MeaningSystem extends createSystem({
   }
 
   /** A card was just turned over. */
-  private reveal(slot: ReadingSlot, cardCount: number): void {
+  private reveal(slot: ReadingSlot, spread: SpreadId): void {
+    const single = spread === 'single';
     if (this.layout === 'focus') {
       const label = this.labels[slot.slot];
-      this.placeLabel(label, slot.slot, cardCount);
+      this.placeLabel(label, slot.slot, spread);
       this.fill(label, slot);
-      setPanelActive(label, true);
+      // Labels sit near the cards you grab, so they only take rays, never pokes.
+      setPanelActive(label, true, { poke: false });
       this.focus(slot.slot);
     } else {
-      const panel = this.meaningPanels[cardCount === 1 ? 1 : slot.slot];
-      this.placeTriptych(panel, cardCount === 1 ? 1 : slot.slot);
+      const panel = this.meaningPanels[single ? 1 : slot.slot];
+      this.placeTriptych(panel, single ? 1 : slot.slot);
       this.fill(panel, slot);
       setPanelActive(panel, true);
     }
@@ -136,6 +139,7 @@ export class MeaningSystem extends createSystem({
     const slot = app.machine.current.slots[slotIndex];
     if (!slot?.faceUp) return;
     this.focusedSlot = slotIndex;
+    this.world.getSystem(TableSystem)!.focusedSlot = slotIndex;
     const panel = this.meaningPanels[0];
     // Above the far edge of the mat, tipped back toward the reader.
     panel.object3D!.position.set(0, 0.34, -config.layout.matDepthM / 2 - 0.08);
@@ -144,8 +148,7 @@ export class MeaningSystem extends createSystem({
     setPanelActive(panel, true);
   }
 
-  private placeLabel(label: Entity, slot: number, cardCount: number): void {
-    const spread = cardCount === 1 ? 'single' : 'three';
+  private placeLabel(label: Entity, slot: number, spread: SpreadId): void {
     const at = slotPosition(spread, slot);
     // Just beyond the card's far edge, so it never covers the card itself.
     label.object3D!.position.set(at.x, 0.035, at.z - app.cardHeightM / 2 - 0.012);
@@ -160,6 +163,7 @@ export class MeaningSystem extends createSystem({
 
   private hideAll(): void {
     this.focusedSlot = -1;
+    this.world.getSystem(TableSystem)!.focusedSlot = -1;
     for (const panel of [...this.meaningPanels, ...this.labels]) {
       setPanelActive(panel, false);
       this.pending.delete(panel);
@@ -174,14 +178,14 @@ export class MeaningSystem extends createSystem({
     }
     this.pending.delete(entity);
     if (!slot) return;
-    const card = app.cards.get(slot.cardId);
+    const card = slot.cardId ? app.cards.get(slot.cardId) : undefined;
     const position = (slot.label ?? 'Your card').toUpperCase();
     const show = (doc: UIKitDocument, id: string, visible: boolean) =>
       doc.getElementById(id)?.setProperties({ display: visible ? 'flex' : 'none' });
 
     if (this.labels.includes(entity)) {
       setText(document, 'lb-position', position);
-      setText(document, 'lb-name', card?.name ?? slot.cardId);
+      setText(document, 'lb-name', card?.name ?? slot.cardId ?? '');
       show(document, 'lb-up', !slot.reversed);
       show(document, 'lb-rev', slot.reversed);
       return;
@@ -189,7 +193,7 @@ export class MeaningSystem extends createSystem({
 
     const orientation = (slot.reversed ? card?.reversed : card?.upright) ?? UNWRITTEN;
     setText(document, 'mg-position', position);
-    setText(document, 'mg-name', card?.name ?? slot.cardId);
+    setText(document, 'mg-name', card?.name ?? slot.cardId ?? '');
     show(document, 'mg-badge-up', !slot.reversed);
     show(document, 'mg-badge-rev', slot.reversed);
     orientation.keywords.forEach((keyword, i) => {

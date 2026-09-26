@@ -15,6 +15,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
+  PlaneGeometry,
   RepeatWrapping,
   Shape,
   ShapeGeometry,
@@ -292,4 +293,85 @@ export function buildDeckPile(
 
   group.add(sides, top);
   return group;
+}
+
+/**
+ * An open spot in the spread: a faint card-shaped outline in the trim color,
+ * the position's name set into the cloth just in front of it, and an invisible
+ * card-sized target so the spot can be tapped.
+ */
+export interface SlotMarkerVisual {
+  root: Group;
+  outline: MeshBasicMaterial;
+  word: MeshBasicMaterial | null;
+  hit: Mesh;
+}
+
+function wordTexture(text: string, color: string): CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 96;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = color;
+  ctx.font = '600 56px Georgia, "Times New Roman", serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Letter-spaced capitals, like a label stitched into the cloth.
+  const letters = text.toUpperCase().split('').join(String.fromCharCode(8202, 8202));
+  ctx.fillText(letters, 256, 50);
+  return new CanvasTexture(canvas);
+}
+
+export function buildSlotMarker(
+  resolved: ResolvedTheme,
+  label: string | null,
+  widthM: number,
+  heightM: number,
+): SlotMarkerVisual {
+  const root = new Group();
+  root.name = 'SlotMarker';
+  const r = widthM * CARD_CORNER;
+  const ring = roundedRect(widthM + 0.008, heightM + 0.008, r + 0.004);
+  ring.holes.push(roundedRect(widthM + 0.002, heightM + 0.002, r + 0.001));
+  const outline = new MeshBasicMaterial({
+    color: new Color(resolved.theme.mat.edgeColor),
+    transparent: true,
+    opacity: 0.45,
+    depthWrite: false,
+  });
+  const outlineMesh = new Mesh(new ShapeGeometry(ring, 8), outline);
+  outlineMesh.rotation.x = -Math.PI / 2;
+  outlineMesh.position.y = 0.0004;
+  root.add(outlineMesh);
+
+  let word: MeshBasicMaterial | null = null;
+  if (label) {
+    word = new MeshBasicMaterial({
+      map: wordTexture(label, resolved.theme.mat.edgeColor),
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    });
+    const plate = new Mesh(new PlaneGeometry(0.09, 0.017), word);
+    plate.rotation.x = -Math.PI / 2;
+    plate.position.set(0, 0.0005, heightM / 2 + 0.016);
+    root.add(plate);
+  }
+
+  const hit = new Mesh(new PlaneGeometry(widthM, heightM), new MeshBasicMaterial({ visible: false }));
+  hit.rotation.x = -Math.PI / 2;
+  hit.position.y = 0.002;
+  hit.name = 'SlotMarkerHit';
+  root.add(hit);
+  return { root, outline, word, hit };
+}
+
+/** A halo under the deck pile, lit when the deck can be tapped or grabbed. */
+export function buildDeckGlow(materials: CardMaterials, geometry: CardGeometry): Mesh<ShapeGeometry, MeshBasicMaterial> {
+  const glow = new Mesh(geometry.glow, materials.glow.clone());
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.y = 0.0002;
+  glow.renderOrder = -1;
+  glow.name = 'DeckGlow';
+  return glow;
 }

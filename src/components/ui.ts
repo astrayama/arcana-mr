@@ -22,7 +22,8 @@ export const ReadingStatus = createComponent(
     state: { type: Types.String, default: 'PLACING' },
     spread: { type: Types.String, default: '' },
     readingNumber: { type: Types.Int32, default: 0 },
-    /** Comma-separated `cardId:U|R:up|down` per slot. */
+    shuffles: { type: Types.Int32, default: 0 },
+    /** Comma-separated `cardId:U|R:up|down` per slot, or `-` for an empty spot. */
     slots: { type: Types.String, default: '' },
     deck: { type: Types.String, default: '' },
     theme: { type: Types.String, default: '' },
