@@ -47,44 +47,83 @@
       "size": 0.004
     }
   },
-  "environment": {
-    "kind": "night-sanctum",
-    "label": "Night sky",
-    "sky": {
-      "top": "#03040b",
-      "horizon": "#1f1838",
-      "bottom": "#020206"
+  "environments": [
+    {
+      "id": "night-sanctum",
+      "label": "Night sky",
+      "kind": "night-sanctum",
+      "fog": {
+        "color": "#0b0a16",
+        "density": 0.1
+      },
+      "sky": {
+        "top": "#03040b",
+        "horizon": "#1f1838",
+        "bottom": "#020206"
+      },
+      "stars": {
+        "count": 1600,
+        "color": "#fff4dc"
+      },
+      "moon": {
+        "color": "#f3ead2"
+      },
+      "floor": {
+        "texture": "assets/sanctum/floor-diff.webp",
+        "normal": "assets/sanctum/floor-nor.webp",
+        "color": "#8f8a96",
+        "radiusM": 4.2
+      },
+      "stones": {
+        "texture": "assets/sanctum/stone-diff.webp",
+        "normal": "assets/sanctum/stone-nor.webp",
+        "color": "#7d7885",
+        "count": 9,
+        "ringRadiusM": 3.5
+      },
+      "flameColor": "#ffb35c",
+      "fireflies": {
+        "count": 60,
+        "color": "#ffd98a"
+      }
     },
-    "stars": {
-      "count": 1600,
-      "color": "#fff4dc"
-    },
-    "moon": {
-      "color": "#f3ead2"
-    },
-    "fog": {
-      "color": "#0b0a16",
-      "density": 0.1
-    },
-    "floor": {
-      "texture": "assets/sanctum/floor-diff.webp",
-      "normal": "assets/sanctum/floor-nor.webp",
-      "color": "#8f8a96",
-      "radiusM": 4.2
-    },
-    "stones": {
-      "texture": "assets/sanctum/stone-diff.webp",
-      "normal": "assets/sanctum/stone-nor.webp",
-      "color": "#7d7885",
-      "count": 9,
-      "ringRadiusM": 3.5
-    },
-    "flameColor": "#ffb35c",
-    "fireflies": {
-      "count": 60,
-      "color": "#ffd98a"
+    {
+      "id": "cloud-sea",
+      "label": "Cloud sea",
+      "kind": "cloud-sea",
+      "fog": {
+        "color": "#f0c3a3",
+        "density": 0.012
+      },
+      "sky": {
+        "zenith": "#40598a",
+        "upper": "#c98a86",
+        "horizon": "#ffd29a",
+        "below": "#f2b9a0"
+      },
+      "sun": {
+        "color": "#fff1cf",
+        "elevationDeg": 6,
+        "azimuthDeg": 40
+      },
+      "clouds": {
+        "lit": "#ffe6cc",
+        "shade": "#c79aae",
+        "speed": 0.12
+      },
+      "terrace": {
+        "texture": null,
+        "normal": "assets/sanctum/floor-nor.webp",
+        "color": "#e7d3bb",
+        "radiusM": 3,
+        "railColor": "#f1e4d2"
+      },
+      "birds": {
+        "count": 6,
+        "color": "#3b2c3a"
+      }
     }
-  },
+  ],
   "lighting": {
     "sky": [
       0.93,

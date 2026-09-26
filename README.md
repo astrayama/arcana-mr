@@ -63,7 +63,7 @@ Add these to the page URL while testing:
 | `?deck=rws-1909` | Use a specific deck folder. Unknown names fall back to the default with a console warning. |
 | `?theme=dark-gold` | Use a specific theme folder, with the same fallback. |
 | `?placement=fallback` | Skip table detection and use the floating fallback mat. Denying the spatial data prompt does the same on the headset. |
-| `?view=vr` | Start in the theme's VR surroundings (the night-sky sanctum) instead of passthrough. |
+| `?view=cloud-sea` or `?view=night-sanctum` | Start in one of the theme's VR surroundings instead of passthrough. `?view=vr` picks the theme's first one. |
 | `?layout=focus` or `?layout=triptych` | Meaning panel layout for the 3-card spread (under review). |
 | `?draw=cups-queen:R,major-17-the-star` | Dev server only: deal these cards (`:R` = reversed). Ignored in production builds. |
 
@@ -72,7 +72,7 @@ Add these to the page URL while testing:
 The whole flow is one state machine, `src/state/readingMachine.ts`, kept
 separate from rendering:
 
-`PLACING` → `IDLE` → `SHUFFLING` → `DEALING` → `AWAITING_FLIPS` → `REVEALED` → `IDLE`
+`PLACING` → `IDLE` → `READY` → `SHUFFLING` → `DRAWING` → `AWAITING_FLIPS` → `REVEALED` → `IDLE`
 
 1. **Placing.** Arcana looks for your table: a Space Setup table first, then
    the nearest flat surface at table height that fits the mat, then a floating
@@ -81,17 +81,27 @@ separate from rendering:
    settles onto the table when you let go. Confirming anchors the mat to the
    room.
 2. **Choosing.** The menu on the mat offers a Single Card pull or a 3-Card
-   Spread (Past, Present, Future). You can also move the mat from here, and
-   choose what surrounds you: your own room through passthrough, or the
-   theme's VR surroundings (a night-sky sanctum in the dark and gold theme).
-3. **Shuffling and dealing.** Cards are shuffled with a Fisher-Yates shuffle
-   driven by `crypto.getRandomValues`. Each drawn card can land reversed
-   (50% by default, set in `src/config.ts`). A reading never repeats a card.
-4. **Flipping.** Turn a card over with a controller ray and trigger, a hand
-   ray and pinch, a fingertip tap, or by reaching out and grabbing it.
-5. **Reflecting.** Each flipped card shows its position, whether it is upright
+   Spread (Past, Present, Future). Faint outlines on the mat mark each spot.
+   You can also move the mat from here, and choose what surrounds you: your
+   own room through passthrough, or one of the theme's VR surroundings.
+3. **Shuffling.** Tap the deck, or pick it up and give it a shake. Shuffling
+   is required, and you can shuffle again as often as you like until you draw
+   the first card. The deck order comes from a Fisher-Yates shuffle driven by
+   `crypto.getRandomValues`, and each card can land reversed (50% by default,
+   set in `src/config.ts`). A reading never repeats a card.
+4. **Drawing.** The next card waits beside the deck. Tap it and it goes to
+   the next open spot, tap an open spot to draw into it, or pick the card up
+   and drop it on the spot you want. Each card lands face down.
+5. **Turning cards over.** Tap a card (controller trigger, a hand pinch from a
+   distance, or a quick touch-and-release up close). You can pick any card up
+   to look at it; it glides back to its own spot when you let go.
+6. **Reflecting.** Each flipped card shows its position, whether it is upright
    or reversed, three keywords, a short read, and a question to reflect on.
-6. **New reading** sweeps the cards back into the deck and frees their memory.
+7. **New reading** sweeps the cards back into the deck and frees their memory.
+
+Up close, you grab; from a distance, you point and tap. A quick grab counts as
+a tap, and the controller trigger also grabs when your hand is right next to
+something, so either button works near the table.
 
 ## Project structure
 
@@ -107,7 +117,8 @@ src/
   components/              ECS components
   ui/                      UIKitML panel templates, filled from the active theme
   visuals/                 mat, card, and deck meshes
-  environments/            VR surroundings generators (night-sky sanctum)
+  interaction/             grab handles and "what is this hand about to touch"
+  environments/            VR surroundings generators (night-sky sanctum, cloud sea)
   data/cards.json          78 cards: keywords, reads, and reflection prompts
   data/cards.schema.ts     card types and validation rules
   decks/<id>/              art packs (deck.json + images)
@@ -166,10 +177,12 @@ A theme is a folder in `src/themes/`. Adding one needs no code changes.
      inlay line
    - `cardHighlight`: hover glow color, strength, and lift
    - `ambient`: candles and floating motes, or `null` to turn either off
-   - `environment`: the VR surroundings offered instead of passthrough, or
-     `null` for passthrough only. `kind` picks a generator in
-     `src/environments/` (currently `night-sanctum`); the other fields set its
-     sky colors, stars, moon, fog, floor and stone textures, and fireflies.
+   - `environments`: up to three VR surroundings offered instead of
+     passthrough (`[]` for passthrough only). Each has an `id`, a menu
+     `label`, fog, and a `kind` that picks a generator in `src/environments/`:
+     `night-sanctum` (sky, stars, moon, floor and stone textures, fireflies)
+     or `cloud-sea` (sunset sky, sun, cloud colors and drift speed, terrace
+     stone and railing, birds).
    - `lighting`: the soft light gradient on the cards and cloth
 3. Run `npm run validate:themes`, then try it with `?theme=<your-theme-id>`.
 
@@ -196,7 +209,7 @@ keywords, reads, and reflection prompts. `npm run validate` checks:
 | `npm run dev` | Dev server with the IWER emulator |
 | `npm run build` | Production build into `dist/` |
 | `npm run typecheck` | TypeScript check |
-| `npm test` | Unit tests: shuffle fairness, state machine, placement math, URL overrides |
+| `npm test` | Unit tests: shuffle fairness, state machine, placement math, shake detection, spread layout, URL overrides |
 | `npm run validate` | Card, deck, and theme validation |
 | `npm run deck:rws-1909` | Rebuild the public-domain deck from Wikimedia Commons |
 | `npm run theme:dark-gold` | Regenerate the dark-gold cloth texture |

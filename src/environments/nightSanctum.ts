@@ -10,72 +10,33 @@ import {
   BackSide,
   BufferAttribute,
   BufferGeometry,
-  CanvasTexture,
   CircleGeometry,
   Color,
   CylinderGeometry,
   Group,
   InstancedMesh,
   Matrix4,
-  NoColorSpace,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
   Points,
   PointsMaterial,
   Quaternion,
-  RepeatWrapping,
   RingGeometry,
   SphereGeometry,
   Sprite,
   SpriteMaterial,
   Vector3,
-  type Texture,
 } from '@iwsdk/core';
 import type { ResolvedTheme } from '../themes/registry.js';
-import type { ThemeEnvironment } from '../themes/theme.schema.js';
-import { loadColorTexture } from '../visuals/tableVisuals.js';
+import type { NightSanctumEnvironment } from '../themes/theme.schema.js';
+import { radialTexture, seeded, tiled } from './common.js';
 import type { EnvironmentInstance } from './types.js';
 
 const SKY_RADIUS = 40;
 const STAR_RADIUS = 36;
 
-/** Small seeded PRNG so the layout is the same every time (not for anything secret). */
-function seeded(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function radialTexture(stops: [number, string][]): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 128;
-  const ctx = canvas.getContext('2d')!;
-  const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  for (const [at, color] of stops) gradient.addColorStop(at, color);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 128, 128);
-  return new CanvasTexture(canvas);
-}
-
-/** A texture from the theme, tiled, or null if the theme doesn't ship one. */
-async function tiled(resolved: ResolvedTheme, path: string | null, repeat: number, color: boolean): Promise<Texture | null> {
-  const url = resolved.assetUrl(path);
-  if (!url) return null;
-  const texture = await loadColorTexture(url);
-  if (!color) texture.colorSpace = NoColorSpace;
-  texture.wrapS = texture.wrapT = RepeatWrapping;
-  texture.repeat.set(repeat, repeat);
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function buildSky(env: ThemeEnvironment): Mesh {
+function buildSky(env: NightSanctumEnvironment): Mesh {
   const geometry = new SphereGeometry(SKY_RADIUS, 32, 20);
   const top = new Color(env.sky.top);
   const horizon = new Color(env.sky.horizon);
@@ -98,7 +59,7 @@ function buildSky(env: ThemeEnvironment): Mesh {
   return sky;
 }
 
-function buildStars(env: ThemeEnvironment, random: () => number): Points {
+function buildStars(env: NightSanctumEnvironment, random: () => number): Points {
   const count = env.stars.count;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
@@ -165,7 +126,7 @@ function buildMoon(color: string): Sprite {
   return moon;
 }
 
-export function buildNightSanctum(env: ThemeEnvironment, resolved: ResolvedTheme): EnvironmentInstance {
+export function buildNightSanctum(env: NightSanctumEnvironment, resolved: ResolvedTheme): EnvironmentInstance {
   const random = seeded(23);
   const root = new Group();
   root.name = 'NightSanctum';

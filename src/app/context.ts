@@ -21,13 +21,21 @@ export interface AppContext {
   /** Card height in meters, from the configured width and the deck's aspect ratio. */
   cardHeightM: number;
   /**
-   * What surrounds the reading in the headset: the real room through
-   * passthrough, or the theme's VR environment. Separate from the reading flow.
+   * What surrounds the reading in the headset: "room" for the real room
+   * through passthrough, or the id of one of the theme's VR environments.
+   * Separate from the reading flow.
    */
-  surroundings: Signal<Surroundings>;
+  surroundings: Signal<string>;
 }
 
-export type Surroundings = 'room' | 'vr';
+/** `?view=<id>` picks an environment; `?view=vr` means the theme's first one. */
+function initialSurroundings(search: string, theme: ResolvedTheme): string {
+  const requested = new URLSearchParams(search).get(config.urlParams.view);
+  const environments = theme.theme.environments;
+  if (!requested || environments.length === 0) return 'room';
+  if (requested === 'vr') return environments[0].id;
+  return environments.some((env) => env.id === requested) ? requested : 'room';
+}
 
 function loadCards(): CardData[] {
   if (import.meta.env.DEV) {
@@ -90,11 +98,7 @@ export function createAppContext(search: string): AppContext {
       draw,
     }),
     cardHeightM: config.card.widthM / deck.manifest.aspectRatio,
-    surroundings: signal<Surroundings>(
-      theme.theme.environment && new URLSearchParams(search).get(config.urlParams.view) === 'vr'
-        ? 'vr'
-        : 'room',
-    ),
+    surroundings: signal<string>(initialSurroundings(search, theme)),
   };
 }
 

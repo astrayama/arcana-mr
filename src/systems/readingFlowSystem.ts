@@ -76,12 +76,21 @@ export class ReadingFlowSystem extends createSystem({
         'mn-new': () => app.machine.send({ type: 'NEW_READING' }),
         'mn-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
         'mn-view-room': () => (app.surroundings.value = 'room'),
-        'mn-view-vr': () => (app.surroundings.value = 'vr'),
+        ...Object.fromEntries(
+          app.theme.theme.environments.map((env, i) => [`mn-view-env-${i}`, () => (app.surroundings.value = env.id)]),
+        ),
       }),
       app.surroundings.subscribe(() => this.refreshViewToggle()),
     );
-    const environment = app.theme.theme.environment;
-    if (environment) setText(document, 'mn-view-vr-text', environment.label);
+    // One chip per environment the theme offers, with an icon for its kind.
+    app.theme.theme.environments.forEach((env, i) => {
+      const show = (id: string, on: boolean) =>
+        document.getElementById(id)?.setProperties({ display: on ? 'flex' : 'none' });
+      show(`mn-view-env-${i}`, true);
+      show(`mn-view-env-${i}-moon`, env.kind === 'night-sanctum');
+      show(`mn-view-env-${i}-sun`, env.kind === 'cloud-sea');
+      setText(document, `mn-view-env-${i}-text`, env.label);
+    });
     this.refreshMenu(app.machine.current);
   }
 
@@ -91,15 +100,23 @@ export class ReadingFlowSystem extends createSystem({
     if (!document) return;
     const { colors } = app.theme.theme;
     const current = app.surroundings.peek();
-    for (const option of ['room', 'vr'] as const) {
-      const on = option === current;
-      document.getElementById(`mn-view-${option}`)?.setProperties({
+    const options = [
+      { chip: 'mn-view-room', id: 'room', icons: ['mn-view-room-icon'] },
+      ...app.theme.theme.environments.map((env, i) => ({
+        chip: `mn-view-env-${i}`,
+        id: env.id,
+        icons: [`mn-view-env-${i}-moon`, `mn-view-env-${i}-sun`],
+      })),
+    ];
+    for (const option of options) {
+      const on = option.id === current;
+      document.getElementById(option.chip)?.setProperties({
         backgroundColor: on ? colors.accent : 'transparent',
         borderColor: on ? colors.accent : colors.panelBorder,
       });
       const ink = on ? colors.accentText : colors.panelText;
-      document.getElementById(`mn-view-${option}-text`)?.setProperties({ color: ink });
-      document.getElementById(`mn-view-${option}-icon`)?.setProperties({ color: ink });
+      document.getElementById(`${option.chip}-text`)?.setProperties({ color: ink });
+      for (const icon of option.icons) document.getElementById(icon)?.setProperties({ color: ink });
     }
   }
 
@@ -133,7 +150,7 @@ export class ReadingFlowSystem extends createSystem({
     show('mn-choices', state === 'IDLE');
     show('mn-move', state === 'IDLE');
     // The surroundings toggle only appears when the theme has VR surroundings.
-    show('mn-view', state === 'IDLE' && app.theme.theme.environment !== null);
+    show('mn-view', state === 'IDLE' && app.theme.theme.environments.length > 0);
     show('mn-new', state !== 'IDLE' && state !== 'SHUFFLING');
     this.refreshViewToggle();
   }

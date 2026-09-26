@@ -13,6 +13,9 @@
   converted to WebP by `scripts/fetch-sanctum-textures.ts`. Everything else in
   the sanctum (sky, stars, moon, stones, flames, fireflies) is generated in
   code.
+- **Cloud sea:** the terrace reuses the same CC0 floor's normal map for its
+  stone relief. Everything else (sky, sun, clouds, railing, birds) is
+  generated in code.
 - **Fonts:** Playfair Display (headings) and Inter (body), both under the
   SIL Open Font License 1.1, bundled as MSDF atlases through
   `@pmndrs/msdfonts`.

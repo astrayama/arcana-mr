@@ -11,4 +11,4 @@ export interface EnvironmentInstance {
   stoneMaterial: Material;
 }
 
-export type EnvironmentBuilder = (env: ThemeEnvironment, resolved: ResolvedTheme) => EnvironmentInstance;
+export type EnvironmentBuilder<E extends ThemeEnvironment> = (env: E, resolved: ResolvedTheme) => EnvironmentInstance;
