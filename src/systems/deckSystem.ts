@@ -41,6 +41,13 @@ export class DeckSystem extends createSystem({
     this.deck = this.table.deck.object3D!;
     this.homePosition.copy(this.deck.position);
     this.homeQuaternion.copy(this.deck.quaternion);
+    // Each spread has its own place for the deck.
+    this.cleanupFuncs.push(
+      this.table.onLayout((layout) => {
+        this.homePosition.set(layout.deck.x, this.homePosition.y, layout.deck.z);
+        this.goHome();
+      }),
+    );
     this.world.getSystem(FocusSystem)!.register(this.deck);
 
     // Loose cards for the riffle, riding on top of the deck so the shuffle

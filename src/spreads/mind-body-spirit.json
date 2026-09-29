@@ -1,0 +1,11 @@
+{
+  "id": "mind-body-spirit",
+  "name": "Mind, Body, Spirit",
+  "summary": "A check-in with your whole self.",
+  "order": 3,
+  "positions": [
+    { "label": "Mind", "meaning": "What your thoughts keep circling.", "x": -1, "y": 0 },
+    { "label": "Body", "meaning": "What your body is asking for.", "x": 0, "y": 0 },
+    { "label": "Spirit", "meaning": "What feeds your sense of meaning.", "x": 1, "y": 0 }
+  ]
+}

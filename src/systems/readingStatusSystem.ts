@@ -14,7 +14,7 @@ export class ReadingStatusSystem extends createSystem({}) {
     });
     const write = (s: ReadingSnapshot) => {
       entity.setValue(ReadingStatus, 'state', s.state);
-      entity.setValue(ReadingStatus, 'spread', s.spread ?? '');
+      entity.setValue(ReadingStatus, 'spread', s.spread?.id ?? '');
       entity.setValue(ReadingStatus, 'readingNumber', s.readingNumber);
       entity.setValue(ReadingStatus, 'shuffles', s.shuffles);
       entity.setValue(

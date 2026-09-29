@@ -179,11 +179,15 @@ export class TableGrabSystem extends createSystem({}) {
   private pinchTarget(g: HandGesture): number {
     this.foundCard = null;
     let best = this.boxDistance(this.deck, this.deckCenterY, this.deckHalf, g.pinchPoint);
+    let bestHeight = -Infinity;
     for (const card of this.table.cards) {
       if (card.phase !== 'placed' || card.heldBy) continue;
       const d = this.boxDistance(card.visual.root, config.card.thicknessM / 2, this.cardHalf, g.pinchPoint);
-      if (d < best) {
+      // Two cards can be equally close when one lies across the other: take the one on top.
+      const height = card.visual.root.position.y;
+      if (d < best - 1e-4 || (d <= best + 1e-4 && height > bestHeight)) {
         best = d;
+        bestHeight = height;
         this.foundCard = card;
       }
     }

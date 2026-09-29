@@ -25,10 +25,11 @@ import {
 import { config } from '../config.js';
 import type { ResolvedDeck } from '../decks/registry.js';
 import type { ResolvedTheme } from '../themes/registry.js';
+import { MAT_SURFACE_Y } from './layout.js';
 
-function roundedRect(width: number, depth: number, radius: number): Shape {
-  const x = -width / 2;
-  const y = -depth / 2;
+function roundedRect(width: number, depth: number, radius: number, cx = 0, cy = 0): Shape {
+  const x = cx - width / 2;
+  const y = cy - depth / 2;
   const r = Math.min(radius, width / 2, depth / 2);
   const shape = new Shape();
   shape.moveTo(x + r, y);
@@ -52,18 +53,47 @@ export async function loadColorTexture(url: string): Promise<Texture> {
   return texture;
 }
 
-/** Height of the cloth's top surface above the mat origin. Things resting on the mat sit here. */
-export const MAT_SURFACE_Y = 0.001;
+export { MAT_SURFACE_Y } from './layout.js';
+
+/** The mat's outline in mat-local meters. */
+export interface MatBounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+const INLAY_INSET = 0.028;
+const INLAY_LINE = 0.0022;
+
+/**
+ * The mat's shapes for the given extents. Shapes are drawn in the XY plane
+ * and laid flat, so shape y is -z. UVs are in meters from the mat origin, so
+ * the cloth's weave stays still while the mat grows.
+ */
+function matGeometries(b: MatBounds): { trim: ShapeGeometry; cloth: ShapeGeometry; inlay: ShapeGeometry } {
+  const w = b.maxX - b.minX;
+  const d = b.maxZ - b.minZ;
+  const cx = (b.minX + b.maxX) / 2;
+  const cy = -(b.minZ + b.maxZ) / 2;
+  const ring = roundedRect(w - INLAY_INSET * 2, d - INLAY_INSET * 2, 0.018, cx, cy);
+  ring.holes.push(roundedRect(w - (INLAY_INSET + INLAY_LINE) * 2, d - (INLAY_INSET + INLAY_LINE) * 2, 0.016, cx, cy));
+  return {
+    trim: new ShapeGeometry(roundedRect(w + 0.012, d + 0.012, 0.03, cx, cy), 6),
+    cloth: new ShapeGeometry(roundedRect(w, d, 0.025, cx, cy), 6),
+    inlay: new ShapeGeometry(ring, 6),
+  };
+}
 
 /** The reading mat: a soft rounded cloth with a thin trim, lying flat at y = 0. */
-export function buildMat(resolved: ResolvedTheme): Object3D {
+export function buildMat(resolved: ResolvedTheme, bounds: MatBounds): Object3D {
   const { mat } = resolved.theme;
-  const { matWidthM, matDepthM } = config.layout;
   const group = new Group();
   group.name = 'ReadingMat';
+  const shapes = matGeometries(bounds);
 
   const trim = new Mesh(
-    new ShapeGeometry(roundedRect(matWidthM + 0.012, matDepthM + 0.012, 0.03), 6),
+    shapes.trim,
     new MeshStandardMaterial({ color: new Color(mat.edgeColor), roughness: 0.5, metalness: 0.6 }),
   );
   trim.rotation.x = -Math.PI / 2;
@@ -73,10 +103,7 @@ export function buildMat(resolved: ResolvedTheme): Object3D {
     color: new Color(mat.color),
     roughness: mat.roughness,
   });
-  const cloth = new Mesh(
-    new ShapeGeometry(roundedRect(matWidthM, matDepthM, 0.025), 6),
-    clothMaterial,
-  );
+  const cloth = new Mesh(shapes.cloth, clothMaterial);
   cloth.rotation.x = -Math.PI / 2;
   cloth.position.y = MAT_SURFACE_Y;
   cloth.name = 'MatCloth';
@@ -86,8 +113,9 @@ export function buildMat(resolved: ResolvedTheme): Object3D {
     loadColorTexture(textureUrl).then((texture) => {
       texture.wrapS = RepeatWrapping;
       texture.wrapT = RepeatWrapping;
-      // ShapeGeometry UVs are in meters; scale so the texture repeats N times across the width.
-      const perMeter = mat.textureRepeat / matWidthM;
+      // ShapeGeometry UVs are in meters; repeat N times across the everyday
+      // mat's width, and keep that density when the mat grows.
+      const perMeter = mat.textureRepeat / config.layout.matWidthM;
       texture.repeat.set(perMeter, perMeter);
       clothMaterial.map = texture;
       clothMaterial.needsUpdate = true;
@@ -96,23 +124,35 @@ export function buildMat(resolved: ResolvedTheme): Object3D {
 
   group.add(trim, cloth);
 
-  if (mat.inlay) {
-    // A thin border line set in from the edge, like a reading cloth.
-    const inset = 0.028;
-    const line = 0.0022;
-    const ring = roundedRect(matWidthM - inset * 2, matDepthM - inset * 2, 0.018);
-    const hole = roundedRect(matWidthM - (inset + line) * 2, matDepthM - (inset + line) * 2, 0.016);
-    ring.holes.push(hole);
-    const inlay = new Mesh(
-      new ShapeGeometry(ring, 6),
-      new MeshStandardMaterial({ color: new Color(mat.edgeColor), roughness: 0.45, metalness: 0.6 }),
-    );
-    inlay.rotation.x = -Math.PI / 2;
-    inlay.position.y = MAT_SURFACE_Y + 0.0002;
-    inlay.name = 'MatInlay';
-    group.add(inlay);
-  }
+  // A thin border line set in from the edge, like a reading cloth.
+  const inlay = new Mesh(
+    shapes.inlay,
+    new MeshStandardMaterial({ color: new Color(mat.edgeColor), roughness: 0.45, metalness: 0.6 }),
+  );
+  inlay.rotation.x = -Math.PI / 2;
+  inlay.position.y = MAT_SURFACE_Y + 0.0002;
+  inlay.name = 'MatInlay';
+  inlay.visible = mat.inlay;
+  group.add(inlay);
   return group;
+}
+
+/** Reshape the mat in place (same objects, new outlines), freeing the old shapes. */
+export function resizeMat(mat: Object3D, bounds: MatBounds): void {
+  const shapes = matGeometries(bounds);
+  for (const [name, geometry] of [
+    ['MatTrim', shapes.trim],
+    ['MatCloth', shapes.cloth],
+    ['MatInlay', shapes.inlay],
+  ] as const) {
+    const mesh = mat.getObjectByName(name) as Mesh | undefined;
+    if (!mesh) {
+      geometry.dispose();
+      continue;
+    }
+    mesh.geometry.dispose();
+    mesh.geometry = geometry;
+  }
 }
 
 /** Shared card-back and card-edge materials for the active deck and theme. */
@@ -296,36 +336,16 @@ export function buildDeckPile(
 }
 
 /**
- * An open spot in the spread: a faint card-shaped outline in the trim color,
- * with the position's name set into the cloth just in front of it.
+ * An open spot in the spread: a faint card-shaped outline in the trim color.
+ * Its name is set into the cloth separately (see `buildSpotName`), because
+ * one name can serve two cards (the Celtic Cross crossing card).
  */
-export interface SlotMarkerVisual {
+export interface SlotOutline {
   root: Group;
   outline: MeshBasicMaterial;
-  word: MeshBasicMaterial | null;
 }
 
-function wordTexture(text: string, color: string): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 96;
-  const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = color;
-  ctx.font = '600 56px Georgia, "Times New Roman", serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  // Letter-spaced capitals, like a label stitched into the cloth.
-  const letters = text.toUpperCase().split('').join(String.fromCharCode(8202, 8202));
-  ctx.fillText(letters, 256, 50);
-  return new CanvasTexture(canvas);
-}
-
-export function buildSlotMarker(
-  resolved: ResolvedTheme,
-  label: string | null,
-  widthM: number,
-  heightM: number,
-): SlotMarkerVisual {
+export function buildSlotOutline(resolved: ResolvedTheme, widthM: number, heightM: number): SlotOutline {
   const root = new Group();
   root.name = 'SlotMarker';
   const r = widthM * CARD_CORNER;
@@ -341,21 +361,60 @@ export function buildSlotMarker(
   outlineMesh.rotation.x = -Math.PI / 2;
   outlineMesh.position.y = 0.0004;
   root.add(outlineMesh);
+  return { root, outline };
+}
 
-  let word: MeshBasicMaterial | null = null;
-  if (label) {
-    word = new MeshBasicMaterial({
-      map: wordTexture(label, resolved.theme.mat.edgeColor),
-      transparent: true,
-      opacity: 0.55,
-      depthWrite: false,
-    });
-    const plate = new Mesh(new PlaneGeometry(0.09, 0.017), word);
-    plate.rotation.x = -Math.PI / 2;
-    plate.position.set(0, 0.0005, heightM / 2 + 0.016);
-    root.add(plate);
+/** Letter-spaced capitals fitted to the canvas, on one line or wrapped onto two. */
+function spotNameTexture(text: string, color: string, aspect: number): CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = Math.max(64, Math.round(512 / aspect));
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const spaced = (t: string) => t.toUpperCase().split('').join(String.fromCharCode(8202, 8202));
+  const maxWidth = canvas.width * 0.94;
+  const words = text.split(' ');
+  // Try one line, then the best two-line split, shrinking the type until it fits.
+  const layouts: string[][] = [[text]];
+  for (let i = 1; i < words.length; i++) layouts.push([words.slice(0, i).join(' '), words.slice(i).join(' ')]);
+  let best = { lines: [text], size: 8 };
+  for (const lines of layouts) {
+    let size = Math.min(58, (canvas.height * 0.8) / lines.length);
+    while (size > 8) {
+      ctx.font = `600 ${size}px Georgia, "Times New Roman", serif`;
+      if (lines.every((line) => ctx.measureText(spaced(line)).width <= maxWidth)) break;
+      size -= 2;
+    }
+    if (size > best.size) best = { lines, size };
   }
-  return { root, outline, word };
+  ctx.font = `600 ${best.size}px Georgia, "Times New Roman", serif`;
+  const lineHeight = best.size * 1.1;
+  best.lines.forEach((line, i) => {
+    const y = canvas.height / 2 + (i - (best.lines.length - 1) / 2) * lineHeight;
+    ctx.fillText(spaced(line), canvas.width / 2, y);
+  });
+  return new CanvasTexture(canvas);
+}
+
+/** A spot's name set into the cloth, filling a `widthM` x `depthM` area. */
+export function buildSpotName(
+  resolved: ResolvedTheme,
+  text: string,
+  widthM: number,
+  depthM: number,
+): { mesh: Mesh; material: MeshBasicMaterial } {
+  const material = new MeshBasicMaterial({
+    map: spotNameTexture(text, resolved.theme.mat.edgeColor, widthM / depthM),
+    transparent: true,
+    opacity: 0.55,
+    depthWrite: false,
+  });
+  const mesh = new Mesh(new PlaneGeometry(widthM, depthM), material);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.name = 'SpotName';
+  return { mesh, material };
 }
 
 /** A halo under the deck pile, lit when a hand could pick the deck up or a tap would do something. */

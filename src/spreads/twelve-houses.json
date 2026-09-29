@@ -1,0 +1,21 @@
+{
+  "id": "twelve-houses",
+  "name": "Twelve Houses",
+  "summary": "A card for each area of life, around the deck.",
+  "order": 7,
+  "positions": [
+    { "label": "Self", "meaning": "How you see yourself and meet the world.", "x": -3, "y": 0 },
+    { "label": "Resources", "meaning": "Money, belongings, and what you value.", "x": -2, "y": -1 },
+    { "label": "Communication", "meaning": "How you think, speak, and learn.", "x": -1, "y": -1 },
+    { "label": "Home", "meaning": "Where you come from and where you rest.", "x": 0, "y": -1 },
+    { "label": "Joy", "meaning": "Play, creativity, and what delights you.", "x": 1, "y": -1 },
+    { "label": "Daily life", "meaning": "Health, habits, and the work of every day.", "x": 2, "y": -1 },
+    { "label": "Partnership", "meaning": "Your closest one-to-one bonds.", "x": 3, "y": 0 },
+    { "label": "Change", "meaning": "What you share with others, and what you let go of.", "x": 2, "y": 1 },
+    { "label": "Beliefs", "meaning": "What you believe, and what widens your view.", "x": 1, "y": 1 },
+    { "label": "Calling", "meaning": "Your work in the world and your sense of direction.", "x": 0, "y": 1 },
+    { "label": "Community", "meaning": "Friends, groups, and the future you hope for.", "x": -1, "y": 1 },
+    { "label": "Inner life", "meaning": "What is hidden, private, or still unfolding in you.", "x": -2, "y": 1 }
+  ],
+  "deck": { "x": 0, "y": 0 }
+}

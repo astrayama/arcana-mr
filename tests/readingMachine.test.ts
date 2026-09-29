@@ -2,20 +2,35 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { drawCards } from '../src/lib/shuffle.ts';
 import { ReadingMachine } from '../src/state/readingMachine.ts';
+import type { SpreadDef } from '../src/spreads/spread.schema.ts';
 
 const ids = Array.from({ length: 78 }, (_, i) => `card-${i}`);
+
+function spreadOf(id: string, labels: string[]): SpreadDef {
+  return {
+    id,
+    name: id,
+    summary: id,
+    origin: 'builtin',
+    positions: labels.map((label, i) => ({ label, meaning: `${label} means`, x: i, y: 0 })),
+  };
+}
+const SPREADS = {
+  single: spreadOf('single', ['Your card']),
+  three: spreadOf('three', ['Past', 'Present', 'Future']),
+};
 const make = (draw = drawCards) => new ReadingMachine({ cardIds: ids, reversalChance: 0.5, draw });
 
 /** A machine with the mat placed and a spread chosen. */
-function ready(spread: 'single' | 'three' = 'three', draw = drawCards) {
+function ready(spread: keyof typeof SPREADS = 'three', draw = drawCards) {
   const m = make(draw);
   m.send({ type: 'MAT_PLACED' });
-  m.send({ type: 'CHOOSE_SPREAD', spread });
+  m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS[spread] });
   return m;
 }
 
 /** A machine that has shuffled and is waiting for draws. */
-function drawing(spread: 'single' | 'three' = 'three', draw = drawCards) {
+function drawing(spread: keyof typeof SPREADS = 'three', draw = drawCards) {
   const m = ready(spread, draw);
   m.send({ type: 'SHUFFLE' });
   m.send({ type: 'SHUFFLE_DONE' });
@@ -25,7 +40,7 @@ function drawing(spread: 'single' | 'three' = 'three', draw = drawCards) {
 test('starts placing, then idles once the mat is placed', () => {
   const m = make();
   assert.equal(m.state, 'PLACING');
-  assert.equal(m.send({ type: 'CHOOSE_SPREAD', spread: 'single' }), false);
+  assert.equal(m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.single }), false);
   assert.equal(m.send({ type: 'MAT_PLACED' }), true);
   assert.equal(m.state, 'IDLE');
 });
@@ -169,7 +184,7 @@ test('the mat can only be moved between readings', () => {
   m.send({ type: 'REPLACE_MAT' });
   assert.equal(m.state, 'PLACING');
   m.send({ type: 'MAT_PLACED' });
-  m.send({ type: 'CHOOSE_SPREAD', spread: 'single' });
+  m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.single });
   assert.equal(m.send({ type: 'REPLACE_MAT' }), false);
 });
 
@@ -177,7 +192,7 @@ test('each reading gets a new reading number and a fresh shuffle count', () => {
   const m = drawing('single');
   const first = m.current.readingNumber;
   m.send({ type: 'NEW_READING' });
-  m.send({ type: 'CHOOSE_SPREAD', spread: 'single' });
+  m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.single });
   assert.equal(m.current.readingNumber, first + 1);
   assert.equal(m.current.shuffles, 0);
 });
@@ -190,4 +205,29 @@ test('draws never repeat a card within a reading', () => {
     m.send({ type: 'DRAW' });
     assert.equal(new Set(m.current.slots.map((s) => s.cardId)).size, 3);
   }
+});
+
+test('spreads of up to twelve cards work, and bigger or empty ones are refused', () => {
+  const twelve = spreadOf('twelve', Array.from({ length: 12 }, (_, i) => `House ${i + 1}`));
+  const m = make();
+  m.send({ type: 'MAT_PLACED' });
+  assert.equal(m.send({ type: 'CHOOSE_SPREAD', spread: spreadOf('empty', []) }), false);
+  assert.equal(m.send({ type: 'CHOOSE_SPREAD', spread: spreadOf('thirteen', Array.from({ length: 13 }, String)) }), false);
+  assert.equal(m.send({ type: 'CHOOSE_SPREAD', spread: twelve }), true);
+  assert.equal(m.current.slots[11].meaning, 'House 12 means');
+  m.send({ type: 'SHUFFLE' });
+  m.send({ type: 'SHUFFLE_DONE' });
+  for (let i = 0; i < 12; i++) m.send({ type: 'DRAW' });
+  assert.equal(m.state, 'AWAITING_FLIPS');
+  assert.equal(new Set(m.current.slots.map((s) => s.cardId)).size, 12);
+});
+
+test('the drawable cards change only between readings, and a spread needs enough of them', () => {
+  const m = make();
+  assert.equal(m.setCardIds(['a', 'b']), true, 'while placing');
+  m.send({ type: 'MAT_PLACED' });
+  assert.equal(m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.three }), false, 'not enough cards for three');
+  assert.equal(m.setCardIds(ids), true);
+  m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.three });
+  assert.equal(m.setCardIds(['a']), false, 'not mid-reading');
 });

@@ -16,8 +16,8 @@
  * REVEALED while every card is face up.
  */
 
-import { spreads, type SpreadId } from '../data/spreads.js';
 import { drawCards, type DrawnCard } from '../lib/shuffle.js';
+import { MAX_SPREAD_CARDS, type SpreadDef } from '../spreads/spread.schema.js';
 
 export type ReadingStateName =
   | 'PLACING'
@@ -31,7 +31,7 @@ export type ReadingStateName =
 export type ReadingEvent =
   | { type: 'MAT_PLACED' }
   | { type: 'REPLACE_MAT' }
-  | { type: 'CHOOSE_SPREAD'; spread: SpreadId }
+  | { type: 'CHOOSE_SPREAD'; spread: SpreadDef }
   | { type: 'SHUFFLE' }
   | { type: 'SHUFFLE_DONE' }
   /** Draw the top card into the next open spot. Listeners get the spot it went into. */
@@ -43,8 +43,10 @@ export type ReadingEvent =
 export interface ReadingSlot {
   /** Index into the spread's positions. */
   slot: number;
-  /** Position label for the meaning panel (Past / Present / Future), or null. */
-  label: string | null;
+  /** The position's name ("Past", "Challenge"). */
+  label: string;
+  /** What the position asks. */
+  meaning: string;
   /** Null until a card has been drawn into this spot. */
   cardId: string | null;
   reversed: boolean;
@@ -53,7 +55,7 @@ export interface ReadingSlot {
 
 export interface ReadingSnapshot {
   state: ReadingStateName;
-  spread: SpreadId | null;
+  spread: SpreadDef | null;
   slots: readonly ReadingSlot[];
   /** Increments every time a new reading starts, so systems can tell readings apart. */
   readingNumber: number;
@@ -84,9 +86,21 @@ export class ReadingMachine {
   private pending: DrawnCard[] = [];
   private readonly listeners = new Set<Listener>();
   private readonly draw: typeof drawCards;
+  private cardIds: readonly string[];
 
   constructor(private readonly options: ReadingMachineOptions) {
     this.draw = options.draw ?? drawCards;
+    this.cardIds = options.cardIds;
+  }
+
+  /**
+   * Change which cards can be drawn (a different deck). Only between
+   * readings, so a reading never mixes decks. Returns false if not allowed now.
+   */
+  setCardIds(cardIds: readonly string[]): boolean {
+    if (this.snapshot.state !== 'IDLE' && this.snapshot.state !== 'PLACING') return false;
+    this.cardIds = cardIds;
+    return true;
   }
 
   get current(): ReadingSnapshot {
@@ -152,7 +166,9 @@ export class ReadingMachine {
       case 'IDLE':
         if (event.type === 'REPLACE_MAT') return same({ ...s, state: 'PLACING' });
         if (event.type === 'CHOOSE_SPREAD') {
-          const spread = spreads[event.spread];
+          const spread = event.spread;
+          const count = spread.positions.length;
+          if (count === 0 || count > MAX_SPREAD_CARDS || count > this.cardIds.length) return null;
           return same({
             ...s,
             state: 'READY',
@@ -162,6 +178,7 @@ export class ReadingMachine {
             slots: spread.positions.map((position, index) => ({
               slot: index,
               label: position.label,
+              meaning: position.meaning,
               cardId: null,
               reversed: false,
               faceUp: false,
@@ -195,7 +212,7 @@ export class ReadingMachine {
     const s = this.snapshot;
     const drawn = new Set(s.slots.map((slot) => slot.cardId).filter((id) => id !== null));
     const open = s.slots.filter((slot) => slot.cardId === null).length;
-    const remaining = drawn.size ? this.options.cardIds.filter((id) => !drawn.has(id)) : this.options.cardIds;
+    const remaining = drawn.size ? this.cardIds.filter((id) => !drawn.has(id)) : this.cardIds;
     const pending = this.draw(remaining, open, this.options.reversalChance);
     return {
       snapshot: { ...s, state: 'SHUFFLING' as const, shuffles: s.shuffles + 1 },

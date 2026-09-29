@@ -3,8 +3,6 @@ import { app } from '../app/context.js';
 import { TarotCard } from '../components/tarotCard.js';
 import { faceUpFromNormalY } from '../lib/handPose.js';
 import { ease, lerp, type TweenHandle } from '../lib/tween.js';
-import { slotPosition } from '../visuals/layout.js';
-import { MAT_SURFACE_Y } from '../visuals/tableVisuals.js';
 import { MeaningSystem } from './meaningSystem.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem, type TableCard } from './tableSystem.js';
@@ -116,8 +114,8 @@ export class CardInteractionSystem extends createSystem({
    * drawn, and face up or down as it is now.
    */
   private settle(card: TableCard): void {
-    const spread = app.machine.current.spread;
-    if (!spread || card.phase === 'gathering') return;
+    const to = this.table.slotPose(card.slot);
+    if (!to || card.phase === 'gathering') return;
     const root = card.visual.root;
     const pivot = card.visual.pivot;
 
@@ -131,15 +129,14 @@ export class CardInteractionSystem extends createSystem({
 
     const from = root.position.clone();
     const fromQuat = root.quaternion.clone();
-    const to = slotPosition(spread, card.slot);
-    const toQuat = new Quaternion().setFromAxisAngle(UP, card.reversed ? Math.PI : 0);
+    const toQuat = new Quaternion().setFromAxisAngle(UP, to.yaw + (card.reversed ? Math.PI : 0));
     if (card.phase === 'held') card.phase = 'flying';
     void this.table
       .move(card, {
         duration: SETTLE_SECONDS,
         easing: ease.outCubic,
         onUpdate: (k) => {
-          root.position.set(lerp(from.x, to.x, k), lerp(from.y, MAT_SURFACE_Y, k), lerp(from.z, to.z, k));
+          root.position.set(lerp(from.x, to.x, k), lerp(from.y, to.y, k), lerp(from.z, to.z, k));
           root.quaternion.slerpQuaternions(fromQuat, toQuat, k);
         },
       })

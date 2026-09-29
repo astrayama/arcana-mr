@@ -10,93 +10,74 @@ import { config } from '../config.js';
 import type { CardOrientation } from '../data/cards.schema.js';
 import { TarotCard } from '../components/tarotCard.js';
 import { UiPanel } from '../components/ui.js';
-import type { ReadingSlot } from '../state/readingMachine.js';
+import type { ReadingSlot, ReadingSnapshot } from '../state/readingMachine.js';
 import labelTemplate from '../ui/cardLabel.uikitml?raw';
 import meaningTemplate from '../ui/meaning.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
-import { slotPosition } from '../visuals/layout.js';
-import type { SpreadId } from '../data/spreads.js';
+import { MAT_SURFACE_Y } from '../visuals/layout.js';
+import type { TableLayout } from '../visuals/spreadLayout.js';
 import { TableSystem } from './tableSystem.js';
 
-/**
- * Two candidate layouts for the 3-card spread, selectable with ?layout= while
- * the final choice is made:
- *   focus    - a small label by each flipped card and one full meaning panel
- *              above the mat for the card in focus (tap a card to switch)
- *   triptych - all three full meaning panels at once, in a shallow arc
- */
-export type MeaningLayout = 'focus' | 'triptych';
-export const MEANING_LAYOUTS: readonly MeaningLayout[] = ['focus', 'triptych'];
-
-const MAX_SLOTS = 3;
 const UNWRITTEN: CardOrientation = {
   keywords: ['', '', ''],
   read: "This card's reflection is still being written.",
   prompt: 'What stands out to you first when you look at this card?',
 };
 
-/** Shows what each flipped card means. */
+/** Labels lie almost flat, tipped this far up toward the reader so they read easily. */
+const LABEL_TILT = 0.45;
+const LABEL_LIFT_M = 0.012;
+/** The meaning panel grows a little on a deep mat, where it sits farther away. */
+const DEEP_MAT_GROWTH = 0.15;
+/** Height of the meaning panel's center above the mat at its everyday size. */
+const PANEL_HEIGHT_M = 0.36;
+
+/**
+ * Shows what the face-up cards mean. Each face-up card gets a small label in
+ * front of it (position and name), and one full meaning panel stands beyond
+ * the far edge of the mat for the card in focus. Tap a card or its label to
+ * bring it into focus, or step through them with Previous and Next.
+ */
 export class MeaningSystem extends createSystem({
   panels: { required: [UiPanel, PanelDocument] },
   pressedCards: { required: [TarotCard, Pressed] },
 }) {
-  layout: MeaningLayout = 'focus';
-  /** The slot whose full meaning is showing in the focus layout, or -1. */
+  /** The slot whose full meaning is showing, or -1. */
   focusedSlot = -1;
 
-  private meaningPanels: Entity[] = [];
-  private labels: Entity[] = [];
+  private table!: TableSystem;
+  private panel!: Entity;
+  /** One label per label group, reused from reading to reading. */
+  private readonly labels: Entity[] = [];
+  /** Which slots each label shows (a card, and the card lying across it). */
+  private readonly labelSlots: number[][] = [];
   /** What each panel should show once its document has loaded. */
-  private pending = new Map<Entity, ReadingSlot | null>();
+  private readonly pending = new Map<Entity, () => void>();
 
   init(): void {
-    const requested = new URLSearchParams(window.location.search).get(config.urlParams.layout);
-    this.layout = MEANING_LAYOUTS.includes(requested as MeaningLayout)
-      ? (requested as MeaningLayout)
-      : 'focus';
-
-    const mat = this.world.getSystem(TableSystem)!.mat;
-    const panelCount = this.layout === 'focus' ? 1 : MAX_SLOTS;
-    for (let i = 0; i < panelCount; i++) {
-      this.meaningPanels.push(
-        createPanel(this.world, {
-          kind: 'meaning',
-          slot: i,
-          template: meaningTemplate,
-          parent: mat,
-          name: `MeaningPanel-${i}`,
-          scale: config.ui.panelScale,
-        }),
-      );
-    }
-    if (this.layout === 'focus') {
-      for (let i = 0; i < MAX_SLOTS; i++) {
-        this.labels.push(
-          createPanel(this.world, {
-            kind: 'label',
-            slot: i,
-            template: labelTemplate,
-            parent: mat,
-            name: `CardLabel-${i}`,
-            scale: config.ui.labelScale,
-          }),
-        );
-      }
-    }
+    this.table = this.world.getSystem(TableSystem)!;
+    this.panel = createPanel(this.world, {
+      kind: 'meaning',
+      slot: 0,
+      template: meaningTemplate,
+      parent: this.table.mat,
+      name: 'MeaningPanel',
+      scale: config.ui.panelScale,
+    });
 
     this.cleanupFuncs.push(
       this.queries.panels.subscribe('qualify', (entity) => this.onPanelReady(entity)),
       this.queries.pressedCards.subscribe('qualify', (entity) => {
         // Pressing a card that is already face up brings its meaning into focus.
-        if (entity.getValue(TarotCard, 'faceUp')) {
-          this.focus(entity.getValue(TarotCard, 'slot') ?? -1);
-        }
+        if (entity.getValue(TarotCard, 'faceUp')) this.focus(entity.getValue(TarotCard, 'slot') ?? -1);
+      }),
+      this.table.onLayout((layout) => {
+        if (layout.spread && layout.spread.id === app.machine.current.spread?.id) this.prepareLabels(layout);
       }),
       app.machine.subscribe((snapshot, event) => {
-        if (event.type === 'TURN' && snapshot.spread) {
-          const slot = snapshot.slots[event.slot];
-          if (slot?.cardId && event.faceUp) this.reveal(slot, snapshot.spread);
-          else if (!event.faceUp) this.conceal(event.slot, snapshot.spread);
+        if (event.type === 'TURN') {
+          if (event.faceUp) this.reveal(event.slot);
+          else this.conceal(event.slot, snapshot);
         }
         if (snapshot.state === 'IDLE' || snapshot.state === 'PLACING' || event.type === 'CHOOSE_SPREAD') {
           this.hideAll();
@@ -106,126 +87,194 @@ export class MeaningSystem extends createSystem({
   }
 
   private onPanelReady(entity: Entity): void {
-    const labelSlot = this.labels.indexOf(entity);
-    if (labelSlot >= 0) {
-      const document = panelDocument(entity)!;
-      this.cleanupFuncs.push(bindClicks(document, { label: () => this.focus(labelSlot) }));
+    const document = panelDocument(entity)!;
+    if (entity === this.panel) {
+      this.cleanupFuncs.push(
+        bindClicks(document, {
+          'mg-prev': () => this.step(-1),
+          'mg-next': () => this.step(1),
+        }),
+      );
     }
-    if (this.pending.has(entity)) {
-      this.fill(entity, this.pending.get(entity)!);
+    const labelIndex = this.labels.indexOf(entity);
+    if (labelIndex >= 0) {
+      this.cleanupFuncs.push(
+        bindClicks(document, {
+          'lb-e1': () => this.focus(this.labelSlots[labelIndex][0] ?? -1),
+          'lb-e2': () => this.focus(this.labelSlots[labelIndex][1] ?? -1),
+        }),
+      );
+    }
+    const fill = this.pending.get(entity);
+    if (fill) {
+      this.pending.delete(entity);
+      fill();
     }
   }
 
-  /** A card was just turned face up. */
-  private reveal(slot: ReadingSlot, spread: SpreadId): void {
-    const single = spread === 'single';
-    if (this.layout === 'focus') {
-      const label = this.labels[slot.slot];
-      this.placeLabel(label, slot.slot, spread);
-      this.fill(label, slot);
-      // Labels sit near the cards you grab, so they only take rays, never pokes.
-      setPanelActive(label, true, { poke: false });
-      this.focus(slot.slot);
+  /** Run `fill` now if the panel's document is ready, or as soon as it loads. */
+  private whenReady(entity: Entity, fill: (doc: UIKitDocument) => void): void {
+    const document = panelDocument(entity);
+    if (document) {
+      this.pending.delete(entity);
+      fill(document);
     } else {
-      const panel = this.meaningPanels[single ? 1 : slot.slot];
-      this.placeTriptych(panel, single ? 1 : slot.slot);
-      this.fill(panel, slot);
-      setPanelActive(panel, true);
+      this.pending.set(entity, () => fill(panelDocument(entity)!));
     }
+  }
+
+  /** Make sure there's a label for every label group, placed and sized for this layout. */
+  private prepareLabels(layout: TableLayout): void {
+    while (this.labels.length < layout.labelGroups.length) {
+      const i = this.labels.length;
+      this.labels.push(
+        createPanel(this.world, {
+          kind: 'label',
+          slot: i,
+          template: labelTemplate,
+          parent: this.table.mat,
+          name: `CardLabel-${i}`,
+          scale: config.ui.labelScale,
+        }),
+      );
+      this.labelSlots.push([]);
+    }
+    layout.labelGroups.forEach((group, i) => {
+      const label = this.labels[i].object3D!;
+      const r = group.rect;
+      label.position.set((r.minX + r.maxX) / 2, MAT_SURFACE_Y + LABEL_LIFT_M, (r.minZ + r.maxZ) / 2);
+      label.rotation.set(-Math.PI / 2 + LABEL_TILT, 0, 0);
+      label.scale.setScalar(config.ui.labelScale * layout.cardScale);
+      this.labelSlots[i] = group.slots;
+    });
+  }
+
+  /** A card was just turned face up: label it and bring it into focus. */
+  private reveal(slot: number): void {
+    this.refreshLabelFor(slot);
+    this.focus(slot);
   }
 
   /** A card was turned back face down: its meaning goes away until it's turned up again. */
-  private conceal(slotIndex: number, spread: SpreadId): void {
-    if (this.layout === 'focus') {
-      const label = this.labels[slotIndex];
-      setPanelActive(label, false);
-      this.pending.delete(label);
-      if (this.focusedSlot !== slotIndex) return;
-      // Move the focus to another face-up card, or clear it.
-      const other = app.machine.current.slots.find((slot) => slot.faceUp && slot.cardId);
-      if (other) {
-        this.focus(other.slot);
-      } else {
-        this.focusedSlot = -1;
-        this.world.getSystem(TableSystem)!.focusedSlot = -1;
-        setPanelActive(this.meaningPanels[0], false);
-        this.pending.delete(this.meaningPanels[0]);
-      }
+  private conceal(slot: number, snapshot: ReadingSnapshot): void {
+    this.refreshLabelFor(slot);
+    if (this.focusedSlot !== slot) {
+      this.refreshNav();
+      return;
+    }
+    const other = snapshot.slots.find((s) => s.faceUp && s.cardId);
+    if (other) {
+      this.focus(other.slot);
     } else {
-      const panel = this.meaningPanels[spread === 'single' ? 1 : slotIndex];
-      setPanelActive(panel, false);
-      this.pending.delete(panel);
+      this.setFocused(-1);
+      setPanelActive(this.panel, false);
+      this.pending.delete(this.panel);
     }
   }
 
-  /** Focus layout: show one card's full meaning above the mat. */
+  /** Show, update, or hide the label that covers `slot`. */
+  private refreshLabelFor(slot: number): void {
+    const index = this.labelSlots.findIndex((slots) => slots.includes(slot));
+    if (index < 0) return;
+    const label = this.labels[index];
+    const snapshot = app.machine.current;
+    const shown = this.labelSlots[index].map((s) => snapshot.slots[s]).filter((s) => s?.faceUp && s.cardId);
+    // Labels sit near the cards you grab, so they only take rays, never pokes.
+    setPanelActive(label, shown.length > 0, { poke: false });
+    if (shown.length === 0) {
+      this.pending.delete(label);
+      return;
+    }
+    this.whenReady(label, (doc) => {
+      const [first, second] = shown;
+      this.fillLabelEntry(doc, '', first);
+      doc.getElementById('lb-e2')?.setProperties({ display: second ? 'flex' : 'none' });
+      if (second) this.fillLabelEntry(doc, '2', second);
+    });
+  }
+
+  private fillLabelEntry(doc: UIKitDocument, suffix: '' | '2', slot: ReadingSlot): void {
+    const card = slot.cardId ? app.cards.get(slot.cardId) : undefined;
+    setText(doc, `lb${suffix}-position`, slot.label.toUpperCase());
+    setText(doc, `lb${suffix}-name`, card?.name ?? slot.cardId ?? '');
+    doc.getElementById(`lb${suffix}-rev`)?.setProperties({ display: slot.reversed ? 'flex' : 'none' });
+  }
+
+  /** Show one card's full meaning beyond the far edge of the mat. */
   focus(slotIndex: number): void {
-    if (this.layout !== 'focus') return;
     const slot = app.machine.current.slots[slotIndex];
-    if (!slot?.faceUp) return;
-    this.focusedSlot = slotIndex;
-    this.world.getSystem(TableSystem)!.focusedSlot = slotIndex;
-    const panel = this.meaningPanels[0];
-    // Above the far edge of the mat, tipped back toward the reader.
-    panel.object3D!.position.set(0, 0.34, -config.layout.matDepthM / 2 - 0.08);
-    panel.object3D!.rotation.set(-0.3, 0, 0);
-    this.fill(panel, slot);
-    setPanelActive(panel, true);
+    if (!slot?.faceUp || !slot.cardId) return;
+    this.setFocused(slotIndex);
+    const panel = this.panel.object3D!;
+    const { bounds, mat } = this.table.layout;
+    const deep = (mat.depthM - config.layout.matDepthM) / (config.layout.maxMatDepthM - config.layout.matDepthM || 1);
+    const growth = 1 + Math.max(0, deep) * DEEP_MAT_GROWTH;
+    // A bigger panel stands taller too, so its lower edge never dips onto the cards.
+    panel.position.set(0, PANEL_HEIGHT_M * growth, bounds.minZ - 0.08);
+    panel.rotation.set(-0.3, 0, 0);
+    panel.scale.setScalar(config.ui.panelScale * growth);
+    setPanelActive(this.panel, true);
+    this.whenReady(this.panel, (doc) => this.fillMeaning(doc, slot));
   }
 
-  private placeLabel(label: Entity, slot: number, spread: SpreadId): void {
-    const at = slotPosition(spread, slot);
-    // Just beyond the card's far edge, so it never covers the card itself.
-    label.object3D!.position.set(at.x, 0.035, at.z - app.cardHeightM / 2 - 0.012);
-    label.object3D!.rotation.set(-0.5, 0, 0);
+  /** Step to the previous or next face-up card, in spread order. */
+  private step(direction: 1 | -1): void {
+    const faceUp = this.faceUpSlots();
+    if (faceUp.length === 0) return;
+    const at = faceUp.indexOf(this.focusedSlot);
+    const next = faceUp[(at + direction + faceUp.length) % faceUp.length];
+    this.focus(next);
   }
 
-  private placeTriptych(panel: Entity, index: number): void {
-    const side = index - 1;
-    panel.object3D!.position.set(side * 0.39, 0.34, -0.32 + Math.abs(side) * 0.09);
-    panel.object3D!.rotation.set(-0.25, -side * 0.45, 0, 'YXZ');
+  private faceUpSlots(): number[] {
+    return app.machine.current.slots.filter((s) => s.faceUp && s.cardId).map((s) => s.slot);
+  }
+
+  private setFocused(slot: number): void {
+    this.focusedSlot = slot;
+    this.table.focusedSlot = slot;
+    this.refreshNav();
+  }
+
+  /** Previous and Next appear once more than one card is face up. */
+  private refreshNav(): void {
+    const faceUp = this.faceUpSlots();
+    this.whenReadyIfActive((doc) => {
+      doc.getElementById('mg-nav')?.setProperties({ display: faceUp.length > 1 ? 'flex' : 'none' });
+      const at = faceUp.indexOf(this.focusedSlot);
+      setText(doc, 'mg-count', `${Math.max(at, 0) + 1} of ${faceUp.length}`);
+    });
+  }
+
+  private whenReadyIfActive(fill: (doc: UIKitDocument) => void): void {
+    const doc = panelDocument(this.panel);
+    if (doc) fill(doc);
   }
 
   private hideAll(): void {
-    this.focusedSlot = -1;
-    this.world.getSystem(TableSystem)!.focusedSlot = -1;
-    for (const panel of [...this.meaningPanels, ...this.labels]) {
+    this.setFocused(-1);
+    for (const panel of [this.panel, ...this.labels]) {
       setPanelActive(panel, false);
       this.pending.delete(panel);
     }
   }
 
-  private fill(entity: Entity, slot: ReadingSlot | null): void {
-    const document = panelDocument(entity);
-    if (!document) {
-      this.pending.set(entity, slot);
-      return;
-    }
-    this.pending.delete(entity);
-    if (!slot) return;
+  private fillMeaning(document: UIKitDocument, slot: ReadingSlot): void {
     const card = slot.cardId ? app.cards.get(slot.cardId) : undefined;
-    const position = (slot.label ?? 'Your card').toUpperCase();
-    const show = (doc: UIKitDocument, id: string, visible: boolean) =>
-      doc.getElementById(id)?.setProperties({ display: visible ? 'flex' : 'none' });
-
-    if (this.labels.includes(entity)) {
-      setText(document, 'lb-position', position);
-      setText(document, 'lb-name', card?.name ?? slot.cardId ?? '');
-      show(document, 'lb-up', !slot.reversed);
-      show(document, 'lb-rev', slot.reversed);
-      return;
-    }
-
+    const show = (id: string, visible: boolean) =>
+      document.getElementById(id)?.setProperties({ display: visible ? 'flex' : 'none' });
     const orientation = (slot.reversed ? card?.reversed : card?.upright) ?? UNWRITTEN;
-    setText(document, 'mg-position', position);
+    setText(document, 'mg-position', slot.label.toUpperCase());
+    setText(document, 'mg-asks', slot.meaning);
     setText(document, 'mg-name', card?.name ?? slot.cardId ?? '');
-    show(document, 'mg-badge-up', !slot.reversed);
-    show(document, 'mg-badge-rev', slot.reversed);
+    show('mg-badge-up', !slot.reversed);
+    show('mg-badge-rev', slot.reversed);
     orientation.keywords.forEach((keyword, i) => {
       setText(document, `mg-kw-${i}`, keyword);
-      show(document, `mg-kw-${i}`, keyword.length > 0);
+      show(`mg-kw-${i}`, keyword.length > 0);
     });
     setText(document, 'mg-read', orientation.read);
     setText(document, 'mg-prompt', orientation.prompt);
+    this.refreshNav();
   }
 }

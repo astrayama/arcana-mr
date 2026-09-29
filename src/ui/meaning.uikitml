@@ -1,5 +1,6 @@
 <!--
-  Meaning panel: everything about one flipped card. Filled in by MeaningSystem.
+  Meaning panel: everything about one face-up card, with a way to step
+  through the others. Filled in by MeaningSystem.
   Theme template: double-brace tokens are filled from the active theme.
   Sized in UIKit units (centimeters) for reading at roughly 60 to 80 cm.
 -->
@@ -56,6 +57,13 @@
     color: {{colors.accentText}};
   }
 
+  .mg-asks {
+    {{bodyFont}}
+    margin-top: 0.4;
+    font-size: 1.2;
+    line-height: 1.35;
+    color: {{colors.panelMuted}};
+  }
   .mg-name {
     {{headingFont}}
     margin-top: 0.6;
@@ -118,6 +126,44 @@
     color: {{colors.accent}};
   }
 
+  .mg-nav {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.4;
+  }
+  .mg-nav-btn {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4;
+    padding-top: 0.5;
+    padding-bottom: 0.5;
+    padding-left: 0.9;
+    padding-right: 0.9;
+    border-radius: 1;
+    border-width: 0.1;
+    border-color: {{colors.panelBorder}};
+    cursor: pointer;
+  }
+  .mg-nav-btn:hover {
+    border-color: {{colors.highlight}};
+    background-color: {{colors.panelBorder}};
+  }
+  .mg-nav-icon {
+    width: 1.5;
+    height: 1.5;
+    color: {{colors.panelText}};
+  }
+  .mg-nav-text {
+    {{bodyFont}}
+    font-size: 1.15;
+    color: {{colors.panelText}};
+  }
+  .mg-count {
+    {{bodyFont}}
+    font-size: 1.15;
+    color: {{colors.panelMuted}};
+  }
   .mg-prompt {
     {{headingFont}}
     margin-top: 0.5;
@@ -136,6 +182,7 @@
       <div class="mg-badge-text">Reversed</div>
     </div>
   </div>
+  <div id="mg-asks" class="mg-asks">What this position asks.</div>
   <div id="mg-name" class="mg-name">Card name</div>
   <div class="mg-keywords">
     <div id="mg-kw-0" class="mg-keyword">one</div>
@@ -147,5 +194,16 @@
   <div class="mg-prompt-box">
     <div class="mg-prompt-label">TO REFLECT ON</div>
     <div id="mg-prompt" class="mg-prompt">The reflection question goes here?</div>
+  </div>
+  <div id="mg-nav" class="mg-nav" style="display: none">
+    <div id="mg-prev" class="mg-nav-btn">
+      <ChevronLeft class="mg-nav-icon"></ChevronLeft>
+      <div class="mg-nav-text">Previous</div>
+    </div>
+    <div id="mg-count" class="mg-count">1 of 3</div>
+    <div id="mg-next" class="mg-nav-btn">
+      <div class="mg-nav-text">Next</div>
+      <ChevronRight class="mg-nav-icon"></ChevronRight>
+    </div>
   </div>
 </div>

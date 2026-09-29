@@ -1,15 +1,16 @@
-import { createSystem, Quaternion, Vector3, type Entity, type Object3D } from '@iwsdk/core';
+import { createSystem, Quaternion, Vector3, type Entity, type MeshBasicMaterial, type Object3D } from '@iwsdk/core';
 import { app } from '../app/context.js';
 import { config } from '../config.js';
 import { ease, lerp } from '../lib/tween.js';
 import type { ReadingSnapshot } from '../state/readingMachine.js';
-import { slotPosition } from '../visuals/layout.js';
+import type { TableLayout } from '../visuals/spreadLayout.js';
 import {
-  buildSlotMarker,
+  buildSlotOutline,
+  buildSpotName,
   deckStackHeight,
   loadColorTexture,
   MAT_SURFACE_Y,
-  type SlotMarkerVisual,
+  type SlotOutline,
 } from '../visuals/tableVisuals.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem, type TableCard } from './tableSystem.js';
@@ -18,13 +19,22 @@ const FLY_SECONDS = 0.5;
 const FLY_ARC_M = 0.05;
 const MARKER_OPACITY = { rest: 0.35, next: 0.9 } as const;
 const MARKER_PULSE_RATE = 2.4;
+const NAME_OPACITY = 0.55;
 
 interface Marker {
   slot: number;
   entity: Entity;
-  visual: SlotMarkerVisual;
+  visual: SlotOutline;
   /** A card is in this spot, so its outline is hidden. */
   filled: boolean;
+}
+
+/** A spot's name in the cloth. One name can belong to two spots (a card and the card across it). */
+interface SpotName {
+  slots: number[];
+  entity: Entity;
+  root: Object3D;
+  material: MeshBasicMaterial;
 }
 
 /**
@@ -36,6 +46,7 @@ interface Marker {
 export class DrawSystem extends createSystem({}) {
   private table!: TableSystem;
   private markers: Marker[] = [];
+  private names: SpotName[] = [];
   /** Set while a pinch is drawing, so the new card goes to the hand instead of flying. */
   private pulling = false;
   private pulled: TableCard | null = null;
@@ -50,11 +61,11 @@ export class DrawSystem extends createSystem({}) {
     this.world.getSystem(TableGrabSystem)!.pull = () => this.pull();
 
     this.cleanupFuncs.push(
+      // The spots on the mat follow the layout: a reading's spread, or the
+      // builder's preview, or nothing between readings.
+      this.table.onLayout((layout) => this.buildMarkers(layout)),
       app.machine.subscribe((snapshot, event) => {
         switch (event.type) {
-          case 'CHOOSE_SPREAD':
-            this.buildMarkers(snapshot);
-            break;
           case 'SHUFFLE_DONE':
             this.preloadUpcoming();
             break;
@@ -66,7 +77,9 @@ export class DrawSystem extends createSystem({}) {
             this.removeMarkers();
             break;
         }
+        if (event.type === 'TURN' || event.type === 'DRAW') this.refreshNames(snapshot);
       }),
+      () => this.removeMarkers(),
     );
   }
 
@@ -85,6 +98,7 @@ export class DrawSystem extends createSystem({}) {
           : MARKER_OPACITY.rest;
       marker.visual.outline.opacity += (target - marker.visual.outline.opacity) * 0.2;
     }
+    for (const name of this.names) name.material.opacity += (NAME_OPACITY - name.material.opacity) * 0.15;
   }
 
   /** Draw the next card into a pinching hand. Returns the card, or null if drawing isn't allowed now. */
@@ -106,9 +120,9 @@ export class DrawSystem extends createSystem({}) {
     const data = snapshot.slots[slot];
     if (!data?.cardId || !snapshot.spread) return;
 
-    // The new card starts on top of the deck, wherever the deck is.
+    // The new card starts on top of the deck, wherever the deck is and however it's tilted.
     const deck = this.table.deck.object3D!;
-    this.lift.set(0, deckStackHeight(app.cards.size), 0).applyQuaternion(deck.quaternion);
+    this.lift.set(0, deckStackHeight(app.cards.size) * deck.scale.y, 0).applyQuaternion(deck.quaternion);
     this.deckPos.copy(deck.position).add(this.lift);
     this.deckQuat.copy(deck.quaternion);
     const card = this.table.createCard(this.deckPos.x, this.deckPos.y, this.deckPos.z);
@@ -129,14 +143,14 @@ export class DrawSystem extends createSystem({}) {
 
   /** Send a card to its own spot face down, the way a dealer would. */
   private fly(card: TableCard, snapshot: ReadingSnapshot): void {
-    if (!snapshot.spread) return;
+    const to = this.table.slotPose(card.slot);
+    if (!snapshot.spread || !to) return;
     card.phase = 'flying';
     const root = card.visual.root;
     const from = root.position.clone();
     const fromQuat = root.quaternion.clone();
-    const to = slotPosition(snapshot.spread, card.slot);
     // A reversed card lands turned end over end, like a real one would.
-    const toQuat = new Quaternion().setFromAxisAngle(UP, card.reversed ? Math.PI : 0);
+    const toQuat = new Quaternion().setFromAxisAngle(UP, to.yaw + (card.reversed ? Math.PI : 0));
     void this.table
       .move(card, {
         duration: FLY_SECONDS,
@@ -144,7 +158,7 @@ export class DrawSystem extends createSystem({}) {
         onUpdate: (k) => {
           root.position.set(
             lerp(from.x, to.x, k),
-            lerp(from.y, MAT_SURFACE_Y, k) + Math.sin(Math.PI * k) * FLY_ARC_M,
+            lerp(from.y, to.y, k) + Math.sin(Math.PI * k) * FLY_ARC_M,
             lerp(from.z, to.z, k),
           );
           root.quaternion.slerpQuaternions(fromQuat, toQuat, k);
@@ -174,19 +188,45 @@ export class DrawSystem extends createSystem({}) {
     }
   }
 
-  private buildMarkers(snapshot: ReadingSnapshot): void {
+  /** Outline every spot of the layout's spread, and set each spot's name into the cloth. */
+  private buildMarkers(layout: TableLayout): void {
     this.removeMarkers();
-    if (!snapshot.spread) return;
-    for (const slot of snapshot.slots) {
-      const visual = buildSlotMarker(app.theme, slot.label, config.card.widthM, app.cardHeightM);
-      const at = slotPosition(snapshot.spread, slot.slot);
-      visual.root.position.set(at.x, 0, at.z);
-      const entity = this.world.createTransformEntity(visual.root, { parent: this.table.mat });
-      this.markers.push({ slot: slot.slot, entity, visual, filled: false });
+    const spread = layout.spread;
+    if (!spread) return;
+    const mat = this.table.mat;
+    const filled = app.machine.current.spread?.id === spread.id ? app.machine.current.slots : [];
+    layout.slots.forEach((pose, slot) => {
+      const visual = buildSlotOutline(app.theme, config.card.widthM, app.cardHeightM);
+      visual.root.position.set(pose.x, pose.y - MAT_SURFACE_Y, pose.z);
+      visual.root.rotation.set(0, pose.yaw, 0);
+      visual.root.scale.setScalar(layout.cardScale);
+      // Fade in while the mat grows into place.
+      visual.outline.opacity = 0;
+      const entity = this.world.createTransformEntity(visual.root, { parent: mat });
+      const isFilled = filled[slot]?.cardId != null;
+      if (isFilled) visual.root.visible = false;
+      this.markers.push({ slot, entity, visual, filled: isFilled });
+    });
+    for (const group of layout.labelGroups) {
+      const text = group.slots.map((slot) => spread.positions[slot].label).join(' / ');
+      const r = group.rect;
+      const { mesh, material } = buildSpotName(app.theme, text, r.maxX - r.minX, r.maxZ - r.minZ);
+      mesh.position.set((r.minX + r.maxX) / 2, MAT_SURFACE_Y + 0.0005, (r.minZ + r.maxZ) / 2);
+      material.opacity = 0;
+      const entity = this.world.createTransformEntity(mesh, { parent: mat });
+      this.names.push({ slots: group.slots, entity, root: mesh, material });
+    }
+    this.refreshNames(app.machine.current);
+  }
+
+  /** A spot's name gives way to the card's own label once its card is face up. */
+  private refreshNames(snapshot: ReadingSnapshot): void {
+    for (const name of this.names) {
+      name.root.visible = !name.slots.some((slot) => snapshot.slots[slot]?.faceUp);
     }
   }
 
-  /** Hide a filled spot's outline and name. */
+  /** Hide a filled spot's outline. */
   private hideMarker(slot: number): void {
     const marker = this.markers.find((m) => m.slot === slot);
     if (!marker) return;
@@ -195,8 +235,12 @@ export class DrawSystem extends createSystem({}) {
   }
 
   private removeMarkers(): void {
-    for (const marker of this.markers) {
-      marker.visual.root.traverse((object: Object3D) => {
+    const roots = [
+      ...this.markers.map((m) => ({ root: m.visual.root, entity: m.entity })),
+      ...this.names.map((n) => ({ root: n.root, entity: n.entity })),
+    ];
+    for (const marker of roots) {
+      marker.root.traverse((object: Object3D) => {
         const mesh = object as {
           geometry?: { dispose(): void };
           material?: { dispose(): void; map?: { dispose(): void } | null };
@@ -205,10 +249,11 @@ export class DrawSystem extends createSystem({}) {
         mesh.material?.map?.dispose();
         mesh.material?.dispose();
       });
-      marker.visual.root.removeFromParent();
+      marker.root.removeFromParent();
       marker.entity.destroy();
     }
     this.markers = [];
+    this.names = [];
   }
 }
 

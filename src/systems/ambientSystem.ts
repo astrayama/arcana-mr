@@ -16,14 +16,14 @@ import {
   SpriteMaterial,
 } from '@iwsdk/core';
 import { app } from '../app/context.js';
-import { config } from '../config.js';
+import type { TableLayout } from '../visuals/spreadLayout.js';
 import { MAT_SURFACE_Y } from '../visuals/tableVisuals.js';
 import { TableSystem } from './tableSystem.js';
 
 const CANDLE_HEIGHT = 0.075;
 const CANDLE_RADIUS = 0.012;
-/** Volume above the mat where motes drift, in meters. */
-const MOTE_BOX = { width: 0.5, height: 0.32, depth: 0.36 };
+/** How high above the mat motes drift, in meters. */
+const MOTE_BOX = { height: 0.32 };
 
 /** A soft round dot, drawn once, for flames and motes. */
 function softDot(inner: string, outer: string): CanvasTexture {
@@ -40,6 +40,7 @@ function softDot(inner: string, outer: string): CanvasTexture {
 }
 
 interface Candle {
+  body: Mesh;
   flame: Sprite;
   light: PointLight;
   phase: number;
@@ -52,13 +53,16 @@ interface Candle {
  */
 export class AmbientSystem extends createSystem({}) {
   private candles: Candle[] = [];
+  private table!: TableSystem;
   private motes: Points | null = null;
   private moteSeeds!: Float32Array;
   private time = 0;
 
   init(): void {
     const { candles, particles } = app.theme.theme.ambient;
-    const mat = this.world.getSystem(TableSystem)!.mat;
+    const table = this.world.getSystem(TableSystem)!;
+    this.table = table;
+    const mat = table.mat;
     const root = new Group();
     root.name = 'Ambient';
     this.world.createTransformEntity(root, { parent: mat });
@@ -72,22 +76,17 @@ export class AmbientSystem extends createSystem({}) {
         depthWrite: false,
         transparent: true,
       });
-      const { matWidthM, matDepthM } = config.layout;
       for (let i = 0; i < candles.count; i++) {
-        // Spread along the far edge, starting from the corners.
-        const t = candles.count === 1 ? 0.5 : i / (candles.count - 1);
-        const x = (t - 0.5) * (matWidthM - 0.07);
-        const z = -matDepthM / 2 + 0.04;
         const candle = new Mesh(body, wax);
-        candle.position.set(x, MAT_SURFACE_Y + CANDLE_HEIGHT / 2, z);
         const flame = new Sprite(flameMaterial);
         flame.scale.set(0.02, 0.034, 1);
-        flame.position.set(x, MAT_SURFACE_Y + CANDLE_HEIGHT + 0.016, z);
         const light = new PointLight(new Color(candles.color), candles.intensity, 0.9, 2);
-        light.position.copy(flame.position);
         root.add(candle, flame, light);
-        this.candles.push({ flame, light, phase: i * 1.7 });
+        this.candles.push({ body: candle, flame, light, phase: i * 1.7 });
       }
+      // Candles stand in the far corners of whatever size the mat is, clear of the cards.
+      this.placeCandles(table.layout);
+      this.cleanupFuncs.push(table.onLayout((layout) => this.placeCandles(layout)));
     }
 
     if (particles && particles.count > 0) {
@@ -136,6 +135,18 @@ export class AmbientSystem extends createSystem({}) {
     if (this.motes) this.updateMotes();
   }
 
+  private placeCandles(layout: TableLayout): void {
+    this.candles.forEach((candle, i) => {
+      const spot = layout.candles[i];
+      const on = spot !== undefined;
+      candle.body.visible = candle.flame.visible = candle.light.visible = on;
+      if (!on) return;
+      candle.body.position.set(spot.x, MAT_SURFACE_Y + CANDLE_HEIGHT / 2, spot.z);
+      candle.flame.position.set(spot.x, MAT_SURFACE_Y + CANDLE_HEIGHT + 0.016, spot.z);
+      candle.light.position.copy(candle.flame.position);
+    });
+  }
+
   /** Each mote rises slowly on its own loop, swaying a little as it goes. */
   private updateMotes(): void {
     const positions = this.motes!.geometry.attributes.position as BufferAttribute;
@@ -143,14 +154,19 @@ export class AmbientSystem extends createSystem({}) {
     const array = positions.array as Float32Array;
     const shade = colors.array as Float32Array;
     const count = array.length / 3;
+    // Motes drift over the whole mat, however big it is right now.
+    const b = this.table.bounds;
+    const width = (b.maxX - b.minX) * 0.9;
+    const depth = (b.maxZ - b.minZ) * 0.85;
+    const centerZ = (b.minZ + b.maxZ) / 2;
     for (let i = 0; i < count; i++) {
       const sx = this.moteSeeds[i * 3];
       const sy = this.moteSeeds[i * 3 + 1];
       const sz = this.moteSeeds[i * 3 + 2];
       const rise = (sy + this.time * (0.012 + sz * 0.01)) % 1;
-      array[i * 3] = (sx - 0.5) * MOTE_BOX.width + Math.sin(this.time * 0.4 + sy * 9) * 0.012;
+      array[i * 3] = (sx - 0.5) * width + Math.sin(this.time * 0.4 + sy * 9) * 0.012;
       array[i * 3 + 1] = MAT_SURFACE_Y + 0.02 + rise * MOTE_BOX.height;
-      array[i * 3 + 2] = (sz - 0.5) * MOTE_BOX.depth + Math.cos(this.time * 0.33 + sx * 7) * 0.012;
+      array[i * 3 + 2] = centerZ + (sz - 0.5) * depth + Math.cos(this.time * 0.33 + sx * 7) * 0.012;
       const glow = Math.sin(Math.PI * rise) * (0.6 + 0.4 * Math.sin(this.time * 1.3 + sx * 20));
       shade[i * 3] = shade[i * 3 + 1] = shade[i * 3 + 2] = Math.max(glow, 0);
     }

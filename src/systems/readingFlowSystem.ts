@@ -6,7 +6,7 @@ import { ease, lerp } from '../lib/tween.js';
 import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.js';
 import menuTemplate from '../ui/menu.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
-import { deckPosition } from '../visuals/layout.js';
+import { getSpread } from '../spreads/catalog.js';
 import type { CardVisual } from '../visuals/tableVisuals.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem } from './tableSystem.js';
@@ -79,8 +79,8 @@ export class ReadingFlowSystem extends createSystem({
     const document = panelDocument(this.menu)!;
     this.cleanupFuncs.push(
       bindClicks(document, {
-        'mn-single': () => app.machine.send({ type: 'CHOOSE_SPREAD', spread: 'single' }),
-        'mn-three': () => app.machine.send({ type: 'CHOOSE_SPREAD', spread: 'three' }),
+        'mn-single': () => this.choose('single'),
+        'mn-three': () => this.choose('past-present-future'),
         'mn-new': () => app.machine.send({ type: 'NEW_READING' }),
         'mn-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
         'mn-view-room': () => (app.surroundings.value = 'room'),
@@ -100,6 +100,11 @@ export class ReadingFlowSystem extends createSystem({
       setText(document, `mn-view-env-${i}-text`, env.label);
     });
     this.refreshMenu(app.machine.current);
+  }
+
+  private choose(id: string): void {
+    const spread = getSpread(id);
+    if (spread) app.machine.send({ type: 'CHOOSE_SPREAD', spread });
   }
 
   /** Highlight whichever surroundings are active, using the theme's accent. */
@@ -135,12 +140,13 @@ export class ReadingFlowSystem extends createSystem({
    */
   private placeMenu(state: ReadingStateName): void {
     const menu = this.menu.object3D!;
-    const farEdge = -config.layout.matDepthM / 2;
+    // Between readings the mat is its everyday size; during one it may have grown.
+    const bounds = state === 'IDLE' || state === 'PLACING' ? this.table.fit(null).bounds : this.table.layout.bounds;
     if (state === 'IDLE' || state === 'PLACING') {
-      menu.position.set(0, 0.2, farEdge - 0.03);
+      menu.position.set(0, 0.2, bounds.minZ - 0.03);
       menu.rotation.set(-0.35, 0, 0, 'YXZ');
     } else {
-      menu.position.set(-config.layout.matWidthM / 2 - 0.1, 0.1, -0.05);
+      menu.position.set(bounds.minX - 0.1, 0.1, bounds.maxZ - 0.26);
       menu.rotation.set(-0.3, 0.6, 0, 'YXZ');
     }
   }
@@ -163,13 +169,21 @@ export class ReadingFlowSystem extends createSystem({
     this.refreshViewToggle();
   }
 
-  /** Sweep every card back into the deck, including any held or in flight, then remove them. */
+  /**
+   * Sweep every card back into the deck, including any held or in flight,
+   * remove them, then let the mat go back to its everyday size.
+   */
   private clearTable(): void {
     this.world.getSystem(TableGrabSystem)!.releaseAll();
-    const deck = deckPosition();
-    const top = this.table.deckTopY();
+    const deck = this.table.deck.object3D!.position;
     const flat = new Quaternion();
-    [...this.table.cards].forEach((card, i) => {
+    const cards = [...this.table.cards];
+    if (cards.length === 0) {
+      this.table.resetLayout('reading');
+      return;
+    }
+    let remaining = cards.length;
+    cards.forEach((card, i) => {
       card.phase = 'gathering';
       card.heldBy = null;
       const root = card.visual.root;
@@ -182,9 +196,10 @@ export class ReadingFlowSystem extends createSystem({
           delay: i * 0.05,
           easing: ease.inOutCubic,
           onUpdate: (k) => {
+            // Toward the deck wherever it is now (it may be gliding home).
             root.position.set(
               lerp(from.x, deck.x, k),
-              lerp(from.y, top, k) + Math.sin(Math.PI * k) * 0.03,
+              lerp(from.y, this.table.deckTopY(), k) + Math.sin(Math.PI * k) * 0.03,
               lerp(from.z, deck.z, k),
             );
             root.quaternion.slerpQuaternions(fromQuat, flat, k);
@@ -192,7 +207,10 @@ export class ReadingFlowSystem extends createSystem({
             card.visual.pivot.rotation.z = lerp(pivotStart, Math.PI, k);
           },
         })
-        .then(() => this.table.removeCard(card));
+        .then(() => {
+          this.table.removeCard(card);
+          if (--remaining === 0) this.table.resetLayout('reading');
+        });
     });
   }
 }

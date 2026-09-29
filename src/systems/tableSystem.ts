@@ -14,7 +14,10 @@ import { config } from '../config.js';
 import { DeckPile, ReadingMat } from '../components/table.js';
 import { TarotCard } from '../components/tarotCard.js';
 import { FocusSystem } from '../interaction/focusSystem.js';
-import { Tweens, type TweenHandle, type TweenOptions } from '../lib/tween.js';
+import { ease, lerp, Tweens, type TweenHandle, type TweenOptions } from '../lib/tween.js';
+import type { SpreadDef } from '../spreads/spread.schema.js';
+import { layoutRules } from '../visuals/layout.js';
+import { fitSpread, type Rect, type SlotPose, type TableLayout } from '../visuals/spreadLayout.js';
 import {
   buildCard,
   buildCardGeometry,
@@ -24,6 +27,7 @@ import {
   buildMat,
   deckStackHeight,
   MAT_SURFACE_Y,
+  resizeMat,
   type CardGeometry,
   type CardMaterials,
   type CardVisual,
@@ -59,6 +63,10 @@ export interface TableCard {
 }
 
 const HOVER_RATE = 12;
+const RESIZE_SECONDS = 0.4;
+
+/** Who asked for the current layout, so only they can put the table back. */
+export type LayoutOwner = 'base' | 'reading' | 'builder';
 /** Glow on the card whose meaning is showing, as a share of the hover glow. */
 const FOCUS_GLOW = 0.45;
 
@@ -84,7 +92,14 @@ export class TableSystem extends createSystem({}) {
   focusedSlot = -1;
   /** Seconds since the app started, advanced every frame. */
   now = 0;
+  /** Where everything goes for the current spread (the target while the mat is resizing). */
+  layout!: TableLayout;
+  /** The mat's extents right now, following `layout` as it resizes. */
+  readonly bounds: Rect = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
 
+  private layoutOwner: LayoutOwner = 'base';
+  private readonly layoutListeners = new Set<(layout: TableLayout) => void>();
+  private resizing: TweenHandle | null = null;
   private deckGlow!: Mesh<ShapeGeometry, MeshBasicMaterial>;
   private deckHover = 0;
   private nextKey = 0;
@@ -95,7 +110,9 @@ export class TableSystem extends createSystem({}) {
     this.cardMaterials = buildCardMaterials(app.deck, app.theme);
     this.geometry = buildCardGeometry(config.card.widthM, app.cardHeightM);
 
-    this.mat = this.world.createTransformEntity(buildMat(app.theme), { persistent: true });
+    this.layout = this.fit(null);
+    Object.assign(this.bounds, this.layout.bounds);
+    this.mat = this.world.createTransformEntity(buildMat(app.theme, this.bounds), { persistent: true });
     this.mat.addComponent(ReadingMat);
     this.mat.object3D!.visible = false;
 
@@ -104,12 +121,81 @@ export class TableSystem extends createSystem({}) {
     pile.add(this.deckGlow);
     this.deck = this.world.createTransformEntity(pile, { parent: this.mat });
     this.deck.addComponent(DeckPile);
-    this.deck.object3D!.position.set(0, MAT_SURFACE_Y, config.layout.deckZ);
+    this.deck.object3D!.position.set(this.layout.deck.x, MAT_SURFACE_Y, this.layout.deck.z);
+
+    this.cleanupFuncs.push(
+      app.machine.subscribe((snapshot, event) => {
+        if (event.type === 'CHOOSE_SPREAD') this.setLayout(this.fit(snapshot.spread), 'reading');
+        // Placing always uses the everyday mat, which is what placement fits to the table.
+        if (event.type === 'REPLACE_MAT') this.setLayout(this.fit(null), 'base', false);
+      }),
+    );
   }
 
-  /** Top of the deck pile, in mat-local meters. */
+  /** Fit a spread (or, for null, the empty table between readings) to the mat. */
+  fit(spread: SpreadDef | null): TableLayout {
+    return fitSpread(spread, layoutRules(app.cardHeightM, app.theme.theme.ambient.candles?.count ?? 0));
+  }
+
+  /**
+   * Resize the mat and move everything for a new layout. Listeners (deck,
+   * candles, panels, markers) follow along. `owner` says who asked, so only
+   * they put the table back later.
+   */
+  setLayout(layout: TableLayout, owner: LayoutOwner, animate = true): void {
+    this.layout = layout;
+    this.layoutOwner = owner;
+    this.resizing?.cancel();
+    this.resizing = null;
+    const from = { ...this.bounds };
+    const to = layout.bounds;
+    const deck = this.deck.object3D!;
+    const fromScale = deck.scale.x;
+    const apply = (k: number) => {
+      this.bounds.minX = lerp(from.minX, to.minX, k);
+      this.bounds.maxX = lerp(from.maxX, to.maxX, k);
+      this.bounds.minZ = lerp(from.minZ, to.minZ, k);
+      this.bounds.maxZ = lerp(from.maxZ, to.maxZ, k);
+      resizeMat(this.mat.object3D!, this.bounds);
+      deck.scale.setScalar(lerp(fromScale, layout.cardScale, k));
+    };
+    const same = (Object.keys(to) as (keyof Rect)[]).every((key) => Math.abs(to[key] - from[key]) < 1e-6);
+    if (!animate || !this.mat.object3D!.visible || (same && fromScale === layout.cardScale)) {
+      apply(1);
+    } else {
+      this.resizing = this.tweens.add({
+        duration: RESIZE_SECONDS,
+        easing: ease.inOutCubic,
+        onUpdate: apply,
+        onDone: () => (this.resizing = null),
+      });
+    }
+    for (const listener of this.layoutListeners) listener(layout);
+  }
+
+  /** Put the everyday mat back, if `owner` is still the one whose layout is showing. */
+  resetLayout(owner: LayoutOwner): void {
+    if (this.layoutOwner === owner) this.setLayout(this.fit(null), 'base');
+  }
+
+  get layoutOwnedBy(): LayoutOwner {
+    return this.layoutOwner;
+  }
+
+  /** Hear about every new layout. Returns an unsubscribe function. */
+  onLayout(listener: (layout: TableLayout) => void): () => void {
+    this.layoutListeners.add(listener);
+    return () => this.layoutListeners.delete(listener);
+  }
+
+  /** Where a spread position's card goes. */
+  slotPose(slot: number): SlotPose | undefined {
+    return this.layout.slots[slot];
+  }
+
+  /** Top of the deck pile above its base, in mat-local meters. */
   deckTopY(): number {
-    return MAT_SURFACE_Y + deckStackHeight(app.cards.size);
+    return MAT_SURFACE_Y + deckStackHeight(app.cards.size) * this.deck.object3D!.scale.y;
   }
 
   /** Make a new face-down card on the mat. */
@@ -119,6 +205,7 @@ export class TableSystem extends createSystem({}) {
     visual.root.name = `TableCard-${key}`;
     visual.root.position.set(x, y, z);
     visual.root.rotation.set(0, yaw, 0);
+    visual.root.scale.setScalar(this.layout.cardScale);
     const entity = this.world.createTransformEntity(visual.root, { parent: this.mat });
     this.focus.register(visual.root);
     const card: TableCard = {
@@ -208,9 +295,13 @@ export class TableSystem extends createSystem({}) {
       const target = interactive && this.focus.isHot(card.visual.root) ? 1 : 0;
       card.hover += (target - card.hover) * step;
       const focused = live && card.phase === 'placed' && card.slot === this.focusedSlot ? FOCUS_GLOW : 0;
-      // A card in the hand goes exactly where the hand puts it.
-      const lift = card.heldBy ? 0 : card.hover * hoverLiftM;
-      card.visual.pivot.position.y = baseY + lift + card.flipLift;
+      // A card in the hand goes exactly where the hand puts it. A card with
+      // another lying across it stays put, and the one on top rises with it
+      // when it turns, so they never pass through each other.
+      const covered = this.isCovered(card);
+      const lift = card.heldBy || covered ? 0 : card.hover * hoverLiftM;
+      const under = this.cardUnder(card);
+      card.visual.pivot.position.y = baseY + lift + card.flipLift + (under && !card.heldBy ? under.flipLift : 0);
       card.visual.glow.material.opacity = (card.heldBy ? 0 : Math.max(card.hover, focused)) * intensity;
     }
 
@@ -221,5 +312,19 @@ export class TableSystem extends createSystem({}) {
     const deckTarget = deckHot ? 1 : 0;
     this.deckHover += (deckTarget - this.deckHover) * step;
     this.deckGlow.material.opacity = this.deckHover * intensity;
+  }
+
+  /** True if another placed card lies across this one. */
+  private isCovered(card: TableCard): boolean {
+    for (const other of this.cards) {
+      if (other !== card && other.phase === 'placed' && this.layout.slots[other.slot]?.stackedOn === card.slot) return true;
+    }
+    return false;
+  }
+
+  /** The card this one lies across, if any. */
+  private cardUnder(card: TableCard): TableCard | undefined {
+    const below = this.layout.slots[card.slot]?.stackedOn;
+    return below === null || below === undefined ? undefined : this.placedCard(below);
   }
 }

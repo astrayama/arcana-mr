@@ -1,0 +1,9 @@
+{
+  "id": "single",
+  "name": "Single Card",
+  "summary": "One card to sit with.",
+  "order": 1,
+  "positions": [
+    { "label": "Your card", "meaning": "What wants your attention right now.", "x": 0, "y": 0 }
+  ]
+}

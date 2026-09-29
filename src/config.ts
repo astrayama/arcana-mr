@@ -16,8 +16,6 @@ export const config = {
     theme: 'theme',
     /** `?placement=fallback` skips table detection, for testing the no-table path. */
     placement: 'placement',
-    /** `?layout=focus` or `?layout=triptych` picks the meaning panel layout (under review). */
-    layout: 'layout',
     /** `?view=<environment id>` (or `?view=vr` for the first) starts in VR surroundings instead of passthrough. */
     view: 'view',
   },
@@ -40,17 +38,28 @@ export const config = {
 
   /**
    * Table layout in mat-local meters. The reader sits on the +Z side, so
-   * negative Z is the far edge of the mat.
+   * negative Z is the far side of the mat.
    */
   layout: {
+    /** The mat between readings and for small spreads. Placement fits this size to the table. */
     matWidthM: 0.56,
     matDepthM: 0.42,
-    /** Gap between cards in the 3-card row. */
-    cardGapM: 0.03,
-    /** Z of the row where readings are dealt (near the reader). */
-    spreadRowZ: 0.09,
-    /** Z of the deck pile (far side of the mat). */
-    deckZ: -0.1,
+    /**
+     * Big spreads grow the mat up to this size, away from the reader and to
+     * the sides. Past it, the cards shrink instead (down to minCardScale).
+     */
+    maxMatWidthM: 0.8,
+    maxMatDepthM: 0.7,
+    /** Smallest card size for big spreads, as a share of card.widthM. 0.8 is a real card's size. */
+    minCardScale: 0.8,
+    /** Space between neighboring cards. */
+    cardGapM: 0.02,
+    /** Room for each card's label beside it. */
+    labelBandM: 0.036,
+    /** Space between the deck and the cards when the deck sits beyond them. */
+    deckGapM: 0.04,
+    /** Space between the cards and the edges of the mat. */
+    margins: { nearM: 0.015, sideM: 0.02, farM: 0.025 },
     /** How far the mat sits above the detected surface, to avoid flicker. */
     surfaceOffsetM: 0.002,
   },

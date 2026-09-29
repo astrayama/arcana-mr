@@ -13,7 +13,6 @@ import {
   type Object3D,
 } from '@iwsdk/core';
 import { app } from '../app/context.js';
-import { config } from '../config.js';
 import { buildEnvironment } from '../environments/registry.js';
 import type { EnvironmentInstance } from '../environments/types.js';
 import type { ThemeEnvironment } from '../themes/theme.schema.js';
@@ -44,6 +43,7 @@ export class EnvironmentSystem extends createSystem({}) {
   private slab!: Mesh;
   private column!: Mesh;
   private mat!: Object3D;
+  private table!: TableSystem;
   private time = 0;
 
   private readonly matPos = new Vector3();
@@ -52,7 +52,8 @@ export class EnvironmentSystem extends createSystem({}) {
   private readonly axis = new Vector3();
 
   init(): void {
-    this.mat = this.world.getSystem(TableSystem)!.mat.object3D!;
+    this.table = this.world.getSystem(TableSystem)!;
+    this.mat = this.table.mat.object3D!;
     this.buildPedestal();
     this.cleanupFuncs.push(
       app.surroundings.subscribe(() => this.refresh()),
@@ -76,6 +77,10 @@ export class EnvironmentSystem extends createSystem({}) {
     const height = Math.max(this.matPos.y - SLAB_THICKNESS, 0.05);
     this.column.scale.y = height;
     this.column.position.y = -SLAB_THICKNESS - height / 2;
+    // The slab matches the mat as it grows and shrinks.
+    const b = this.table.bounds;
+    this.slab.scale.set(b.maxX - b.minX + 0.08, 1, b.maxZ - b.minZ + 0.08);
+    this.slab.position.set((b.minX + b.maxX) / 2, -SLAB_THICKNESS / 2 - 0.001, (b.minZ + b.maxZ) / 2);
   }
 
   private refresh(): void {
@@ -123,10 +128,9 @@ export class EnvironmentSystem extends createSystem({}) {
 
   /** A slab and column under the mat, shown only in VR surroundings. */
   private buildPedestal(): void {
-    const { matWidthM, matDepthM } = config.layout;
     this.pedestal = new Group();
     this.pedestal.name = 'Pedestal';
-    this.slab = new Mesh(new BoxGeometry(matWidthM + 0.08, SLAB_THICKNESS, matDepthM + 0.08));
+    this.slab = new Mesh(new BoxGeometry(1, SLAB_THICKNESS, 1));
     this.slab.position.y = -SLAB_THICKNESS / 2 - 0.001;
     this.column = new Mesh(new CylinderGeometry(0.17, 0.22, 1, 16));
     this.pedestal.add(this.slab, this.column);
