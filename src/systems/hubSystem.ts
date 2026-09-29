@@ -8,6 +8,7 @@ import { environmentRegistry, listEnvironments } from '../environments/catalog.j
 import { DECK_BACK } from '../settings/settings.js';
 import { builtinSpreads, customSpreads } from '../spreads/catalog.js';
 import type { SpreadDef } from '../spreads/spread.schema.js';
+import { BUILDER_STYLES, builderMarkup } from '../ui/builderMarkup.js';
 import hubTemplate from '../ui/hub.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
 import { TableSystem } from './tableSystem.js';
@@ -52,7 +53,7 @@ function environmentChoices(): (Choice & { icon: 'House' | 'MoonStar' | 'Sun' })
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** Markup for the repeated parts of the hub. */
-function hubSlots(builder: string): Record<string, string> {
+function hubSlots(): Record<string, string> {
   const tiles = Array.from(
     { length: SPREAD_SLOTS },
     (_, i) => `
@@ -94,7 +95,14 @@ function hubSlots(builder: string): Record<string, string> {
       </div>`,
     )
     .join('');
-  return { spreadTiles: tiles, backChips: backs, deckChips: decks, envChips: envs, builder };
+  return {
+    spreadTiles: tiles,
+    backChips: backs,
+    deckChips: decks,
+    envChips: envs,
+    builder: builderMarkup(),
+    builderStyles: BUILDER_STYLES,
+  };
 }
 
 /**
@@ -116,11 +124,10 @@ export class HubSystem extends createSystem({
   private confirming: { id: string; until: number } | null = null;
   private now = 0;
   private wiredCleanup: (() => void) | null = null;
-  /** Extra wiring for pages built elsewhere (the spread builder). */
+  /** Hear which page is showing (the spread builder follows its own page). */
   readonly pageListeners = new Set<(page: HubPage, doc: UIKitDocument) => void>();
-
-  /** Markup for the builder page, set before the hub is created. */
-  static builderMarkup = '';
+  /** Wire extra controls each time the hub's document is (re)built. Return a cleanup. */
+  readonly wireListeners = new Set<(doc: UIKitDocument) => () => void>();
 
   init(): void {
     this.table = this.world.getSystem(TableSystem)!;
@@ -154,7 +161,7 @@ export class HubSystem extends createSystem({
       parent: this.table.mat,
       name: 'HubPanel',
       scale: config.ui.panelScale,
-      slots: hubSlots(HubSystem.builderMarkup),
+      slots: hubSlots(),
     });
     this.hub = hub;
     this.place();
@@ -209,8 +216,10 @@ export class HubSystem extends createSystem({
   }
 
   private refreshVisibility(): void {
-    setPanelActive(this.hub, app.machine.state === 'IDLE');
-    this.show(this.page);
+    const idle = app.machine.state === 'IDLE';
+    setPanelActive(this.hub, idle);
+    // Pages only come alive while the hub is showing (the builder previews on the mat).
+    if (idle) this.show(this.page);
   }
 
   /** Open a page of the hub. */
@@ -262,7 +271,8 @@ export class HubSystem extends createSystem({
     backChoices().forEach((b, i) => (handlers[`hb-back-${i}`] = () => this.chooseBack(b.id)));
     deckChoices().forEach((d, i) => (handlers[`hb-deck-${i}`] = () => this.chooseDeck(d.id)));
     environmentChoices().forEach((e, i) => (handlers[`hb-env-${i}`] = () => this.chooseSurroundings(e.id)));
-    this.wiredCleanup = bindClicks(doc, handlers);
+    const cleanups = [bindClicks(doc, handlers), ...[...this.wireListeners].map((wire) => wire(doc))];
+    this.wiredCleanup = () => cleanups.forEach((cleanup) => cleanup());
     this.show(this.page);
   }
 

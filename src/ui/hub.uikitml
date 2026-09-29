@@ -342,6 +342,7 @@
   }
   .hb-button-text {
     {{bodyFont}}
+    flex-shrink: 0;
     font-size: 1.35;
     color: {{colors.accent}};
   }
@@ -527,6 +528,8 @@
     line-height: 1.35;
     color: {{colors.panelText}};
   }
+  {{slot:builderStyles}}
+
   .hb-motto {
     {{headingFont}}
     margin-top: 1.4;

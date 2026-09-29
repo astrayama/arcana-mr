@@ -45,6 +45,8 @@ interface SpotName {
  */
 export class DrawSystem extends createSystem({}) {
   private table!: TableSystem;
+  /** A spot to make breathe outside a reading (the builder's selected spot), or -1. */
+  highlightSlot = -1;
   private markers: Marker[] = [];
   private names: SpotName[] = [];
   /** Set while a pinch is drawing, so the new card goes to the hand instead of flying. */
@@ -92,10 +94,8 @@ export class DrawSystem extends createSystem({}) {
     const pulse = 0.5 + 0.5 * Math.sin(this.time * MARKER_PULSE_RATE * Math.PI);
     for (const marker of this.markers) {
       if (marker.filled) continue;
-      const target =
-        drawing && marker.slot === next
-          ? lerp(MARKER_OPACITY.rest, MARKER_OPACITY.next, pulse)
-          : MARKER_OPACITY.rest;
+      const lit = drawing ? marker.slot === next : marker.slot === this.highlightSlot;
+      const target = lit ? lerp(MARKER_OPACITY.rest, MARKER_OPACITY.next, pulse) : MARKER_OPACITY.rest;
       marker.visual.outline.opacity += (target - marker.visual.outline.opacity) * 0.2;
     }
     for (const name of this.names) name.material.opacity += (NAME_OPACITY - name.material.opacity) * 0.15;
