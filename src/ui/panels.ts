@@ -25,6 +25,8 @@ export interface PanelOptions {
   name?: string;
   /** Uniform size multiplier for the whole panel. */
   scale?: number;
+  /** Generated markup for the template's `{{slot:name}}` tokens. */
+  slots?: Record<string, string>;
 }
 
 /** Live panels by key ("placement", "menu", "meaning-0", ...), for dev tooling and tests. */
@@ -37,7 +39,7 @@ export function createPanel(world: World, options: PanelOptions): Entity {
   entity.object3D!.scale.setScalar(options.scale ?? 1);
   entity.addComponent(UiPanel, { kind: options.kind, slot: options.slot ?? -1 });
   entity.addComponent(PanelUI, {
-    config: themedPanelUrl(options.kind, options.template, app.theme),
+    config: themedPanelUrl(options.kind, options.template, app.theme, options.slots),
   });
   setPanelActive(entity, false);
   panelRegistry.set(options.slot === undefined ? options.kind : `${options.kind}-${options.slot}`, entity);

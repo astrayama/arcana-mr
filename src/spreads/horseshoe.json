@@ -1,16 +1,16 @@
 {
   "id": "horseshoe",
   "name": "Horseshoe",
-  "summary": "Seven cards in an arc for a situation you're in.",
+  "summary": "Seven cards for a situation you're in.",
   "order": 5,
   "positions": [
-    { "label": "Past", "meaning": "What led here.", "x": -3, "y": 0 },
-    { "label": "Present", "meaning": "How things stand now.", "x": -2, "y": 0.55 },
-    { "label": "Hidden", "meaning": "What is at work below the surface.", "x": -1, "y": 0.9 },
-    { "label": "You", "meaning": "How you are meeting this.", "x": 0, "y": 1 },
-    { "label": "Others", "meaning": "The people and pressures around you.", "x": 1, "y": 0.9 },
-    { "label": "What would help", "meaning": "A way of approaching this worth trying.", "x": 2, "y": 0.55 },
-    { "label": "Where it leans", "meaning": "The direction things are leaning, which you can still shape.", "x": 3, "y": 0 }
+    {"label": "Past", "meaning": "What led here.", "x": -3, "y": 0},
+    {"label": "Present", "meaning": "How things stand now.", "x": -2, "y": 0.55},
+    {"label": "Hidden", "meaning": "What is at work below the surface.", "x": -1, "y": 0.9},
+    {"label": "You", "meaning": "How you are meeting this.", "x": 0, "y": 1},
+    {"label": "Others", "meaning": "The people and pressures around you.", "x": 1, "y": 0.9},
+    {"label": "What would help", "meaning": "A way of approaching this worth trying.", "x": 2, "y": 0.55},
+    {"label": "Where it leans", "meaning": "The direction things are leaning, which you can still shape.", "x": 3, "y": 0}
   ],
-  "deck": { "x": 0, "y": 0 }
+  "deck": {"x": 0, "y": 0}
 }

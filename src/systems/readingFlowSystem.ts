@@ -4,27 +4,23 @@ import { config } from '../config.js';
 import { UiPanel } from '../components/ui.js';
 import { ease, lerp } from '../lib/tween.js';
 import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.js';
-import menuTemplate from '../ui/menu.uikitml?raw';
+import hudTemplate from '../ui/hud.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
-import { getSpread } from '../spreads/catalog.js';
 import type { CardVisual } from '../visuals/tableVisuals.js';
+import { HubSystem } from './hubSystem.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem } from './tableSystem.js';
 
 const GATHER_SECONDS = 0.35;
 
-const STATUS: Record<Exclude<ReadingStateName, 'PLACING'>, (s: ReadingSnapshot, drawn: number) => string> = {
-  IDLE: () => 'Take a breath. When you are ready, choose a reading.',
+const STATUS: Record<Exclude<ReadingStateName, 'PLACING' | 'IDLE'>, (s: ReadingSnapshot, drawn: number) => string> = {
   READY: () => 'Shuffle the deck: tap it, or lift it and give it a shake.',
   SHUFFLING: () => 'Shuffling...',
   DRAWING: (s, drawn) => {
-    const next = s.slots.find((slot) => slot.cardId === null)?.label;
-    if (drawn === 0) {
-      return next
-        ? `Draw the card for ${next}: pinch the top card, or tap the deck.`
-        : 'Draw your card: pinch the top card, or tap the deck.';
-    }
-    return `Now the card for ${next ?? 'the next spot'}. Lift the deck and shake it to shuffle what's left.`;
+    if (s.slots.length === 1) return 'Draw your card: pinch the top card, or tap the deck.';
+    const next = s.slots.find((slot) => slot.cardId === null)?.label ?? 'the next spot';
+    if (drawn === 0) return `Draw the card for ${next}: pinch the top card, or tap the deck.`;
+    return `Now the card for ${next}. Lift the deck and shake it to shuffle what's left.`;
   },
   AWAITING_FLIPS: (s) =>
     s.slots.length === 1
@@ -34,9 +30,9 @@ const STATUS: Record<Exclude<ReadingStateName, 'PLACING'>, (s: ReadingSnapshot, 
 };
 
 /**
- * The reading menu, and clearing the table for a new reading. The deck,
- * drawing, and the cards themselves each have their own system; this one
- * follows the state machine to show the right choices and words.
+ * The small panel beside the mat during a reading (what to do next, New
+ * reading), and clearing the table afterwards. The deck, drawing, and the
+ * cards each have their own system; between readings the hub is the menu.
  */
 export class ReadingFlowSystem extends createSystem({
   panels: { required: [UiPanel, PanelDocument] },
@@ -57,12 +53,11 @@ export class ReadingFlowSystem extends createSystem({
     this.table = this.world.getSystem(TableSystem)!;
     this.menu = createPanel(this.world, {
       kind: 'menu',
-      template: menuTemplate,
+      template: hudTemplate,
       parent: this.table.mat,
-      name: 'MenuPanel',
+      name: 'ReadingPanel',
       scale: config.ui.panelScale,
     });
-    this.placeMenu('IDLE');
 
     this.cleanupFuncs.push(
       this.queries.panels.subscribe('qualify', (entity) => {
@@ -72,101 +67,46 @@ export class ReadingFlowSystem extends createSystem({
         this.refreshMenu(snapshot);
         if (event.type === 'NEW_READING') this.clearTable();
       }),
+      // The panel stays just beyond the mat's left edge as the mat grows.
+      this.table.onLayout(() => this.placeMenu()),
     );
+    this.refreshMenu(app.machine.current);
   }
 
   private wireMenu(): void {
     const document = panelDocument(this.menu)!;
     this.cleanupFuncs.push(
       bindClicks(document, {
-        'mn-single': () => this.choose('single'),
-        'mn-three': () => this.choose('past-present-future'),
         'mn-new': () => app.machine.send({ type: 'NEW_READING' }),
-        'mn-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
-        'mn-view-room': () => (app.surroundings.value = 'room'),
-        ...Object.fromEntries(
-          app.theme.theme.environments.map((env, i) => [`mn-view-env-${i}`, () => (app.surroundings.value = env.id)]),
-        ),
+        'mn-another': () => {
+          if (app.machine.send({ type: 'NEW_READING' })) this.world.getSystem(HubSystem)?.openSpreads();
+        },
       }),
-      app.surroundings.subscribe(() => this.refreshViewToggle()),
     );
-    // One chip per environment the theme offers, with an icon for its kind.
-    app.theme.theme.environments.forEach((env, i) => {
-      const show = (id: string, on: boolean) =>
-        document.getElementById(id)?.setProperties({ display: on ? 'flex' : 'none' });
-      show(`mn-view-env-${i}`, true);
-      show(`mn-view-env-${i}-moon`, env.kind === 'night-sanctum');
-      show(`mn-view-env-${i}-sun`, env.kind === 'cloud-sea');
-      setText(document, `mn-view-env-${i}-text`, env.label);
-    });
     this.refreshMenu(app.machine.current);
   }
 
-  private choose(id: string): void {
-    const spread = getSpread(id);
-    if (spread) app.machine.send({ type: 'CHOOSE_SPREAD', spread });
-  }
-
-  /** Highlight whichever surroundings are active, using the theme's accent. */
-  private refreshViewToggle(): void {
-    const document = panelDocument(this.menu);
-    if (!document) return;
-    const { colors } = app.theme.theme;
-    const current = app.surroundings.peek();
-    const options = [
-      { chip: 'mn-view-room', id: 'room', icons: ['mn-view-room-icon'] },
-      ...app.theme.theme.environments.map((env, i) => ({
-        chip: `mn-view-env-${i}`,
-        id: env.id,
-        icons: [`mn-view-env-${i}-moon`, `mn-view-env-${i}-sun`],
-      })),
-    ];
-    for (const option of options) {
-      const on = option.id === current;
-      document.getElementById(option.chip)?.setProperties({
-        backgroundColor: on ? colors.accent : 'transparent',
-        borderColor: on ? colors.accent : colors.panelBorder,
-      });
-      const ink = on ? colors.accentText : colors.panelText;
-      document.getElementById(`${option.chip}-text`)?.setProperties({ color: ink });
-      for (const icon of option.icons) document.getElementById(icon)?.setProperties({ color: ink });
-    }
-  }
-
-  /**
-   * Between readings the menu stands above the far edge of the mat. During a
-   * reading it moves to the reader's left, clear of the deck and the cards,
-   * so reaching for them never brushes a button.
-   */
-  private placeMenu(state: ReadingStateName): void {
+  /** To the reader's left of the mat, clear of the deck and the cards, turned toward them. */
+  private placeMenu(): void {
     const menu = this.menu.object3D!;
-    // Between readings the mat is its everyday size; during one it may have grown.
-    const bounds = state === 'IDLE' || state === 'PLACING' ? this.table.fit(null).bounds : this.table.layout.bounds;
-    if (state === 'IDLE' || state === 'PLACING') {
-      menu.position.set(0, 0.2, bounds.minZ - 0.03);
-      menu.rotation.set(-0.35, 0, 0, 'YXZ');
-    } else {
-      menu.position.set(bounds.minX - 0.1, 0.1, bounds.maxZ - 0.26);
-      menu.rotation.set(-0.3, 0.6, 0, 'YXZ');
-    }
+    const bounds = this.table.layout.bounds;
+    menu.position.set(bounds.minX - 0.1, 0.1, bounds.maxZ - 0.26);
+    menu.rotation.set(-0.3, 0.6, 0, 'YXZ');
   }
 
   private refreshMenu(snapshot: ReadingSnapshot): void {
     const state = snapshot.state;
-    setPanelActive(this.menu, state !== 'PLACING');
-    this.placeMenu(state);
+    const reading = state !== 'IDLE' && state !== 'PLACING';
+    setPanelActive(this.menu, reading);
+    if (!reading) return;
+    this.placeMenu();
     const document = panelDocument(this.menu);
-    if (!document || state === 'PLACING') return;
+    if (!document) return;
     setText(document, 'mn-status', STATUS[state](snapshot, app.machine.drawnCount));
     const show = (id: string, visible: boolean) =>
       document.getElementById(id)?.setProperties({ display: visible ? 'flex' : 'none' });
-    show('mn-title', state === 'IDLE');
-    show('mn-choices', state === 'IDLE');
-    show('mn-move', state === 'IDLE');
-    // The surroundings toggle only appears when the theme has VR surroundings.
-    show('mn-view', state === 'IDLE' && app.theme.theme.environments.length > 0);
-    show('mn-new', state !== 'IDLE' && state !== 'SHUFFLING');
-    this.refreshViewToggle();
+    show('mn-new', state !== 'SHUFFLING');
+    show('mn-another', state === 'READY');
   }
 
   /**

@@ -10,6 +10,8 @@
  *   {{fontFaces}}       @font-face rules for themes that ship TTF files
  *   {{headingFont}}     `font-family: ...;` for headings, or nothing
  *   {{bodyFont}}        `font-family: ...;` for body text, or nothing
+ *   {{slot:<name>}}     markup generated in code (repeated list items), filled
+ *                       before the theme tokens so it can use them too
  */
 
 import type { ResolvedTheme } from '../themes/registry.js';
@@ -29,7 +31,11 @@ function fontFaceRules(font: ThemeFont | null, resolved: ResolvedTheme): string 
 
 const familyRule = (font: ThemeFont | null) => (font ? `font-family: ${font.family};` : '');
 
-export function renderPanelTemplate(template: string, resolved: ResolvedTheme): string {
+export function renderPanelTemplate(
+  template: string,
+  resolved: ResolvedTheme,
+  slots: Record<string, string> = {},
+): string {
   const { theme } = resolved;
   const tokens = new Map<string, string>([
     ['panelRadius', String(theme.panelRadius)],
@@ -46,7 +52,13 @@ export function renderPanelTemplate(template: string, resolved: ResolvedTheme): 
     tokens.set(`colors.${name}`, value);
   }
   // Comments are for template authors; drop them so they can mention tokens freely.
-  const body = template.replace(/<!--[\s\S]*?-->/g, '');
+  const body = template
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\{\{\s*slot:([\w-]+)\s*\}\}/g, (_, name: string) => {
+      const markup = slots[name];
+      if (markup === undefined) throw new Error(`[arcana] panel template needs slot {{slot:${name}}}`);
+      return markup;
+    });
   return body.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key: string) => {
     const value = tokens.get(key);
     if (value === undefined) {
@@ -62,13 +74,25 @@ const urls = new Map<string, string>();
  * URL for a template rendered with a theme, cached per (panel, theme) pair so
  * every copy of a panel shares one parsed source.
  */
-export function themedPanelUrl(name: string, template: string, resolved: ResolvedTheme): string {
-  const key = `${name}@${resolved.theme.id}`;
+export function themedPanelUrl(
+  name: string,
+  template: string,
+  resolved: ResolvedTheme,
+  slots: Record<string, string> = {},
+): string {
+  const key = `${name}@${resolved.theme.id}#${hash(JSON.stringify(slots))}`;
   let url = urls.get(key);
   if (url === undefined) {
-    const source = renderPanelTemplate(template, resolved);
+    const source = renderPanelTemplate(template, resolved, slots);
     url = URL.createObjectURL(new Blob([source], { type: 'text/plain' }));
     urls.set(key, url);
   }
   return url;
+}
+
+/** A short, stable fingerprint for cache keys. */
+function hash(text: string): string {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
 }

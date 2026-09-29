@@ -1,19 +1,19 @@
 {
   "id": "celtic-cross",
   "name": "Celtic Cross",
-  "summary": "The classic ten-card spread for looking at something deeply.",
+  "summary": "The classic ten-card deep look.",
   "order": 6,
   "positions": [
-    { "label": "Present", "meaning": "The heart of the matter.", "x": 0, "y": 0 },
-    { "label": "Challenge", "meaning": "What crosses you or complicates things.", "x": 0, "y": 0, "rotationDeg": 90, "over": 0 },
-    { "label": "Foundation", "meaning": "What lies underneath all of this.", "x": 0, "y": -1 },
-    { "label": "Recent past", "meaning": "What is moving out of the picture.", "x": -1.3, "y": 0 },
-    { "label": "Aspiration", "meaning": "What you are reaching for.", "x": 0, "y": 1 },
-    { "label": "Next steps", "meaning": "What is starting to take shape.", "x": 1.3, "y": 0 },
-    { "label": "You", "meaning": "How you are showing up.", "x": 2.6, "y": -1.245, "labelSide": "right" },
-    { "label": "Surroundings", "meaning": "The people and places around you.", "x": 2.6, "y": -0.415, "labelSide": "right" },
-    { "label": "Hopes and fears", "meaning": "What you want, and what you worry about, often the same thing.", "x": 2.6, "y": 0.415, "labelSide": "right" },
-    { "label": "Direction", "meaning": "Where things lean if nothing changes, which you can still shape.", "x": 2.6, "y": 1.245, "labelSide": "right" }
+    {"label": "Present", "meaning": "The heart of the matter.", "x": 0, "y": 0},
+    {"label": "Challenge", "meaning": "What crosses you or complicates things.", "x": 0, "y": 0, "rotationDeg": 90, "over": 0},
+    {"label": "Foundation", "meaning": "What lies underneath all of this.", "x": 0, "y": -1},
+    {"label": "Recent past", "meaning": "What is moving out of the picture.", "x": -1.3, "y": 0},
+    {"label": "Aspiration", "meaning": "What you are reaching for.", "x": 0, "y": 1},
+    {"label": "Next steps", "meaning": "What is starting to take shape.", "x": 1.3, "y": 0},
+    {"label": "You", "meaning": "How you are showing up.", "x": 2.6, "y": -1.245, "labelSide": "right"},
+    {"label": "Surroundings", "meaning": "The people and places around you.", "x": 2.6, "y": -0.415, "labelSide": "right"},
+    {"label": "Hopes and fears", "meaning": "What you want, and what you worry about, often the same thing.", "x": 2.6, "y": 0.415, "labelSide": "right"},
+    {"label": "Direction", "meaning": "Where things lean if nothing changes, which you can still shape.", "x": 2.6, "y": 1.245, "labelSide": "right"}
   ],
-  "deck": { "x": -2.6, "y": 0 }
+  "deck": {"x": -2.6, "y": 0}
 }

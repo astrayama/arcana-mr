@@ -1,11 +1,11 @@
 {
   "id": "past-present-future",
   "name": "Past, Present, Future",
-  "summary": "Where you've been, where you are, where things lean.",
+  "summary": "What shaped this, and where it leans.",
   "order": 2,
   "positions": [
-    { "label": "Past", "meaning": "What has shaped this moment.", "x": -1, "y": 0 },
-    { "label": "Present", "meaning": "Where you stand right now.", "x": 0, "y": 0 },
-    { "label": "Future", "meaning": "Where things are leaning, and what you can still shape.", "x": 1, "y": 0 }
+    {"label": "Past", "meaning": "What has shaped this moment.", "x": -1, "y": 0},
+    {"label": "Present", "meaning": "Where you stand right now.", "x": 0, "y": 0},
+    {"label": "Future", "meaning": "Where things are leaning, and what you can still shape.", "x": 1, "y": 0}
   ]
 }

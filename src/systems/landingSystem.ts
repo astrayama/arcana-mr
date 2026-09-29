@@ -20,7 +20,7 @@ const START_TIMEOUT_MS = 5000;
 const NOTES = {
   noXR: 'This page opens in a headset. Visit it in the Meta Quest Browser to begin.',
   didNotStart:
-    'The headset view did not open. Reload the page and tap Begin again. If it keeps happening, make sure the address starts with https://.',
+    'The headset view has not opened yet. Look around in the headset for a permission prompt and allow it. If none appears, fully close the Quest Browser, open this page again, and tap Begin.',
 } as const;
 
 /** The flat-browser welcome card with the button that starts the headset session. */
@@ -37,10 +37,10 @@ export class LandingSystem extends createSystem({
       config: themedPanelUrl('landing', landingTemplate, app.theme),
     });
     this.panel.addComponent(ScreenSpace, {
-      top: '30vh',
-      left: '32vw',
-      width: '36vw',
-      height: '40vh',
+      top: '18vh',
+      left: '30vw',
+      width: '40vw',
+      height: '64vh',
     });
 
     this.cleanupFuncs.push(

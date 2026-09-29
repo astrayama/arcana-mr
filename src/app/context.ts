@@ -4,13 +4,16 @@
  */
 
 import { signal, type Signal } from '@iwsdk/core';
+import { listBacks } from '../backs/catalog.js';
 import { config } from '../config.js';
 import cardsJson from '../data/cards.json';
 import { validateCards, type CardData } from '../data/cards.schema.js';
 import { getDeck, listDeckIds, type ResolvedDeck } from '../decks/registry.js';
 import { pickFromUrl } from '../lib/urlOverrides.js';
 import { drawCards, type DrawnCard } from '../lib/shuffle.js';
+import { defaultSettings, parseSettings, SETTINGS_KEY, type Settings } from '../settings/settings.js';
 import { ReadingMachine } from '../state/readingMachine.js';
+import { readJson, removeKey, writeJson } from '../storage/local.js';
 import { getTheme, listThemeIds, type ResolvedTheme } from '../themes/registry.js';
 
 export interface AppContext {
@@ -26,13 +29,25 @@ export interface AppContext {
    * Separate from the reading flow.
    */
   surroundings: Signal<string>;
+  /** "deck" for the deck's own back, or a back design's id. */
+  back: Signal<string>;
+  /** What's remembered on this headset. URL overrides for testing are never saved. */
+  settings: Signal<Settings>;
+  /** Remember a choice on this headset. */
+  saveSettings(patch: Partial<Omit<Settings, 'v'>>): void;
+  /** Forget everything saved on this headset and go back to the defaults. */
+  clearSavedData(): void;
 }
 
-/** `?view=<id>` picks an environment; `?view=vr` means the theme's first one. */
-function initialSurroundings(search: string, theme: ResolvedTheme): string {
+/**
+ * `?view=<id>` picks an environment and `?view=vr` means the theme's first
+ * one; otherwise the saved choice.
+ */
+function initialSurroundings(search: string, theme: ResolvedTheme, saved: string): string {
   const requested = new URLSearchParams(search).get(config.urlParams.view);
   const environments = theme.theme.environments;
-  if (!requested || environments.length === 0) return 'room';
+  if (!requested) return saved;
+  if (environments.length === 0) return 'room';
   if (requested === 'vr') return environments[0].id;
   return environments.some((env) => env.id === requested) ? requested : 'room';
 }
@@ -51,13 +66,22 @@ function loadCards(): CardData[] {
 export function createAppContext(search: string): AppContext {
   const cards = loadCards();
 
-  const deckPick = pickFromUrl(search, config.urlParams.deck, listDeckIds(), config.defaults.deck);
   const themePick = pickFromUrl(search, config.urlParams.theme, listThemeIds(), config.defaults.theme);
-
-  const deck = getDeck(deckPick.id);
   const theme = getTheme(themePick.id);
-  if (!deck) throw new Error(`[arcana] default deck "${deckPick.id}" is missing from src/decks/`);
   if (!theme) throw new Error(`[arcana] default theme "${themePick.id}" is missing from src/themes/`);
+
+  // What's remembered on this headset, checked against what's installed now.
+  const known = {
+    decks: listDeckIds(),
+    backs: listBacks().map((b) => b.manifest.id),
+    surroundings: theme.theme.environments.map((env) => env.id),
+  };
+  const defaults = defaultSettings(config.defaults.deck);
+  const settings = signal(parseSettings(readJson(SETTINGS_KEY), known, defaults));
+
+  const deckPick = pickFromUrl(search, config.urlParams.deck, listDeckIds(), settings.peek().deck);
+  const deck = getDeck(deckPick.id);
+  if (!deck) throw new Error(`[arcana] default deck "${deckPick.id}" is missing from src/decks/`);
 
   // Only draw cards the active deck can actually show.
   const drawable = cards.map((card) => card.id).filter((id) => deck.faceUrl(id) !== null);
@@ -98,7 +122,17 @@ export function createAppContext(search: string): AppContext {
       draw,
     }),
     cardHeightM: config.card.widthM / deck.manifest.aspectRatio,
-    surroundings: signal<string>(initialSurroundings(search, theme)),
+    surroundings: signal<string>(initialSurroundings(search, theme, settings.peek().surroundings)),
+    back: signal<string>(settings.peek().back),
+    settings,
+    saveSettings(patch) {
+      settings.value = { ...settings.peek(), ...patch };
+      writeJson(SETTINGS_KEY, settings.peek());
+    },
+    clearSavedData() {
+      removeKey(SETTINGS_KEY);
+      settings.value = { ...defaults };
+    },
   };
 }
 

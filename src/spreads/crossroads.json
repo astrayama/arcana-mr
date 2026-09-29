@@ -1,14 +1,14 @@
 {
   "id": "crossroads",
   "name": "Crossroads",
-  "summary": "Five cards for a choice in front of you.",
+  "summary": "Five cards for a choice you face.",
   "order": 4,
   "positions": [
-    { "label": "Where you stand", "meaning": "The heart of the choice as it is now.", "x": 0, "y": 0 },
-    { "label": "One path", "meaning": "What the familiar option holds for you.", "x": -1, "y": 0 },
-    { "label": "Another path", "meaning": "What the other option holds for you.", "x": 1, "y": 0 },
-    { "label": "What you want", "meaning": "What you are hoping the choice gives you.", "x": 0, "y": 1 },
-    { "label": "What grounds you", "meaning": "What stays true whichever way you go.", "x": 0, "y": -1 }
+    {"label": "Where you stand", "meaning": "The heart of the choice as it is now.", "x": 0, "y": 0},
+    {"label": "One path", "meaning": "What the familiar option holds for you.", "x": -1, "y": 0},
+    {"label": "Another path", "meaning": "What the other option holds for you.", "x": 1, "y": 0},
+    {"label": "What you want", "meaning": "What you are hoping the choice gives you.", "x": 0, "y": 1},
+    {"label": "What grounds you", "meaning": "What stays true whichever way you go.", "x": 0, "y": -1}
   ],
-  "deck": { "x": -2, "y": 1 }
+  "deck": {"x": -2, "y": 1}
 }

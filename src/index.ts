@@ -5,6 +5,7 @@ import { builtinSpreads, getSpread } from './spreads/catalog.js';
 import { panelRegistry } from './ui/panels.js';
 import { AmbientSystem } from './systems/ambientSystem.js';
 import { FocusSystem } from './interaction/focusSystem.js';
+import { HubSystem } from './systems/hubSystem.js';
 import { CardInteractionSystem } from './systems/cardInteractionSystem.js';
 import { DeckSystem } from './systems/deckSystem.js';
 import { DrawSystem } from './systems/drawSystem.js';
@@ -46,6 +47,7 @@ World.create(
     .registerSystem(PlacementSystem)
     .registerSystem(MatDragSystem)
     .registerSystem(ReadingFlowSystem)
+    .registerSystem(HubSystem)
     .registerSystem(MeaningSystem)
     .registerSystem(DeckSystem)
     .registerSystem(DrawSystem)
@@ -59,6 +61,7 @@ World.create(
       world,
       placement: world.getSystem(PlacementSystem),
       flow: world.getSystem(ReadingFlowSystem),
+      hub: world.getSystem(HubSystem),
       meaning: world.getSystem(MeaningSystem),
       table: world.getSystem(TableSystem),
       grab: world.getSystem(TableGrabSystem),
