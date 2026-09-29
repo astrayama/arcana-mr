@@ -17,12 +17,16 @@
     "preview": "vite preview",
     "test": "tsx --test tests/*.test.ts",
     "validate:cards": "tsx scripts/validate-cards.ts",
-    "validate": "npm run -s validate:cards; c=$?; npm run -s validate:decks; d=$?; npm run -s validate:themes; t=$?; exit $((c|d|t))",
+    "validate": "npm run -s validate:cards; c=$?; npm run -s validate:decks; d=$?; npm run -s validate:themes; t=$?; npm run -s validate:environments; e=$?; npm run -s validate:backs; b=$?; npm run -s validate:spreads; s=$?; exit $((c|d|t|e|b|s))",
     "validate:decks": "tsx scripts/validate-decks.ts",
     "validate:themes": "tsx scripts/validate-themes.ts",
     "deck:rws-1909": "tsx scripts/fetch-rws-1909.ts",
     "theme:dark-gold": "tsx scripts/make-dark-gold-assets.ts",
-    "theme:sanctum": "tsx scripts/fetch-sanctum-textures.ts"
+    "theme:sanctum": "tsx scripts/fetch-sanctum-textures.ts",
+    "validate:backs": "tsx scripts/validate-backs.ts",
+    "validate:spreads": "tsx scripts/validate-spreads.ts",
+    "backs": "tsx scripts/make-backs.ts",
+    "validate:environments": "tsx scripts/validate-environments.ts"
   },
   "dependencies": {
     "@iwsdk/core": "1.0.0-rc.2",

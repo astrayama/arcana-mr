@@ -10,6 +10,8 @@ import {
   type Texture,
 } from '@iwsdk/core';
 import { app } from '../app/context.js';
+import { getBack } from '../backs/catalog.js';
+import { DECK_BACK } from '../settings/settings.js';
 import { config } from '../config.js';
 import { DeckPile, ReadingMat } from '../components/table.js';
 import { TarotCard } from '../components/tarotCard.js';
@@ -21,7 +23,9 @@ import { fitSpread, type Rect, type SlotPose, type TableLayout } from '../visual
 import {
   buildCard,
   buildCardGeometry,
+  applyCardBack,
   buildCardMaterials,
+  loadColorTexture,
   buildDeckGlow,
   buildDeckPile,
   buildMat,
@@ -100,6 +104,8 @@ export class TableSystem extends createSystem({}) {
   private layoutOwner: LayoutOwner = 'base';
   private readonly layoutListeners = new Set<(layout: TableLayout) => void>();
   private resizing: TweenHandle | null = null;
+  private backRequest = 0;
+  private readonly deckListeners = new Set<() => void>();
   private deckGlow!: Mesh<ShapeGeometry, MeshBasicMaterial>;
   private deckHover = 0;
   private nextKey = 0;
@@ -107,7 +113,7 @@ export class TableSystem extends createSystem({}) {
 
   init(): void {
     this.focus = this.world.getSystem(FocusSystem)!;
-    this.cardMaterials = buildCardMaterials(app.deck, app.theme);
+    this.cardMaterials = buildCardMaterials(app.theme);
     this.geometry = buildCardGeometry(config.card.widthM, app.cardHeightM);
 
     this.layout = this.fit(null);
@@ -123,13 +129,65 @@ export class TableSystem extends createSystem({}) {
     this.deck.addComponent(DeckPile);
     this.deck.object3D!.position.set(this.layout.deck.x, MAT_SURFACE_Y, this.layout.deck.z);
 
+    let firstDeck = true;
     this.cleanupFuncs.push(
+      app.back.subscribe((id) => this.showBack(id)),
+      app.deckId.subscribe(() => {
+        if (firstDeck) firstDeck = false;
+        else this.rebuildForDeck();
+      }),
       app.machine.subscribe((snapshot, event) => {
         if (event.type === 'CHOOSE_SPREAD') this.setLayout(this.fit(snapshot.spread), 'reading');
         // Placing always uses the everyday mat, which is what placement fits to the table.
         if (event.type === 'REPLACE_MAT') this.setLayout(this.fit(null), 'base', false);
       }),
     );
+  }
+
+  /** Hear when the deck changes, after cards and the pile have been reshaped for it. */
+  onDeckChange(listener: () => void): () => void {
+    this.deckListeners.add(listener);
+    return () => this.deckListeners.delete(listener);
+  }
+
+  /**
+   * A different deck can have different proportions: reshape the card and
+   * deck-pile geometry, re-crop the back, and re-fit the table. Only happens
+   * between readings, when no cards are out.
+   */
+  private rebuildForDeck(): void {
+    const old = this.geometry;
+    this.geometry = buildCardGeometry(config.card.widthM, app.cardHeightM);
+    const pile = buildDeckPile(this.cardMaterials, config.card.widthM, app.cardHeightM, app.cards.size);
+    const deck = this.deck.object3D!;
+    for (const name of ['DeckPileSides', 'DeckPileTop']) {
+      const mesh = deck.getObjectByName(name) as Mesh | undefined;
+      const fresh = pile.getObjectByName(name) as Mesh | undefined;
+      if (!mesh || !fresh) continue;
+      mesh.geometry.dispose();
+      mesh.geometry = fresh.geometry;
+    }
+    this.deckGlow.geometry = this.geometry.glow;
+    old.panel.dispose();
+    old.edge.dispose();
+    old.glow.dispose();
+    this.showBack(app.back.peek());
+    this.setLayout(this.fit(null), 'base', false);
+    for (const listener of this.deckListeners) listener();
+  }
+
+  /** Show the chosen card back (or the deck's own) on every card and the deck. */
+  private showBack(id: string): void {
+    const chosen = id === DECK_BACK ? undefined : getBack(id);
+    const url = chosen?.url ?? app.deck.backUrl;
+    if (!url) return;
+    const aspect = chosen?.manifest.aspectRatio ?? app.deck.manifest.aspectRatio;
+    const request = ++this.backRequest;
+    void loadColorTexture(url).then((texture) => {
+      // A later choice wins if the reader switched again while this loaded.
+      if (request !== this.backRequest) return;
+      applyCardBack(this.cardMaterials.back, texture, aspect, app.deck.manifest.aspectRatio);
+    });
   }
 
   /** Fit a spread (or, for null, the empty table between readings) to the mat. */

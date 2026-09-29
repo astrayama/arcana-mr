@@ -56,12 +56,8 @@ export class DeckSystem extends createSystem({
     this.rig = rigEntity.object3D!;
     this.rig.name = 'ShuffleRig';
     this.rig.visible = false;
-    for (let i = 0; i < SHUFFLE_CARDS; i++) {
-      const card = buildCard(this.table.cardMaterials, this.table.geometry);
-      card.glow.visible = false;
-      this.rigCards.push(card);
-      this.rig.add(card.root);
-    }
+    this.buildRig();
+    this.cleanupFuncs.push(this.table.onDeckChange(() => this.buildRig()));
 
     this.grab.deckHandlers = {
       onGrab: (hand) => {
@@ -99,6 +95,22 @@ export class DeckSystem extends createSystem({
       this.queries.pressed.subscribe('disqualify', () => this.tap()),
     );
     this.refresh();
+  }
+
+  /** The riffle's loose cards, shaped like the deck in use. */
+  private buildRig(): void {
+    for (const card of this.rigCards) {
+      card.root.removeFromParent();
+      card.glow.material.dispose();
+      card.face.material.dispose();
+    }
+    this.rigCards.length = 0;
+    for (let i = 0; i < SHUFFLE_CARDS; i++) {
+      const card = buildCard(this.table.cardMaterials, this.table.geometry);
+      card.glow.visible = false;
+      this.rigCards.push(card);
+      this.rig.add(card.root);
+    }
   }
 
   update(delta: number): void {

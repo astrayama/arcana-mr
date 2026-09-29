@@ -1,0 +1,37 @@
+{
+  "id": "cloud-sea",
+  "label": "Cloud sea",
+  "kind": "cloud-sea",
+  "order": 2,
+  "fog": {
+    "color": "#f0c3a3",
+    "density": 0.012
+  },
+  "sky": {
+    "zenith": "#40598a",
+    "upper": "#c98a86",
+    "horizon": "#ffd29a",
+    "below": "#f2b9a0"
+  },
+  "sun": {
+    "color": "#fff1cf",
+    "elevationDeg": 6,
+    "azimuthDeg": 40
+  },
+  "clouds": {
+    "lit": "#ffe6cc",
+    "shade": "#c79aae",
+    "speed": 0.12
+  },
+  "terrace": {
+    "texture": null,
+    "normal": "../shared/floor-nor.webp",
+    "color": "#e7d3bb",
+    "radiusM": 3,
+    "railColor": "#f1e4d2"
+  },
+  "birds": {
+    "count": 6,
+    "color": "#3b2c3a"
+  }
+}

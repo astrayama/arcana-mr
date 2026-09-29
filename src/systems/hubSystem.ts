@@ -1,9 +1,10 @@
 import { createSystem, PanelDocument, type Entity, type UIKitDocument } from '@iwsdk/core';
 import { app } from '../app/context.js';
-import { listBacks } from '../backs/catalog.js';
+import { backRegistry, listBacks } from '../backs/catalog.js';
 import { config } from '../config.js';
 import { UiPanel } from '../components/ui.js';
-import { getDeck, listDeckIds } from '../decks/registry.js';
+import { deckRegistry, getDeck, listDeckIds } from '../decks/registry.js';
+import { environmentRegistry, listEnvironments } from '../environments/catalog.js';
 import { DECK_BACK } from '../settings/settings.js';
 import { builtinSpreads, customSpreads } from '../spreads/catalog.js';
 import type { SpreadDef } from '../spreads/spread.schema.js';
@@ -40,8 +41,8 @@ function deckChoices(): Choice[] {
 function environmentChoices(): (Choice & { icon: 'House' | 'MoonStar' | 'Sun' })[] {
   return [
     { id: 'room', label: 'Your room', icon: 'House' as const },
-    ...app.theme.theme.environments.map((env) => ({
-      id: env.id,
+    ...listEnvironments().map(({ id, env }) => ({
+      id,
       label: env.label,
       icon: env.kind === 'cloud-sea' ? ('Sun' as const) : ('MoonStar' as const),
     })),
@@ -114,6 +115,7 @@ export class HubSystem extends createSystem({
   /** A delete or clear waiting for its second tap. */
   private confirming: { id: string; until: number } | null = null;
   private now = 0;
+  private wiredCleanup: (() => void) | null = null;
   /** Extra wiring for pages built elsewhere (the spread builder). */
   readonly pageListeners = new Set<(page: HubPage, doc: UIKitDocument) => void>();
 
@@ -122,15 +124,7 @@ export class HubSystem extends createSystem({
 
   init(): void {
     this.table = this.world.getSystem(TableSystem)!;
-    this.hub = createPanel(this.world, {
-      kind: 'hub',
-      template: hubTemplate,
-      parent: this.table.mat,
-      name: 'HubPanel',
-      scale: config.ui.panelScale,
-      slots: hubSlots(HubSystem.builderMarkup),
-    });
-    this.place();
+    this.hub = this.createHub();
 
     this.cleanupFuncs.push(
       this.queries.panels.subscribe('qualify', (entity) => {
@@ -140,11 +134,41 @@ export class HubSystem extends createSystem({
         if (event.type === 'NEW_READING') this.page = 'home';
         this.refreshVisibility();
       }),
+      () => this.wiredCleanup?.(),
       customSpreads.subscribe(() => this.refreshSpreads()),
       app.settings.subscribe(() => this.refreshSettings()),
       app.surroundings.subscribe(() => this.refreshSettings()),
       app.back.subscribe(() => this.refreshSettings()),
+      // Decks and backs added on the headset appear in Settings right away.
+      deckRegistry.onChange(() => this.rebuild()),
+      backRegistry.onChange(() => this.rebuild()),
+      environmentRegistry.onChange(() => this.rebuild()),
     );
+    this.refreshVisibility();
+  }
+
+  private createHub(): Entity {
+    const hub = createPanel(this.world, {
+      kind: 'hub',
+      template: hubTemplate,
+      parent: this.table.mat,
+      name: 'HubPanel',
+      scale: config.ui.panelScale,
+      slots: hubSlots(HubSystem.builderMarkup),
+    });
+    this.hub = hub;
+    this.place();
+    return hub;
+  }
+
+  /** Regenerate the hub when its lists change (its repeated items are built into the markup). */
+  private rebuild(): void {
+    const old = this.hub;
+    this.wiredCleanup?.();
+    this.wiredCleanup = null;
+    this.createHub();
+    old.object3D?.removeFromParent();
+    old.dispose();
     this.refreshVisibility();
   }
 
@@ -238,7 +262,7 @@ export class HubSystem extends createSystem({
     backChoices().forEach((b, i) => (handlers[`hb-back-${i}`] = () => this.chooseBack(b.id)));
     deckChoices().forEach((d, i) => (handlers[`hb-deck-${i}`] = () => this.chooseDeck(d.id)));
     environmentChoices().forEach((e, i) => (handlers[`hb-env-${i}`] = () => this.chooseSurroundings(e.id)));
-    this.cleanupFuncs.push(bindClicks(doc, handlers));
+    this.wiredCleanup = bindClicks(doc, handlers);
     this.show(this.page);
   }
 
@@ -330,7 +354,7 @@ export class HubSystem extends createSystem({
         backgroundColor: on ? colors.panelBorder : 'transparent',
       });
     backChoices().forEach((b, i) => mark(`hb-back-${i}`, b.id === app.back.peek()));
-    deckChoices().forEach((d, i) => mark(`hb-deck-${i}`, d.id === app.deck.manifest.id));
+    deckChoices().forEach((d, i) => mark(`hb-deck-${i}`, d.id === app.deck.id));
     environmentChoices().forEach((e, i) => mark(`hb-env-${i}`, e.id === app.surroundings.peek()));
     const armed = this.confirming?.id === 'clear';
     setText(doc, 'hb-clear-text', armed ? 'Tap again to clear' : 'Clear saved data');
@@ -341,9 +365,10 @@ export class HubSystem extends createSystem({
     app.saveSettings({ back: id });
   }
 
+  /** Switch decks. Only between readings, once the last reading's cards are gathered up. */
   private chooseDeck(id: string): void {
-    if (id === app.deck.manifest.id) return;
-    app.saveSettings({ deck: id });
+    if (id === app.deck.id || this.table.cards.length > 0) return;
+    if (app.setDeck(id)) app.saveSettings({ deck: id });
     this.refreshSettings();
   }
 

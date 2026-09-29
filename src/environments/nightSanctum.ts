@@ -29,7 +29,8 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import type { ResolvedTheme } from '../themes/registry.js';
-import type { NightSanctumEnvironment } from '../themes/theme.schema.js';
+import type { EnvironmentAssets } from './types.js';
+import type { NightSanctumEnvironment } from './environment.schema.js';
 import { radialTexture, seeded, tiled } from './common.js';
 import type { EnvironmentInstance } from './types.js';
 
@@ -126,7 +127,7 @@ function buildMoon(color: string): Sprite {
   return moon;
 }
 
-export function buildNightSanctum(env: NightSanctumEnvironment, resolved: ResolvedTheme): EnvironmentInstance {
+export function buildNightSanctum(env: NightSanctumEnvironment, assets: EnvironmentAssets, theme: ResolvedTheme): EnvironmentInstance {
   const random = seeded(23);
   const root = new Group();
   root.name = 'NightSanctum';
@@ -146,19 +147,19 @@ export function buildNightSanctum(env: NightSanctumEnvironment, resolved: Resolv
   const stoneMaterial = track(
     new MeshStandardMaterial({ color: new Color(env.stones.color), roughness: 0.95, envMapIntensity: 0.4 }),
   );
-  tiled(resolved, env.floor.texture, env.floor.radiusM / 0.9, true).then((t) => {
+  tiled(assets, env.floor.texture, env.floor.radiusM / 0.9, true).then((t) => {
     floorMaterial.map = t;
     floorMaterial.needsUpdate = true;
   });
-  tiled(resolved, env.floor.normal, env.floor.radiusM / 0.9, false).then((t) => {
+  tiled(assets, env.floor.normal, env.floor.radiusM / 0.9, false).then((t) => {
     floorMaterial.normalMap = t;
     floorMaterial.needsUpdate = true;
   });
-  tiled(resolved, env.stones.texture, 1, true).then((t) => {
+  tiled(assets, env.stones.texture, 1, true).then((t) => {
     stoneMaterial.map = t;
     stoneMaterial.needsUpdate = true;
   });
-  tiled(resolved, env.stones.normal, 1, false).then((t) => {
+  tiled(assets, env.stones.normal, 1, false).then((t) => {
     stoneMaterial.normalMap = t;
     stoneMaterial.needsUpdate = true;
   });
@@ -171,7 +172,7 @@ export function buildNightSanctum(env: NightSanctumEnvironment, resolved: Resolv
   rim.position.y = -0.08;
   const inlay = new Mesh(
     track(new RingGeometry(radius - 0.32, radius - 0.29, 96)),
-    track(new MeshStandardMaterial({ color: new Color(resolved.theme.mat.edgeColor), metalness: 0.7, roughness: 0.4 })),
+    track(new MeshStandardMaterial({ color: new Color(theme.theme.mat.edgeColor), metalness: 0.7, roughness: 0.4 })),
   );
   inlay.rotation.x = -Math.PI / 2;
   inlay.position.y = 0.002;

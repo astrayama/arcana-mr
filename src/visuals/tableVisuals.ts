@@ -23,7 +23,6 @@ import {
   type Texture,
 } from '@iwsdk/core';
 import { config } from '../config.js';
-import type { ResolvedDeck } from '../decks/registry.js';
 import type { ResolvedTheme } from '../themes/registry.js';
 import { MAT_SURFACE_Y } from './layout.js';
 
@@ -179,19 +178,16 @@ function makeGlowAlpha(): CanvasTexture {
   return new CanvasTexture(canvas);
 }
 
-export function buildCardMaterials(deck: ResolvedDeck, resolved: ResolvedTheme): CardMaterials {
+/**
+ * Shared card materials. The back starts as a plain tint; the table applies
+ * the chosen back image with `applyCardBack`.
+ */
+export function buildCardMaterials(resolved: ResolvedTheme): CardMaterials {
   const back = new MeshStandardMaterial({
     // Placeholder tint until the back texture arrives (or if a deck has none).
     color: new Color(resolved.theme.colors.panelBackground),
     roughness: 0.7,
   });
-  if (deck.backUrl) {
-    loadColorTexture(deck.backUrl).then((texture) => {
-      back.map = texture;
-      back.color.set(0xffffff);
-      back.needsUpdate = true;
-    });
-  }
   return {
     back,
     edge: new MeshStandardMaterial({ color: 0xefe6d2, roughness: 0.8 }),
@@ -204,6 +200,31 @@ export function buildCardMaterials(deck: ResolvedDeck, resolved: ResolvedTheme):
       side: DoubleSide,
     }),
   };
+}
+
+/**
+ * Put a back image on the shared back material, cropped to fill cards of
+ * `cardAspect` (width / height) without stretching. Every card, the deck,
+ * and the riffle cards share this material, so they all change at once.
+ */
+export function applyCardBack(material: MeshStandardMaterial, source: Texture, imageAspect: number, cardAspect: number): void {
+  // A clone has its own crop, so the cached original stays untouched.
+  const map = source.clone();
+  map.repeat.set(1, 1);
+  map.offset.set(0, 0);
+  if (imageAspect > cardAspect) {
+    map.repeat.x = cardAspect / imageAspect;
+    map.offset.x = (1 - map.repeat.x) / 2;
+  } else if (imageAspect < cardAspect) {
+    map.repeat.y = imageAspect / cardAspect;
+    map.offset.y = (1 - map.repeat.y) / 2;
+  }
+  map.needsUpdate = true;
+  const previous = material.map;
+  material.map = map;
+  material.color.set(0xffffff);
+  material.needsUpdate = true;
+  if (previous && previous !== source) previous.dispose();
 }
 
 /** Corner radius of a card as a fraction of its width (physical tarot cards have rounded corners). */

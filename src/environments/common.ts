@@ -1,20 +1,11 @@
 /** Helpers shared by the environment generators. */
 
 import { CanvasTexture, NoColorSpace, RepeatWrapping, type Texture } from '@iwsdk/core';
-import type { ResolvedTheme } from '../themes/registry.js';
+import type { EnvironmentAssets } from './types.js';
 import { loadColorTexture } from '../visuals/tableVisuals.js';
 
 /** Small seeded PRNG so layouts are the same every time (not for anything secret). */
-export function seeded(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+export { seeded } from '../lib/random.js';
 
 /** A soft radial gradient on a small canvas: glows, flames, motes, suns. */
 export function radialTexture(stops: [number, string][], size = 128): CanvasTexture {
@@ -30,17 +21,17 @@ export function radialTexture(stops: [number, string][], size = 128): CanvasText
 }
 
 /**
- * A theme texture, tiled `repeat` times. Always a clone: the asset manager
+ * An environment texture, tiled `repeat` times. Always a clone: the asset manager
  * caches one Texture per URL, and two environments tiling the same image
  * differently would otherwise overwrite each other.
  */
 export async function tiled(
-  resolved: ResolvedTheme,
+  assets: EnvironmentAssets,
   path: string | null,
   repeat: number,
   color: boolean,
 ): Promise<Texture | null> {
-  const url = resolved.assetUrl(path);
+  const url = assets.assetUrl(path);
   if (!url) return null;
   const texture = (await loadColorTexture(url)).clone();
   if (!color) texture.colorSpace = NoColorSpace;

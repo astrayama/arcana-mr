@@ -1,6 +1,8 @@
 import { Raycaster, World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { app } from './app/context.js';
+import { backRegistry } from './backs/catalog.js';
+import { deckRegistry } from './decks/registry.js';
 import { builtinSpreads, getSpread } from './spreads/catalog.js';
 import { panelRegistry } from './ui/panels.js';
 import { AmbientSystem } from './systems/ambientSystem.js';
@@ -69,6 +71,7 @@ World.create(
       draw: world.getSystem(DrawSystem),
       cardsys: world.getSystem(CardInteractionSystem),
       spreads: { builtinSpreads, getSpread },
+      registries: { decks: deckRegistry, backs: backRegistry },
       panels: panelRegistry,
       Raycaster,
     };

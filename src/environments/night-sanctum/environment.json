@@ -1,0 +1,40 @@
+{
+  "id": "night-sanctum",
+  "label": "Night sky",
+  "kind": "night-sanctum",
+  "order": 1,
+  "fog": {
+    "color": "#0b0a16",
+    "density": 0.1
+  },
+  "sky": {
+    "top": "#03040b",
+    "horizon": "#1f1838",
+    "bottom": "#020206"
+  },
+  "stars": {
+    "count": 1600,
+    "color": "#fff4dc"
+  },
+  "moon": {
+    "color": "#f3ead2"
+  },
+  "floor": {
+    "texture": "assets/floor-diff.webp",
+    "normal": "../shared/floor-nor.webp",
+    "color": "#8f8a96",
+    "radiusM": 4.2
+  },
+  "stones": {
+    "texture": "assets/stone-diff.webp",
+    "normal": "assets/stone-nor.webp",
+    "color": "#7d7885",
+    "count": 9,
+    "ringRadiusM": 3.5
+  },
+  "flameColor": "#ffb35c",
+  "fireflies": {
+    "count": 60,
+    "color": "#ffd98a"
+  }
+}

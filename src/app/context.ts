@@ -5,6 +5,7 @@
 
 import { signal, type Signal } from '@iwsdk/core';
 import { listBacks } from '../backs/catalog.js';
+import { listEnvironments } from '../environments/catalog.js';
 import { config } from '../config.js';
 import cardsJson from '../data/cards.json';
 import { validateCards, type CardData } from '../data/cards.schema.js';
@@ -18,14 +19,22 @@ import { getTheme, listThemeIds, type ResolvedTheme } from '../themes/registry.j
 
 export interface AppContext {
   cards: ReadonlyMap<string, CardData>;
-  deck: ResolvedDeck;
+  /** The deck in use. It can change between readings (see `setDeck`). */
+  readonly deck: ResolvedDeck;
   theme: ResolvedTheme;
   machine: ReadingMachine;
   /** Card height in meters, from the configured width and the deck's aspect ratio. */
-  cardHeightM: number;
+  readonly cardHeightM: number;
+  /** The id of the deck in use; changes when the reader switches decks. */
+  deckId: Signal<string>;
+  /**
+   * Switch to another deck between readings. Returns false if that deck
+   * doesn't exist, can't hold a reading, or a reading is under way.
+   */
+  setDeck(id: string): boolean;
   /**
    * What surrounds the reading in the headset: "room" for the real room
-   * through passthrough, or the id of one of the theme's VR environments.
+   * through passthrough, or the id of one of the VR environments.
    * Separate from the reading flow.
    */
   surroundings: Signal<string>;
@@ -40,12 +49,12 @@ export interface AppContext {
 }
 
 /**
- * `?view=<id>` picks an environment and `?view=vr` means the theme's first
- * one; otherwise the saved choice.
+ * `?view=<id>` picks an environment and `?view=vr` means the first one;
+ * otherwise the saved choice.
  */
-function initialSurroundings(search: string, theme: ResolvedTheme, saved: string): string {
+function initialSurroundings(search: string, saved: string): string {
   const requested = new URLSearchParams(search).get(config.urlParams.view);
-  const environments = theme.theme.environments;
+  const environments = listEnvironments();
   if (!requested) return saved;
   if (environments.length === 0) return 'room';
   if (requested === 'vr') return environments[0].id;
@@ -74,7 +83,7 @@ export function createAppContext(search: string): AppContext {
   const known = {
     decks: listDeckIds(),
     backs: listBacks().map((b) => b.manifest.id),
-    surroundings: theme.theme.environments.map((env) => env.id),
+    surroundings: listEnvironments().map((env) => env.id),
   };
   const defaults = defaultSettings(config.defaults.deck);
   const settings = signal(parseSettings(readJson(SETTINGS_KEY), known, defaults));
@@ -84,12 +93,16 @@ export function createAppContext(search: string): AppContext {
   if (!deck) throw new Error(`[arcana] default deck "${deckPick.id}" is missing from src/decks/`);
 
   // Only draw cards the active deck can actually show.
-  const drawable = cards.map((card) => card.id).filter((id) => deck.faceUrl(id) !== null);
-  if (drawable.length < cards.length) {
-    console.warn(
-      `[arcana] deck "${deck.manifest.id}" has faces for ${drawable.length} of ${cards.length} cards`,
-    );
-  }
+  const drawableFor = (d: ResolvedDeck) => {
+    const ids = cards.map((card) => card.id).filter((id) => d.faceUrl(id) !== null);
+    if (ids.length < cards.length) {
+      console.warn(`[arcana] deck "${d.manifest.id}" has faces for ${ids.length} of ${cards.length} cards`);
+    }
+    return ids;
+  };
+  const drawable = drawableFor(deck);
+  let current = deck;
+  const deckId = signal(deck.id);
 
   console.info(`[arcana] deck=${deck.manifest.id} theme=${theme.theme.id} cards=${cards.length}`);
 
@@ -112,17 +125,33 @@ export function createAppContext(search: string): AppContext {
     }
   }
 
+  const machine = new ReadingMachine({
+    cardIds: drawable,
+    reversalChance: config.reading.reversalChance,
+    draw,
+  });
+
   return {
     cards: new Map(cards.map((card) => [card.id, card])),
-    deck,
+    get deck() {
+      return current;
+    },
     theme,
-    machine: new ReadingMachine({
-      cardIds: drawable,
-      reversalChance: config.reading.reversalChance,
-      draw,
-    }),
-    cardHeightM: config.card.widthM / deck.manifest.aspectRatio,
-    surroundings: signal<string>(initialSurroundings(search, theme, settings.peek().surroundings)),
+    machine,
+    get cardHeightM() {
+      return config.card.widthM / current.manifest.aspectRatio;
+    },
+    deckId,
+    setDeck(id) {
+      const next = getDeck(id);
+      if (!next || next === current) return false;
+      const ids = drawableFor(next);
+      if (ids.length === 0 || !machine.setCardIds(ids)) return false;
+      current = next;
+      deckId.value = next.id;
+      return true;
+    },
+    surroundings: signal<string>(initialSurroundings(search, settings.peek().surroundings)),
     back: signal<string>(settings.peek().back),
     settings,
     saveSettings(patch) {

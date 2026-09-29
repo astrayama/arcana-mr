@@ -34,7 +34,8 @@ import {
   Vector3,
 } from '@iwsdk/core';
 import type { ResolvedTheme } from '../themes/registry.js';
-import type { CloudSeaEnvironment } from '../themes/theme.schema.js';
+import type { EnvironmentAssets } from './types.js';
+import type { CloudSeaEnvironment } from './environment.schema.js';
 import { radialTexture, seeded, tiled } from './common.js';
 import type { EnvironmentInstance } from './types.js';
 
@@ -154,7 +155,7 @@ function puffTexture(random: () => number): CanvasTexture {
   return new CanvasTexture(canvas);
 }
 
-export function buildCloudSea(env: CloudSeaEnvironment, resolved: ResolvedTheme): EnvironmentInstance {
+export function buildCloudSea(env: CloudSeaEnvironment, assets: EnvironmentAssets, theme: ResolvedTheme): EnvironmentInstance {
   const random = seeded(7);
   const root = new Group();
   root.name = 'CloudSea';
@@ -263,13 +264,13 @@ export function buildCloudSea(env: CloudSeaEnvironment, resolved: ResolvedTheme)
     new MeshStandardMaterial({ color: new Color(env.terrace.color), roughness: 0.85, envMapIntensity: 0.7 }),
   );
   const radius = env.terrace.radiusM;
-  tiled(resolved, env.terrace.texture, radius / 0.9, true).then((t) => {
+  tiled(assets, env.terrace.texture, radius / 0.9, true).then((t) => {
     if (!t) return;
     track(t);
     stone.map = t;
     stone.needsUpdate = true;
   });
-  tiled(resolved, env.terrace.normal, radius / 0.9, false).then((t) => {
+  tiled(assets, env.terrace.normal, radius / 0.9, false).then((t) => {
     if (!t) return;
     track(t);
     stone.normalMap = t;

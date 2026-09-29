@@ -15,7 +15,7 @@ import {
 import { app } from '../app/context.js';
 import { buildEnvironment } from '../environments/registry.js';
 import type { EnvironmentInstance } from '../environments/types.js';
-import type { ThemeEnvironment } from '../themes/theme.schema.js';
+import { getEnvironment, type ResolvedEnvironment } from '../environments/catalog.js';
 import { TableSystem } from './tableSystem.js';
 
 /** Where an environment centers, as a share of the way from the mat toward the reader. */
@@ -23,7 +23,7 @@ const CENTER_TOWARD_READER = 0.35;
 const SLAB_THICKNESS = 0.05;
 
 interface Built {
-  env: ThemeEnvironment;
+  env: ResolvedEnvironment;
   instance: EnvironmentInstance;
   fog: FogExp2;
 }
@@ -86,7 +86,7 @@ export class EnvironmentSystem extends createSystem({}) {
   private refresh(): void {
     const id = app.surroundings.peek();
     const immersive = this.world.visibilityState.peek() !== VisibilityState.NonImmersive;
-    const env = immersive ? app.theme.theme.environments.find((e) => e.id === id) : undefined;
+    const env = immersive ? getEnvironment(id) : undefined;
     const next = env ? this.get(env) : null;
     if (next === this.current) return;
 
@@ -102,13 +102,13 @@ export class EnvironmentSystem extends createSystem({}) {
   }
 
   /** Build an environment the first time it's chosen. */
-  private get(env: ThemeEnvironment): Built {
+  private get(env: ResolvedEnvironment): Built {
     let built = this.built.get(env.id);
     if (!built) {
       const instance = buildEnvironment(env, app.theme);
       instance.root.visible = false;
       this.world.createTransformEntity(instance.root, { persistent: true });
-      built = { env, instance, fog: new FogExp2(new Color(env.fog.color), env.fog.density) };
+      built = { env, instance, fog: new FogExp2(new Color(env.env.fog.color), env.env.fog.density) };
       this.built.set(env.id, built);
     }
     return built;

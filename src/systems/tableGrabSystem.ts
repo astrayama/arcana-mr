@@ -94,21 +94,27 @@ export class TableGrabSystem extends createSystem({}) {
     this.table = this.world.getSystem(TableSystem)!;
     this.focus = this.world.getSystem(FocusSystem)!;
     this.deck = this.table.deck.object3D!;
-    const stack = deckStackHeight(app.cards.size);
-    this.cardHalf.set(config.card.widthM / 2, 0.004, app.cardHeightM / 2);
-    this.deckHalf.set(config.card.widthM / 2 + 0.005, stack / 2 + 0.005, app.cardHeightM / 2 + 0.005);
-    this.deckCenterY = stack / 2;
+    this.refreshSizes();
 
     this.cleanupFuncs.push(
       app.machine.subscribe((snapshot, event) => {
         // A new reading sweeps everything away; let go of it all first.
         if (event.type === 'NEW_READING' || !LIVE.has(snapshot.state)) this.releaseAll();
       }),
+      this.table.onDeckChange(() => this.refreshSizes()),
       () => {
         this.gestures.dispose();
         for (const hand of HANDS) this.setRay(hand, true, true);
       },
     );
+  }
+
+  /** Grab boxes match the deck in use (its cards may be a different shape). */
+  private refreshSizes(): void {
+    const stack = deckStackHeight(app.cards.size);
+    this.cardHalf.set(config.card.widthM / 2, 0.004, app.cardHeightM / 2);
+    this.deckHalf.set(config.card.widthM / 2 + 0.005, stack / 2 + 0.005, app.cardHeightM / 2 + 0.005);
+    this.deckCenterY = stack / 2;
   }
 
   /** Which hand is holding `object` (the deck or a card's root), if any. */
