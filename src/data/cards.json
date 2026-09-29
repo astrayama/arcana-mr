@@ -4,112 +4,400 @@
     "name": "The Fool",
     "arcana": "major",
     "suit": null,
-    "number": 0
+    "number": 0,
+    "upright": {
+      "keywords": [
+        "beginnings",
+        "open heart",
+        "leap of faith"
+      ],
+      "read": "A young traveler steps toward a cliff edge with a small bag, a flower, and a little dog at his heels, his eyes on the sky. The Fool is the beginner in you, willing to start before you feel ready. Nothing new arrives with guarantees, only with the chance to learn as you go.",
+      "prompt": "What would you start today if you did not have to be good at it yet?"
+    },
+    "reversed": {
+      "keywords": [
+        "recklessness",
+        "hesitation",
+        "stalled start"
+      ],
+      "read": "Reversed, the Fool can tip toward carelessness, leaping mostly to avoid sitting with a hard decision. Just as often it shows the opposite: standing at the edge so long that the moment to begin slips by. The little white dog in the picture is worth heeding, that small instinct that barks when something is off.",
+      "prompt": "Where are you rushing to escape a feeling, or waiting to escape a risk?"
+    }
   },
   {
     "id": "major-01-the-magician",
     "name": "The Magician",
     "arcana": "major",
     "suit": null,
-    "number": 1
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "skill",
+        "focus",
+        "resourcefulness"
+      ],
+      "read": "You have more to work with than you think. The Magician stands at a table laid with a cup, a sword, a coin, and a wand, one hand raised to the sky and the other pointing to the earth, turning ideas into action. Stop waiting for a better set of tools and start with these.",
+      "prompt": "Which of your skills or resources have you been overlooking because they feel too ordinary?"
+    },
+    "reversed": {
+      "keywords": [
+        "scattered energy",
+        "untapped talent",
+        "performing"
+      ],
+      "read": "Reversed, the Magician's tools are still on the table, but something has gone sideways in how they get used. Your focus may be spread across so many projects that none of them gets finished. Or skill may be sliding into performance, where you are working the room more than doing the work.",
+      "prompt": "Where does your effort feel more like performing than making something real?"
+    }
   },
   {
     "id": "major-02-the-high-priestess",
     "name": "The High Priestess",
     "arcana": "major",
     "suit": null,
-    "number": 2
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "intuition",
+        "inner knowing",
+        "stillness"
+      ],
+      "read": "Between a black pillar and a white one, the High Priestess sits with a scroll half hidden in her lap and a veil of pomegranates at her back. She is the quiet part of you that knows things before you can explain them. Not everything has to be said out loud or solved today.",
+      "prompt": "What do you already know about this situation that you have not yet put into words?"
+    },
+    "reversed": {
+      "keywords": [
+        "second-guessing",
+        "outside noise",
+        "buried feelings"
+      ],
+      "read": "Reversed, the High Priestess shows a gap between what you sense and what you let yourself hear. Other people's opinions may have grown so loud that your own voice is hard to find. Or you may be keeping something so private that even you have stopped looking at it.",
+      "prompt": "Whose voice has been louder than your own lately, and what has it drowned out?"
+    }
   },
   {
     "id": "major-03-the-empress",
     "name": "The Empress",
     "arcana": "major",
     "suit": null,
-    "number": 3
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "nurturing",
+        "abundance",
+        "creative growth"
+      ],
+      "read": "The Empress rests on soft cushions in a field of ripening wheat, a stream spilling through the trees behind her. Her kind of growth comes from care rather than force: feeding, tending, letting things take the time they take. That includes your projects, your relationships, and your own body's need for comfort.",
+      "prompt": "What is growing in your life right now, and how are you tending it?"
+    },
+    "reversed": {
+      "keywords": [
+        "depletion",
+        "smothering",
+        "creative block"
+      ],
+      "read": "Reversed, the Empress can show a well running low. You might be pouring care into everyone else while your own field goes dry, or holding something so closely that it has no room to grow. In both cases, nurturing has started to feel like duty instead of love.",
+      "prompt": "Where are you giving care that no one, including you, is giving back?"
+    }
   },
   {
     "id": "major-04-the-emperor",
     "name": "The Emperor",
     "arcana": "major",
     "suit": null,
-    "number": 4
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "structure",
+        "responsibility",
+        "steady leadership"
+      ],
+      "read": "Every life needs some scaffolding. On a stone throne carved with rams, armor showing beneath his red robe, the Emperor stands for the routines, boundaries, and kept promises that hold things steady. Order can be a kind of care when it guards what matters most.",
+      "prompt": "Which structure in your life truly supports you, and which one only looks tidy?"
+    },
+    "reversed": {
+      "keywords": [
+        "rigidity",
+        "overcontrol",
+        "missing structure"
+      ],
+      "read": "Reversed, the Emperor shows authority that has lost its balance. Rules may have hardened, in you or in someone you answer to, until control matters more than the people it was meant to protect. Or structure may be missing altogether, and every day feels like starting from scratch.",
+      "prompt": "Where would a little more structure free you, and where would a little less?"
+    }
   },
   {
     "id": "major-05-the-hierophant",
     "name": "The Hierophant",
     "arcana": "major",
     "suit": null,
-    "number": 5
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "tradition",
+        "belonging",
+        "mentorship"
+      ],
+      "read": "The Hierophant raises a hand in blessing over two kneeling students, a pair of crossed keys at his feet. He speaks for the traditions, teachers, and communities that shaped what you believe. There is real comfort in belonging to something older than yourself and in learning from people who walked the road first.",
+      "prompt": "Which teaching you grew up with still feels true, and why?"
+    },
+    "reversed": {
+      "keywords": [
+        "questioning",
+        "personal belief",
+        "breaking convention"
+      ],
+      "read": "Turned on its head, the Hierophant asks you to sort the beliefs you chose from the ones that were simply handed to you. This can be a healthy break from rules that no longer fit. It can also be rebellion on autopilot, resisting so reflexively that you never stop to ask what you actually believe.",
+      "prompt": "What rule do you still follow that you have never truly agreed with?"
+    }
   },
   {
     "id": "major-06-the-lovers",
     "name": "The Lovers",
     "arcana": "major",
     "suit": null,
-    "number": 6
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "connection",
+        "values",
+        "honest choice"
+      ],
+      "read": "Beneath a great winged angel, a man and a woman stand bare and unguarded, a tree of fruit behind her and a tree of flames behind him. The Lovers is about intimacy, but also about choosing: letting what you love and what you value point the same way. Being fully seen starts with being clear about your own desires.",
+      "prompt": "What choice in front of you would bring your actions closer to your values?"
+    },
+    "reversed": {
+      "keywords": [
+        "misalignment",
+        "divided heart",
+        "avoidance"
+      ],
+      "read": "Reversed, the Lovers can signal a relationship where you feel out of step, or a decision you keep circling without making. Sometimes the tension is with another person. Sometimes it lives in the space between your stated values and how your days are actually spent.",
+      "prompt": "Where are your heart and your choices pulling in different directions?"
+    }
   },
   {
     "id": "major-07-the-chariot",
     "name": "The Chariot",
     "arcana": "major",
     "suit": null,
-    "number": 7
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "determination",
+        "direction",
+        "self-discipline"
+      ],
+      "read": "Nobody holds the reins in this picture. The charioteer stands tall in his stone carriage, two sphinxes, one dark and one light, resting before him and held in line by concentration alone. The Chariot is about moving toward something you have chosen and keeping your competing impulses headed in one direction.",
+      "prompt": "What goal deserves your full focus right now, and what keeps pulling you off course?"
+    },
+    "reversed": {
+      "keywords": [
+        "lost direction",
+        "forcing it",
+        "burnout"
+      ],
+      "read": "Upside down, the Chariot suggests the two sphinxes are straining opposite ways. You may be driving hard without a clear sense of where you are headed, or trying to control every outcome through sheer effort. Pausing to choose your destination again is not failure; it is steering.",
+      "prompt": "Where are you pushing hard without being sure you still want to arrive?"
+    }
   },
   {
     "id": "major-08-strength",
     "name": "Strength",
     "arcana": "major",
     "suit": null,
-    "number": 8
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "gentle courage",
+        "patience",
+        "compassion"
+      ],
+      "read": "A woman in white rests her hands on a lion's jaws, calm and unhurried, with no weapon in sight. Strength here means patience with your own fear, anger, or appetite rather than a fight to crush it. In this card, softness and power turn out to be the same thing.",
+      "prompt": "What part of you needs patience instead of pressure right now?"
+    },
+    "reversed": {
+      "keywords": [
+        "self-doubt",
+        "frayed nerves",
+        "inner struggle"
+      ],
+      "read": "Reversed, Strength can show the lion getting the upper hand, with frustration, fear, or old habits running the show. It may also reflect courage you have forgotten you have. Neither calls for a harsher grip, only the same slow, gentle attention the woman on the card gives her lion.",
+      "prompt": "When you feel overwhelmed, what helps you steady yourself without turning harsh?"
+    }
   },
   {
     "id": "major-09-the-hermit",
     "name": "The Hermit",
     "arcana": "major",
     "suit": null,
-    "number": 9
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "solitude",
+        "reflection",
+        "inner guidance"
+      ],
+      "read": "The Hermit stands alone on a snowy peak, holding up a lantern with a single star inside, enough light for the next few steps and no more. This card honors time away from the noise so you can hear yourself think. Stepping back is not the same as giving up.",
+      "prompt": "What question would you sit with if you gave yourself a quiet hour alone?"
+    },
+    "reversed": {
+      "keywords": [
+        "isolation",
+        "withdrawal",
+        "restless busyness"
+      ],
+      "read": "When the Hermit appears reversed, it is worth asking how your solitude is really serving you. Time alone may have tipped into isolation, where pulling away feels safer than being known. Or life has gotten so busy and so crowded that there is never a still moment to check in with yourself.",
+      "prompt": "How much quiet do you actually need, and how much are you getting?"
+    }
   },
   {
     "id": "major-10-wheel-of-fortune",
     "name": "Wheel of Fortune",
     "arcana": "major",
     "suit": null,
-    "number": 10
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "cycles",
+        "turning point",
+        "change of season"
+      ],
+      "read": "Life moves in seasons, and no high or low stays put for long. On this card a great wheel turns in the sky, a snake sliding down one side and a jackal-headed figure rising up the other, while four winged creatures read calmly in the clouds. You cannot stop the wheel, but you can choose how you meet each turn.",
+      "prompt": "What pattern keeps coming around in your life, and what is it asking of you this time?"
+    },
+    "reversed": {
+      "keywords": [
+        "repeating loops",
+        "resistance",
+        "lost footing"
+      ],
+      "read": "A reversed Wheel of Fortune can feel like being stuck on the downswing, with the same problems circling back. That may be a pattern asking for a different response, or a change you are fighting because it was not your idea. Your part is smaller than the whole wheel, but it is real.",
+      "prompt": "Which recurring situation might shift if you met it in a new way?"
+    }
   },
   {
     "id": "major-11-justice",
     "name": "Justice",
     "arcana": "major",
     "suit": null,
-    "number": 11
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "fairness",
+        "accountability",
+        "clear sight"
+      ],
+      "read": "Justice holds a raised sword in one hand and level scales in the other, her gaze steady and direct. She calls for honesty about cause and effect: what you did, what others did, and what would be fair to everyone involved. Sometimes clarity starts with owning your part.",
+      "prompt": "What would a fair look at this situation ask you to admit?"
+    },
+    "reversed": {
+      "keywords": [
+        "unfairness",
+        "misplaced blame",
+        "self-judgment"
+      ],
+      "read": "Reversed, the scales have tipped. Maybe you are carrying blame that is not fully yours, or stepping around a part that is. This can also reflect a situation that really is unfair, where the most useful thing is to name that plainly, at least to yourself.",
+      "prompt": "Where are you taking on too much blame, and where too little?"
+    }
   },
   {
     "id": "major-12-the-hanged-man",
     "name": "The Hanged Man",
     "arcana": "major",
     "suit": null,
-    "number": 12
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "pause",
+        "surrender",
+        "different view"
+      ],
+      "read": "Hanging upside down from a living tree by one foot, hands tucked behind him, the Hanged Man looks strangely peaceful, a soft glow around his head. This is the pause that changes how you see things. When effort has stopped working, letting go and looking again from a new angle can be its own kind of progress.",
+      "prompt": "What might you see differently if you stopped trying to force an answer?"
+    },
+    "reversed": {
+      "keywords": [
+        "stalling",
+        "limbo",
+        "empty sacrifice"
+      ],
+      "read": "Reversed, the Hanged Man describes a pause that has turned into limbo. You could be holding out for a perfect moment to decide, or giving things up out of habit rather than meaning. Impatience belongs here too: the urge to act just to escape the discomfort of not knowing.",
+      "prompt": "Where has waiting stopped being useful and started being a way to avoid choosing?"
+    }
   },
   {
     "id": "major-13-death",
     "name": "Death",
     "arcana": "major",
     "suit": null,
-    "number": 13
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "endings",
+        "transition",
+        "making room"
+      ],
+      "read": "Despite its name, this card is about change: a chapter closing so something new has room. An armored rider carries a black banner marked with a white rose, and on the horizon a sun glows between two towers. Endings can be sad and still be right.",
+      "prompt": "What part of your life is already ending, and what might it be making space for?"
+    },
+    "reversed": {
+      "keywords": [
+        "clinging",
+        "stalled change",
+        "slow release"
+      ],
+      "read": "Reversed, Death suggests an ending that is happening slowly, or one you keep putting off. You might be keeping a door propped open long after the room has emptied. Or the change may already be underway inside you, quieter than you expected and waiting to be acknowledged.",
+      "prompt": "What are you still carrying that you have already outgrown?"
+    }
   },
   {
     "id": "major-14-temperance",
     "name": "Temperance",
     "arcana": "major",
     "suit": null,
-    "number": 14
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "balance",
+        "moderation",
+        "blending"
+      ],
+      "read": "An angel stands with one foot on land and one in a pool, pouring water between two cups in a steady stream. Temperance is the slow art of mixing things in the right amounts: work and rest, feeling and reason, wanting and needing. Small adjustments count for more than dramatic overhauls.",
+      "prompt": "What in your life needs a gentler mix rather than an all-or-nothing fix?"
+    },
+    "reversed": {
+      "keywords": [
+        "excess",
+        "imbalance",
+        "extremes"
+      ],
+      "read": "In reverse, Temperance shows the cups tipping. You may be swinging from all in to burned out and back again, or tackling everything at once. Parts of your life may also have stopped talking to each other, like rest that never makes the calendar because work always wins.",
+      "prompt": "Where are you overdoing it, and what might you be trying not to feel?"
+    }
   },
   {
     "id": "major-15-the-devil",
     "name": "The Devil",
     "arcana": "major",
     "suit": null,
-    "number": 15
+    "number": 15,
+    "upright": {
+      "keywords": [
+        "attachment",
+        "compulsion",
+        "temptation"
+      ],
+      "read": "Two figures stand chained to the Devil's pedestal, but look closely: the chains around their necks hang loose enough to lift off. The card points to habits, cravings, or patterns that feel like they run you. Naming what has a grip on you, without shame, is often how that grip starts to ease.",
+      "prompt": "What habit or pattern feels like it has a hold on you, and what does it give you in return?"
+    },
+    "reversed": {
+      "keywords": [
+        "breaking free",
+        "awareness",
+        "reclaiming choice"
+      ],
+      "read": "Reversed, the Devil often marks a loosening: you are starting to see a pattern clearly, and seeing it already changes your relationship to it. Or you are in the harder middle stretch, still reaching for the chain after you have spotted it. Both belong to breaking free, and neither needs to be done perfectly.",
+      "prompt": "What would one small act of freedom from this pattern look like today?"
+    }
   },
   {
     "id": "major-16-the-tower",
@@ -166,210 +454,750 @@
     "name": "The Moon",
     "arcana": "major",
     "suit": null,
-    "number": 18
+    "number": 18,
+    "upright": {
+      "keywords": [
+        "uncertainty",
+        "dreams",
+        "hidden fears"
+      ],
+      "read": "The Moon lights things just enough to make them strange. A dog and a wolf howl up at it, a crayfish crawls out of a pool, and a narrow path winds between a pair of towers toward far-off hills. When you cannot see the whole road, fear and imagination rush to fill the gaps, so go slowly and check what is real.",
+      "prompt": "Which of your worries are built on facts, and which are guesses made in the dark?"
+    },
+    "reversed": {
+      "keywords": [
+        "lifting fog",
+        "released fear",
+        "buried confusion"
+      ],
+      "read": "In its reversed position, the Moon may show fog starting to lift, as a worry loses its hold or something hidden comes into view. Sometimes it points instead to confusion you have been tucking away rather than facing. Either way, pay attention to what keeps surfacing when you are tired or alone.",
+      "prompt": "What would you see if you looked at your biggest worry in plain daylight?"
+    }
   },
   {
     "id": "major-19-the-sun",
     "name": "The Sun",
     "arcana": "major",
     "suit": null,
-    "number": 19
+    "number": 19,
+    "upright": {
+      "keywords": [
+        "joy",
+        "vitality",
+        "openness"
+      ],
+      "read": "A smiling child rides a white horse bareback beneath a huge, beaming sun, holding out a red banner while sunflowers lean over the wall behind. The Sun is plain, unguarded happiness: warmth, confidence, and the pleasure of being yourself out loud. Good things do not have to be earned twice before you enjoy them.",
+      "prompt": "What is going well right now that you have not fully let yourself enjoy?"
+    },
+    "reversed": {
+      "keywords": [
+        "dimmed joy",
+        "forced cheer",
+        "clouded confidence"
+      ],
+      "read": "The Sun reversed is still the sun, just shining from behind some clouds. Good news may not be sinking in, or you are keeping up a bright face while feeling flat inside. The warmth has not gone anywhere, but it may need more room and less performance.",
+      "prompt": "What feeling have you been covering with a smile?"
+    }
   },
   {
     "id": "major-20-judgement",
     "name": "Judgement",
     "arcana": "major",
     "suit": null,
-    "number": 20
+    "number": 20,
+    "upright": {
+      "keywords": [
+        "awakening",
+        "reckoning",
+        "inner calling"
+      ],
+      "read": "An angel sounds a trumpet from the clouds, and below, figures rise to their feet with arms lifted toward the sound. Judgement is about waking up to something you can no longer ignore: a truth about your life, a calling, a version of yourself that has waited long enough. Think of it as a clear-eyed look back, not a punishment.",
+      "prompt": "What part of you has been asking to be heard lately?"
+    },
+    "reversed": {
+      "keywords": [
+        "self-criticism",
+        "unanswered call",
+        "doubt"
+      ],
+      "read": "Reversed, Judgement can turn harsh, with an inner critic grading every choice you have ever made. Or it may be a call you keep letting ring out, a shift you know matters but keep setting aside. Looking back is meant to free you, not to put you on trial.",
+      "prompt": "What would change if you judged your past self as kindly as you would judge a friend?"
+    }
   },
   {
     "id": "major-21-the-world",
     "name": "The World",
     "arcana": "major",
     "suit": null,
-    "number": 21
+    "number": 21,
+    "upright": {
+      "keywords": [
+        "completion",
+        "wholeness",
+        "integration"
+      ],
+      "read": "A dancer moves inside a laurel wreath, wrapped in a violet sash, a wand in each hand, while an angel, an eagle, a lion, and a bull look on from the corners. The World marks completion: a cycle closing, lessons gathered, a moment of feeling whole. Take time to register how far you have come before rushing to what is next.",
+      "prompt": "What have you completed recently that you have not given yourself credit for?"
+    },
+    "reversed": {
+      "keywords": [
+        "loose ends",
+        "almost there",
+        "rushed ending"
+      ],
+      "read": "Reversed, the World suggests the wreath is nearly closed but not quite. There may be loose ends you keep sidestepping, or an ending you are hurrying past without letting it land. Finishing well is sometimes less about the big gesture and more about tying the last ribbon.",
+      "prompt": "What unfinished piece is keeping you from feeling complete?"
+    }
   },
   {
     "id": "wands-ace",
     "name": "Ace of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 1
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "spark",
+        "new idea",
+        "raw enthusiasm"
+      ],
+      "read": "A hand reaches out of a cloud holding a single wand, and the wood is still sprouting leaves. It marks the moment an idea or desire first catches, before any plan exists. Pay attention to what has been making you lean forward lately, even if it seems too small or unformed to take seriously.",
+      "prompt": "What idea keeps tugging at you, asking to be tried instead of only thought about?"
+    },
+    "reversed": {
+      "keywords": [
+        "false start",
+        "stalled spark",
+        "hesitation"
+      ],
+      "read": "Reversed, the Ace of Wands shows a spark that is not catching. You may be circling an idea without ever starting, or you began in a rush and lost steam once it got real. Neither means the desire was wrong, only that it needs a different kind of kindling.",
+      "prompt": "What usually happens inside you right before you talk yourself out of starting?"
+    }
   },
   {
     "id": "wands-two",
     "name": "Two of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 2
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "planning",
+        "bigger vision",
+        "deciding"
+      ],
+      "read": "A man stands on a castle wall with a small globe in his hand, looking past the safe stone toward open land and sea. You have a foothold now, and the real question is how far you want to reach from it. This card lives in the gap between having an idea and committing to a direction.",
+      "prompt": "Where would you aim if you let yourself want more than what feels safe?"
+    },
+    "reversed": {
+      "keywords": [
+        "playing it safe",
+        "fear of leaving",
+        "vague plans"
+      ],
+      "read": "Reversed, the Two of Wands pictures someone who keeps studying the globe and never leaves the wall. Planning has become a comfortable place to hide, or the plans stay vague because naming what you want feels risky. Either way, the view from the battlements only gets you so far.",
+      "prompt": "Which plan have you been polishing instead of starting, and what are you afraid it would reveal?"
+    }
   },
   {
     "id": "wands-three",
     "name": "Three of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 3
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "looking ahead",
+        "momentum",
+        "expansion"
+      ],
+      "read": "Seen from behind, a figure stands on high ground with three wands planted beside him, watching ships cross a golden sea. What you set in motion earlier is out there working now, beyond your direct control. There is room to feel proud of what you launched and curious about how far it can go.",
+      "prompt": "What have you already set in motion that deserves more of your trust than your worry?"
+    },
+    "reversed": {
+      "keywords": [
+        "slow returns",
+        "impatience",
+        "narrow view"
+      ],
+      "read": "When the Three of Wands turns up reversed, the frustration is usually about pace: your efforts are not coming back as quickly as you hoped. Or your horizon may have shrunk to what is right in front of you, and the bigger picture has gone fuzzy. It helps to tell a real setback apart from ordinary waiting.",
+      "prompt": "Where are you treating a normal waiting period as proof that something has failed?"
+    }
   },
   {
     "id": "wands-four",
     "name": "Four of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 4
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "celebration",
+        "homecoming",
+        "stable ground"
+      ],
+      "read": "Four wands hold up a garland of flowers and fruit while two figures lift bouquets in welcome, a castle behind them. The card celebrates arriving somewhere that feels like yours, whether that is a home, a community, or a milestone. Give it a proper moment before rushing on to the next thing.",
+      "prompt": "What have you reached or built lately that you have not let yourself celebrate?"
+    },
+    "reversed": {
+      "keywords": [
+        "unsettled home",
+        "skipped milestones",
+        "not belonging"
+      ],
+      "read": "Reversed, the Four of Wands can point to a celebration that feels hollow, or a place that is supposed to feel like home and does not quite. It can also be the habit of skipping the party, treating every finish line as the start of the next task. Both leave you without anywhere to rest.",
+      "prompt": "Where do you feel most like yourself, and how often do you let yourself be there?"
+    }
   },
   {
     "id": "wands-five",
     "name": "Five of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 5
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "friction",
+        "competition",
+        "clashing ideas"
+      ],
+      "read": "Five young men swing their staves in every direction, and it is hard to tell whether they are fighting or practicing. Some conflict is like that: noisy, scattered, and not actually dangerous. This card points to the friction of many strong wills in one space, which can sharpen you or simply wear you out.",
+      "prompt": "Which of your current disagreements is useful sparring, and which is just noise?"
+    },
+    "reversed": {
+      "keywords": [
+        "avoiding conflict",
+        "winding down",
+        "inner tug-of-war"
+      ],
+      "read": "Reversed, the Five of Wands can mean a scuffle is winding down, or that you are dodging a disagreement that needs to happen. Sometimes the clash has moved inward, with competing wants pulling against each other. Peace that comes from swallowing your view is not the same as peace that comes from being heard.",
+      "prompt": "What are you keeping quiet about just to keep things calm?"
+    }
   },
   {
     "id": "wands-six",
     "name": "Six of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 6
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "recognition",
+        "public win",
+        "confidence"
+      ],
+      "read": "A rider wearing a laurel wreath moves through a crowd on a white horse, and his wand is crowned with a second wreath. This is the pleasure of being seen for something you did well. Enjoy it, and stay curious about how much of your confidence depends on the applause.",
+      "prompt": "What success would you still be proud of if nobody else had noticed it?"
+    },
+    "reversed": {
+      "keywords": [
+        "self-doubt",
+        "unseen effort",
+        "fear of judgment"
+      ],
+      "read": "Reversed, the Six of Wands may reflect a win that went unrecognized, or a hunger for approval that makes every small setback feel public. Sometimes it shows up as a reluctance to step into the spotlight at all. What ties these together is a sense of worth that has gotten tangled up in other people's reactions.",
+      "prompt": "Whose approval are you still performing for, and what would change if you stopped?"
+    }
   },
   {
     "id": "wands-seven",
     "name": "Seven of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 7
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "standing your ground",
+        "conviction",
+        "defending"
+      ],
+      "read": "On a ridge, a young man braces with one wand against six more rising from below, and if you look closely, he is wearing two different shoes. He got dressed in a hurry, but he is holding the high ground anyway. It is a picture of defending what matters to you even when you do not feel fully ready.",
+      "prompt": "What are you willing to stand up for, even if it makes you unpopular?"
+    },
+    "reversed": {
+      "keywords": [
+        "tired of fighting",
+        "giving ground",
+        "over-defending"
+      ],
+      "read": "Upside down, the Seven of Wands can mean you are tired of fighting and starting to give way. You may also be defending everything at once, including positions that no longer deserve the effort. Some battles are worth holding, and some you picked up out of habit and never put down.",
+      "prompt": "Which fight could you walk away from without losing yourself?"
+    }
   },
   {
     "id": "wands-eight",
     "name": "Eight of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 8
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "speed",
+        "quick progress",
+        "clear path"
+      ],
+      "read": "Eight wands fly through clear air over open country, with no people in the picture, only motion. Things are moving quickly now: messages, decisions, energy that has been building and finally has somewhere to go. The task is less about pushing and more about keeping up without losing your footing.",
+      "prompt": "What is moving fast around you right now, and how are you staying steady inside it?"
+    },
+    "reversed": {
+      "keywords": [
+        "delays",
+        "scattered energy",
+        "rushing"
+      ],
+      "read": "Reversed, the Eight of Wands can feel like everything is in the air and nothing is landing. Plans stall, replies lag, or you are moving so fast that your energy scatters in eight directions at once. Slowing down on purpose is a different thing from being stuck.",
+      "prompt": "Where are you rushing to avoid feeling how much is still unresolved?"
+    }
   },
   {
     "id": "wands-nine",
     "name": "Nine of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 9
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "resilience",
+        "persistence",
+        "guardedness"
+      ],
+      "read": "Bandaged at the head and leaning on his wand, a lone figure keeps watch, eight more wands standing behind him like a fence. You have been through something and you are still here, a bit bruised and a lot more careful. That wariness has kept you going, though it can also keep good things out.",
+      "prompt": "What has this last hard stretch taught you about your own staying power?"
+    },
+    "reversed": {
+      "keywords": [
+        "burnout",
+        "constant vigilance",
+        "lowering defenses"
+      ],
+      "read": "Reversed, this card often describes someone running on fumes, too tired to keep guarding and too wary to rest. Or the walls may be coming down because you feel safer than you did. Only you can tell whether this is collapse or relief.",
+      "prompt": "What would you need in order to rest without feeling like you are dropping your guard?"
+    }
   },
   {
     "id": "wands-ten",
     "name": "Ten of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 10
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "burden",
+        "overcommitment",
+        "responsibility"
+      ],
+      "read": "All ten wands are bundled into one awkward armful, and the man carrying them is bent so far forward that you cannot see his face. This is what it looks like to take on everything because you can. You probably can, and that is exactly the problem.",
+      "prompt": "What are you carrying because you are able to, rather than because you chose it?"
+    },
+    "reversed": {
+      "keywords": [
+        "setting down",
+        "delegating",
+        "breaking point"
+      ],
+      "read": "When the Ten of Wands is reversed, you may finally be setting a few sticks down: asking for help, saying no, letting something go. On the other hand, the load may have gotten so heavy that things are slipping whether you choose it or not. Deciding what goes is kinder than waiting to drop it.",
+      "prompt": "What would you set down first if lightening the load did not feel like failing?"
+    }
   },
   {
     "id": "wands-page",
     "name": "Page of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 11
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "curiosity",
+        "enthusiasm",
+        "exploration"
+      ],
+      "read": "Standing alone in a wide desert, the Page of Wands gazes at the tip of his wand like it just told him a secret. His tunic is covered in salamanders, the old symbol of fire. He is the part of you that gets excited first and works out the details later, and that energy deserves some room.",
+      "prompt": "What keeps catching your curiosity, even though you brush it aside as impractical?"
+    },
+    "reversed": {
+      "keywords": [
+        "restlessness",
+        "unfinished ideas",
+        "self-consciousness"
+      ],
+      "read": "Reversed, the Page of Wands tends to burn bright and brief: ten new ideas, none carried past the first week. Or worry about looking foolish may be dimming the excitement before it starts. Your enthusiasm is not the problem, though it may need a bit of structure, or a lot less self-judgment.",
+      "prompt": "Which unfinished idea still has some life in it, and what is one small way to pick it back up?"
+    }
   },
   {
     "id": "wands-knight",
     "name": "Knight of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 12
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "bold action",
+        "passion",
+        "adventure"
+      ],
+      "read": "The Knight of Wands charges across the desert on a rearing horse, plumes streaming from his helmet like flame. He acts first and asks questions somewhere down the road. That boldness can be just what a stalled situation needs, as long as you know what you are riding toward.",
+      "prompt": "Where in your life would a bold move help more than another round of careful thinking?"
+    },
+    "reversed": {
+      "keywords": [
+        "impulsiveness",
+        "half-finished plans",
+        "frustrated drive"
+      ],
+      "read": "Reversed, the Knight's charge turns reckless, leaving half-finished plans and singed relationships in the dust. Or the drive is there with nowhere to go, and it leaks out as irritability. Energy without a direction tends to find a target anyway.",
+      "prompt": "What is your restlessness actually asking you to do?"
+    }
   },
   {
     "id": "wands-queen",
     "name": "Queen of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 13
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "self-assurance",
+        "warmth",
+        "magnetism"
+      ],
+      "read": "A sunflower in one hand, a wand in the other, a black cat at her feet: the Queen of Wands is warm, sure of herself, and not waiting to be invited to take up space. She is at ease being seen, and she likes what she brings to a room. The card asks where you could let your own brightness, and your wants, show more openly.",
+      "prompt": "Where are you dimming yourself to keep other people comfortable?"
+    },
+    "reversed": {
+      "keywords": [
+        "dimmed confidence",
+        "jealousy",
+        "depleted warmth"
+      ],
+      "read": "Reversed, the Queen's confidence can turn brittle, sliding into jealousy, control, or a short fuse. The fire may also just be low because you have been warming everyone except yourself. Underneath either version there is usually a need that has gone unmet for too long.",
+      "prompt": "Where has your fire turned into irritation, and what is it trying to protect?"
+    }
   },
   {
     "id": "wands-king",
     "name": "King of Wands",
     "arcana": "minor",
     "suit": "wands",
-    "number": 14
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "leadership",
+        "vision",
+        "decisiveness"
+      ],
+      "read": "This king does not sit back on his throne. He leans forward as if about to stand, a flowering wand in hand, with lions and salamanders decorating everything around him. In your own life, that looks like leading with conviction and inspiring people by going first, not by giving orders.",
+      "prompt": "What vision are you ready to take responsibility for leading, not just imagining?"
+    },
+    "reversed": {
+      "keywords": [
+        "overbearing",
+        "big talk",
+        "stifled vision"
+      ],
+      "read": "Reversed, the King of Wands can show leadership that has tipped into pushing people around, or big plans that never get past the announcement. There is also the quieter version: vision with no room to use it. Watch for the moment when conviction turns into needing to be right.",
+      "prompt": "Where are you pushing harder when listening might move things further?"
+    }
   },
   {
     "id": "cups-ace",
     "name": "Ace of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 1
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "open heart",
+        "new feeling",
+        "overflow"
+      ],
+      "read": "A hand reaches out of a cloud holding a cup so full it spills in five streams into the pond below, where water lilies float. It marks the beginning of a feeling: affection, tenderness, a creative spark, or plain relief. You do not have to know what it means yet to let it in.",
+      "prompt": "What feeling has been trying to get your attention, and where could you make some room for it?"
+    },
+    "reversed": {
+      "keywords": [
+        "guarded heart",
+        "running dry",
+        "inward care"
+      ],
+      "read": "Reversed, the full cup can point to feelings that are stuck or feelings that are draining out. You may be holding something in because letting it show seems risky, or pouring so much toward others that little is left for you. Start by refilling your own cup in small, ordinary ways.",
+      "prompt": "What feeling have you been keeping a lid on, and what is one safe place you could let it breathe?"
+    }
   },
   {
     "id": "cups-two",
     "name": "Two of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 2
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "mutual respect",
+        "connection",
+        "partnership"
+      ],
+      "read": "The Two of Cups is about connection that runs both ways, in love, friendship, work, or even with yourself. In the image, two people exchange cups as equals, eye to eye, neither reaching higher than the other. Look at where care is being given and received in balance, and what keeps it that way.",
+      "prompt": "Where in your relationships does care flow most evenly, and what are you each bringing to it?"
+    },
+    "reversed": {
+      "keywords": [
+        "imbalance",
+        "growing distance",
+        "one-sided effort"
+      ],
+      "read": "Upside down, the exchange falls out of step. One person may be offering more than the other, or a small rift has opened that nobody has named yet. The card can also turn inward, toward the gap between how you want to be treated and how you treat yourself.",
+      "prompt": "Where does a connection feel lopsided, and what would an honest conversation about it sound like?"
+    }
   },
   {
     "id": "cups-three",
     "name": "Three of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 3
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "friendship",
+        "celebration",
+        "chosen family"
+      ],
+      "read": "Cups raised, three friends dance in a garden with the harvest piled at their feet. This is the card of good company: the people who make happy news feel bigger and hard news feel lighter. Think about who is in your circle right now, and when you last gathered just for the fun of it.",
+      "prompt": "Who makes you feel most like yourself, and when did you last tell them?"
+    },
+    "reversed": {
+      "keywords": [
+        "feeling left out",
+        "overdoing it",
+        "social strain"
+      ],
+      "read": "Reversed, the circle loosens. You might feel on the outside of a group you used to belong to, or you might be leaning on busy nights out to avoid something quieter that needs your attention. Now and then it simply marks a friendship where a third person, or a third priority, has shifted the balance.",
+      "prompt": "Which gatherings leave you fuller, and which ones leave you more tired than when you arrived?"
+    }
   },
   {
     "id": "cups-four",
     "name": "Four of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 4
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "apathy",
+        "withdrawal",
+        "overlooked offer"
+      ],
+      "read": "A young man sits under a tree with his arms crossed, staring at three cups while a hand from a cloud offers him a fourth he has not noticed. It captures the flat, restless mood of being unimpressed by what is in front of you. Sometimes that is a needed pause, and sometimes it keeps good things out.",
+      "prompt": "What has been offered to you lately that you waved away without really looking?"
+    },
+    "reversed": {
+      "keywords": [
+        "re-engaging",
+        "renewed interest",
+        "deeper numbness"
+      ],
+      "read": "Reversed, the Four of Cups can mark the moment you uncross your arms and look up. Something that bored you is starting to matter again, or you are finally willing to accept help. Less often, the withdrawal has sunk into a numbness that needs gentle attention rather than a pep talk.",
+      "prompt": "What small thing has started to spark your interest again, and how could you give it more of your time?"
+    }
   },
   {
     "id": "cups-five",
     "name": "Five of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 5
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "grief",
+        "regret",
+        "what remains"
+      ],
+      "read": "A figure in a black cloak bows over three spilled cups, not yet turning to see the two still standing behind. This card honors loss and disappointment without rushing you past them. When you are ready, and only then, it can help to look at what is still here.",
+      "prompt": "What loss are you still grieving, and what has quietly stayed with you through it?"
+    },
+    "reversed": {
+      "keywords": [
+        "acceptance",
+        "lifting your head",
+        "lingering regret"
+      ],
+      "read": "Reversed, this card often shows someone starting to lift their head. The loss still matters, but it no longer fills the whole view, and the bridge in the background looks crossable. There is a harder version too: regret can become such a familiar place to live that leaving it feels like a betrayal.",
+      "prompt": "What would it mean to carry this loss with you instead of standing over it?"
+    }
   },
   {
     "id": "cups-six",
     "name": "Six of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 6
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "nostalgia",
+        "simple kindness",
+        "childhood"
+      ],
+      "read": "In an old courtyard, a boy hands a smaller child a cup filled with white flowers. The Six of Cups carries the sweetness of memory, uncomplicated kindness, and the parts of you that were shaped early. Visiting the past can be nourishing, as long as you bring something back to the present.",
+      "prompt": "What did you love as a child that still has something to teach you now?"
+    },
+    "reversed": {
+      "keywords": [
+        "living in the past",
+        "rose-tinted memory",
+        "outgrowing home"
+      ],
+      "read": "When the Six of Cups appears reversed, the past may be held too tightly, either polished into something rosier than it was or replayed because today feels harder. It can also show you outgrowing an old idea of home. Both deserve a kind but clear-eyed look.",
+      "prompt": "Which memory do you keep returning to, and what are you hoping to find there?"
+    }
   },
   {
     "id": "cups-seven",
     "name": "Seven of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 7
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "many options",
+        "daydreams",
+        "illusion"
+      ],
+      "read": "Seven cups float in the clouds, each holding a different temptation: a castle, jewels, a laurel wreath, a snake, a dragon, a veiled glowing shape. Choices are everywhere, and some of them are more fantasy than plan. Try sorting what you actually want from what only looks shiny from a distance.",
+      "prompt": "Which of your options would still appeal to you if nobody else could see you choose it?"
+    },
+    "reversed": {
+      "keywords": [
+        "clarity",
+        "narrowing down",
+        "reality check"
+      ],
+      "read": "Turned upside down, the clouds start to thin. You may be ready to pick one path and let the other daydreams go, which can bring relief and a small grief at once. Then again, indecision sometimes dresses itself up as keeping your options open.",
+      "prompt": "What are you ready to stop considering so that something else can have your full attention?"
+    }
   },
   {
     "id": "cups-eight",
     "name": "Eight of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 8
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "walking away",
+        "seeking more",
+        "quiet departure"
+      ],
+      "read": "Under a watchful moon, a cloaked figure leaves eight neatly stacked cups and heads for the hills. Nothing looks broken. What aches here is leaving something that works on paper but no longer feeds you, whether that is a habit, a role, or a relationship.",
+      "prompt": "What in your life looks fine from the outside but has stopped feeling like enough?"
+    },
+    "reversed": {
+      "keywords": [
+        "fear of leaving",
+        "staying put",
+        "restless drifting"
+      ],
+      "read": "Reversed, the Eight of Cups can describe someone who knows it is time to go but keeps unpacking. The same card also fits the opposite habit: leaving so often that nothing gets the chance to deepen. Be honest with yourself about which pattern is yours.",
+      "prompt": "What are you staying for, and what are you afraid you would find if you left?"
+    }
   },
   {
     "id": "cups-nine",
     "name": "Nine of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 9
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "contentment",
+        "satisfaction",
+        "enjoyment"
+      ],
+      "read": "Often called the wish card, the Nine of Cups celebrates real satisfaction: a need met, a pleasure savored, a moment of enough. The man sitting before his row of cups looks very pleased with himself, and for once that is fine. Let yourself feel it before reaching for the next thing.",
+      "prompt": "What would it look like to fully enjoy something you already have, without earning it first?"
+    },
+    "reversed": {
+      "keywords": [
+        "hollow success",
+        "overindulgence",
+        "unmet needs"
+      ],
+      "read": "Reversed, the pleased smile slips. You may have gotten what you wanted and found it less filling than you expected, or be using more comfort to cover a need that comfort does not touch. Neither is a failure, only information about what you were hungry for.",
+      "prompt": "What did you think getting this would give you, and what are you still missing?"
+    }
   },
   {
     "id": "cups-ten",
     "name": "Ten of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 10
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "belonging",
+        "harmony",
+        "emotional home"
+      ],
+      "read": "A couple raise their arms to a rainbow of cups while two children dance beside them and a small house sits on the hill. This card describes the feeling of being at home with your people, however you define them. It asks what that looks like for you, not what a postcard says it should.",
+      "prompt": "Where do you feel most at home, and who is there with you?"
+    },
+    "reversed": {
+      "keywords": [
+        "family strain",
+        "picture-perfect pressure",
+        "disconnection"
+      ],
+      "read": "In reverse, the Ten of Cups points to a gap between the life that looks right and the one that feels right. There may be tension at home that everyone is stepping around, or the ideal of family you keep chasing may not fit you at all. There is room to redraw the picture.",
+      "prompt": "What version of happiness have you been working toward that might not actually be yours?"
+    }
   },
   {
     "id": "cups-page",
     "name": "Page of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 11
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "curiosity",
+        "creative spark",
+        "playful intuition"
+      ],
+      "read": "A fish pokes its head out of the Page's cup, and he looks more curious than alarmed. It is an invitation to meet odd feelings, sudden ideas, and small intuitions with that same openness, even the ones you usually dismiss as silly. Not everything tender has to make sense right away.",
+      "prompt": "What surprising feeling or idea keeps showing up that you have not let yourself take seriously?"
+    },
+    "reversed": {
+      "keywords": [
+        "insecurity",
+        "blocked creativity",
+        "sulking"
+      ],
+      "read": "In its reversed position, this Page may be the sensitive part of you that went quiet after being teased or ignored. Then feelings come out sideways, as sulking, daydreaming, or hurt you do not quite explain. Be patient with that younger part of yourself.",
+      "prompt": "What part of you learned to hide its softness, and what does it need to feel safe now?"
+    }
   },
   {
     "id": "cups-knight",
     "name": "Knight of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 12
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "romance",
+        "following your heart",
+        "heartfelt offer"
+      ],
+      "read": "The Knight of Cups rides slowly, holding his cup out in front of him like an offering. He is led by feeling, idealism, and a love of beauty, moving at the pace of the heart rather than the clock. Consider where you want to make a gesture, or where one is being made to you.",
+      "prompt": "What gesture have you been wanting to make, and what is holding you back from making it?"
+    },
+    "reversed": {
+      "keywords": [
+        "moodiness",
+        "unrealistic ideals",
+        "empty promises"
+      ],
+      "read": "Reversed, the knight's charm can sour into moodiness or grand promises that run out of steam. You might be falling for how something feels in the moment rather than how it actually is, or waiting for someone else to ride in when you could be the one going after what you want.",
+      "prompt": "Where are you in love with the idea of something more than the thing itself?"
+    }
   },
   {
     "id": "cups-queen",
@@ -401,56 +1229,200 @@
     "name": "King of Cups",
     "arcana": "minor",
     "suit": "cups",
-    "number": 14
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "emotional balance",
+        "calm care",
+        "diplomacy"
+      ],
+      "read": "The King of Cups sits on a stone throne in the middle of a rough sea and somehow stays dry. He feels everything and still keeps his balance, which is different from not feeling at all. That is the skill he points to in you: staying kind and steady when the people around you are not.",
+      "prompt": "What helps you stay calm without shutting your feelings off?"
+    },
+    "reversed": {
+      "keywords": [
+        "bottled feelings",
+        "volatility",
+        "manipulation"
+      ],
+      "read": "Reversed, a calm surface may be covering a lot of churning water. You might be holding your feelings so tightly that they leak out as coldness or sudden outbursts, or someone close to you may be using their moods to steer everyone else. From across the room, steadiness and suppression can look exactly alike.",
+      "prompt": "Where is your composure protecting you, and where is it keeping people from really knowing you?"
+    }
   },
   {
     "id": "swords-ace",
     "name": "Ace of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 1
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "breakthrough",
+        "clear truth",
+        "sharp focus"
+      ],
+      "read": "Out of a cloud, a single hand holds a sword straight up, a crown balanced on its tip. This is the moment a thought finally comes into focus and you can name what is actually going on. Clarity like that can cut, but it also frees you to act on what is real.",
+      "prompt": "What do you understand now that you could not quite put into words before?"
+    },
+    "reversed": {
+      "keywords": [
+        "clouded thinking",
+        "second-guessing",
+        "misused sharpness"
+      ],
+      "read": "Reversed, the Ace of Swords can point to a mind that keeps circling without landing, crowded by other people's opinions or simple tiredness. Or the insight is there, but it is being swung like a weapon, at someone else or at yourself. A true thing lands better when it is handled with care.",
+      "prompt": "What would help your mind settle enough to see things as they are?"
+    }
   },
   {
     "id": "swords-two",
     "name": "Two of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 2
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "indecision",
+        "stalemate",
+        "guarded heart"
+      ],
+      "read": "The Two of Swords shows a woman by the sea, blindfolded, two swords crossed over her chest in perfect balance. It is the standoff of a decision you are not ready to make, often held in place by not looking too closely. The pose keeps you safe for a while, and also stuck.",
+      "prompt": "What information are you avoiding because it might make the choice obvious?"
+    },
+    "reversed": {
+      "keywords": [
+        "lifting the blindfold",
+        "too many inputs",
+        "decision fatigue"
+      ],
+      "read": "Reversed, the blindfold starts to slip: the facts you avoided are in view now, and staying neutral gets harder. Sometimes it signals the opposite problem, so much input from so many sides that you freeze. It may help to stop polling everyone you know.",
+      "prompt": "What do you already know about this choice when you set the advice aside?"
+    }
   },
   {
     "id": "swords-three",
     "name": "Three of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 3
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "heartbreak",
+        "grief",
+        "painful truth"
+      ],
+      "read": "A red heart hangs in a gray, rainy sky, pierced by three swords. It is one of the plainest images in the deck, because hurt is plain, even when its causes are complicated. Here there is room for sadness, disappointment, or a truth that stung, with no pressure to hurry past it.",
+      "prompt": "What hurt are you ready to name honestly, even if only to yourself?"
+    },
+    "reversed": {
+      "keywords": [
+        "slow mending",
+        "buried hurt",
+        "releasing sorrow"
+      ],
+      "read": "Reversed, this card can mark the start of mending, when an old ache hurts a little less each time you touch it. Just as often, it points to grief you tucked away because feeling it seemed inconvenient, or not quite safe. Both deserve patience, and neither runs on a schedule.",
+      "prompt": "What sadness has been waiting for you to make room for it?"
+    }
   },
   {
     "id": "swords-four",
     "name": "Four of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 4
+    "number": 4,
+    "upright": {
+      "keywords": [
+        "rest",
+        "recovery",
+        "stillness"
+      ],
+      "read": "In a quiet chapel, a knight's stone figure lies with hands folded, three swords hanging above him and one resting at his side. Rest here is a deliberate choice, not a failure to keep up. Your mind needs quiet to process what has happened, and pausing is part of the work.",
+      "prompt": "Which kind of rest restores you, and when did you last allow yourself that?"
+    },
+    "reversed": {
+      "keywords": [
+        "restlessness",
+        "burnout",
+        "stirring again"
+      ],
+      "read": "Reversed, the Four of Swords catches you running on fumes, unable to power down because stopping feels risky. The other possibility is gentler: the rest has done its job, and you are ready to pick up a sword again. Your energy, more than your to-do list, can tell you which.",
+      "prompt": "What is keeping you from resting, and how much of it is truly urgent?"
+    }
   },
   {
     "id": "swords-five",
     "name": "Five of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 5
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "hollow victory",
+        "tension",
+        "self-interest"
+      ],
+      "read": "Two figures walk off toward the water, one with his face in his hands, while a third gathers up their swords with a small smile. He won, but look at what winning cost. Some arguments leave you right and alone at the same time.",
+      "prompt": "Where are you fighting to win when what you really want is to be understood?"
+    },
+    "reversed": {
+      "keywords": [
+        "making amends",
+        "walking away",
+        "lingering resentment"
+      ],
+      "read": "Turned upside down, the Five of Swords can show the fight winding down, leaving room to repair things or simply stop keeping score. Or the argument has ended everywhere except in your head, where it keeps replaying long after everyone else has gone home. Letting it be over is sometimes the bravest move available.",
+      "prompt": "What would it take for you to let this conflict be over?"
+    }
   },
   {
     "id": "swords-six",
     "name": "Six of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 6
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "moving on",
+        "transition",
+        "calmer waters"
+      ],
+      "read": "A ferryman poles a small boat toward a far shore, carrying a huddled figure, a child, and six swords standing upright. The water is rough on one side and smooth on the other. You may be leaving something difficult behind, slowly rather than all at once, and bringing some of its weight along for now.",
+      "prompt": "What are you ready to leave behind, and which pieces are you still carrying?"
+    },
+    "reversed": {
+      "keywords": [
+        "reluctant departure",
+        "unfinished business",
+        "rough water"
+      ],
+      "read": "Reversed, the crossing stalls: you know it is time to move on, but part of you keeps rowing back. Maybe you did leave, and the old patterns climbed into the boat with you. Some things need tending before they can truly stay behind.",
+      "prompt": "What keeps pulling you back toward the shore you meant to leave?"
+    }
   },
   {
     "id": "swords-seven",
     "name": "Seven of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 7
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "secrecy",
+        "strategy",
+        "cutting corners"
+      ],
+      "read": "Glancing back with a sly grin, a man tiptoes away from camp with an armful of swords, leaving two behind. The card is about going it alone, getting around the rules, or keeping part of the story to yourself. Sometimes that is smart strategy, and sometimes it is avoidance wearing a clever hat.",
+      "prompt": "Where are you working around a situation instead of dealing with it directly?"
+    },
+    "reversed": {
+      "keywords": [
+        "coming clean",
+        "conscience",
+        "self-deception"
+      ],
+      "read": "Reversed, the Seven of Swords suggests a secret growing heavy enough that coming clean starts to sound easier than keeping it. The one being fooled might also be you, leaning on a convenient story about why the shortcut is fine. Honesty here is less about punishment than about relief.",
+      "prompt": "What story are you telling yourself to make a shortcut feel acceptable?"
+    }
   },
   {
     "id": "swords-eight",
@@ -482,63 +1454,225 @@
     "name": "Nine of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 9
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "anxiety",
+        "night worries",
+        "spiraling thoughts"
+      ],
+      "read": "Someone sits up in bed in the dark, face in their hands, while nine swords hang on the wall behind them. Look closely: the swords never touch the person in the bed. What this card names is the kind of worry that grows huge in the middle of the night and often shrinks when you say it out loud to someone you trust.",
+      "prompt": "Which of your worries feels most real at night, and how does it look in daylight?"
+    },
+    "reversed": {
+      "keywords": [
+        "easing worry",
+        "hidden distress",
+        "reaching out"
+      ],
+      "read": "Reversed, the Nine of Swords may mean the worst of the worry is beginning to lift, as you find words or support for what kept you awake. It can also point to anxiety you have kept private, carrying it alone because it feels embarrassing to admit. You do not have to sort all of it out by yourself.",
+      "prompt": "Who is one person you could tell about the worry you have been keeping to yourself?"
+    }
   },
   {
     "id": "swords-ten",
     "name": "Ten of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 10
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "painful ending",
+        "exhaustion",
+        "first light"
+      ],
+      "read": "The Ten of Swords looks like the hardest day imaginable: a figure lies face down beneath a black sky, with ten swords marking every hurt. Yet along the horizon, gold light is breaking over calm water. This is a real ending, painful and complete, and also the moment the exhausting effort of holding on can finally stop.",
+      "prompt": "What ending have you been resisting, even though you can feel it is already complete?"
+    },
+    "reversed": {
+      "keywords": [
+        "getting up",
+        "slow recovery",
+        "reopened wounds"
+      ],
+      "read": "Reversed, this card can show the slow work of getting up after something knocked you flat, sore but standing. Another version is an ending you keep reopening, replaying the loss rather than letting it finish. Part of healing is leaving the bruise alone instead of pressing on it to see if it still aches.",
+      "prompt": "What part of this ending do you keep revisiting, and what does revisiting it give you?"
+    }
   },
   {
     "id": "swords-page",
     "name": "Page of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 11
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "curiosity",
+        "quick mind",
+        "speaking up"
+      ],
+      "read": "The Page of Swords stands alert on a windy hill, sword raised, glancing over one shoulder as if something needs looking into. Here is a quick, curious mind that wants to know how things work and is not shy about asking. Let yourself be the beginner with too many questions.",
+      "prompt": "What are you curious about right now that you have been too busy or self-conscious to explore?"
+    },
+    "reversed": {
+      "keywords": [
+        "hasty words",
+        "scattered focus",
+        "unfinished ideas"
+      ],
+      "read": "Reversed, the Page's curiosity can turn into restlessness: lots of ideas, many open tabs, not much follow-through. Words may also be coming out faster than thought, a sharp comment or a bit of gossip you would rather take back. Leave a little space between the thought and the sentence.",
+      "prompt": "Where have your words or plans been running ahead of your thinking lately?"
+    }
   },
   {
     "id": "swords-knight",
     "name": "Knight of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 12
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "charging ahead",
+        "conviction",
+        "urgency"
+      ],
+      "read": "The Knight of Swords rides at full gallop into a headwind, sword up, clouds and trees torn sideways around him. He is pure momentum: certain, direct, and moving faster than anyone can argue with. That drive can cut through hesitation, as long as you keep an eye on where you are headed.",
+      "prompt": "What goal has you riding at full speed, and what might you be passing in the rush?"
+    },
+    "reversed": {
+      "keywords": [
+        "recklessness",
+        "impatience",
+        "stalled momentum"
+      ],
+      "read": "Reversed, the Knight can mean rushing in without a plan, saying the blunt thing and leaving others to clean it up. Other times the urgency has nowhere to go and spins into frustration. Neither problem is solved by more speed, only by better aim.",
+      "prompt": "Where is impatience making your decisions for you?"
+    }
   },
   {
     "id": "swords-queen",
     "name": "Queen of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 13
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "clear judgment",
+        "honesty",
+        "boundaries"
+      ],
+      "read": "High above the clouds, the Queen of Swords sits in profile, sword held high in one hand and the other hand open, as if inviting you to say what is true. Her clarity was earned through hard experience, and she let it sharpen her rather than harden her. She mirrors your own ability to be honest and kind at once, and to name where your lines are.",
+      "prompt": "Where could you say what you mean more directly, without losing your warmth?"
+    },
+    "reversed": {
+      "keywords": [
+        "harsh critic",
+        "coldness",
+        "unspoken truth"
+      ],
+      "read": "Reversed, the Queen of Swords can let clarity curdle into criticism, often aimed inward, where every choice gets graded and none quite pass. The flip side is swallowing what you really think to keep the peace, then resenting it later. Directness works best alongside warmth, including in the way you talk to yourself.",
+      "prompt": "What standard are you holding yourself to that you would never impose on a friend?"
+    }
   },
   {
     "id": "swords-king",
     "name": "King of Swords",
     "arcana": "minor",
     "suit": "swords",
-    "number": 14
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "sound judgment",
+        "integrity",
+        "clear authority"
+      ],
+      "read": "The King of Swords faces you head on, sword upright, with the steady look of someone who has heard every side and is ready to decide. His strength is thinking that is fair, principled, and steady under pressure. Notice where you can lead with reason while still remembering the people your decisions touch.",
+      "prompt": "What decision needs your clearest, fairest thinking right now?"
+    },
+    "reversed": {
+      "keywords": [
+        "rigid thinking",
+        "misused authority",
+        "cold logic"
+      ],
+      "read": "Reversed, the King of Swords can describe intelligence used to win rather than to understand, with rules applied so strictly that people get lost in them. Sometimes it is quieter: your own authority left unclaimed while you defer to others who know less. Good thinking is meant to serve people, not just to prove a point.",
+      "prompt": "Where have you handed your authority to someone else, or held it too tightly?"
+    }
   },
   {
     "id": "pentacles-ace",
     "name": "Ace of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 1
+    "number": 1,
+    "upright": {
+      "keywords": [
+        "tangible start",
+        "opportunity",
+        "something solid"
+      ],
+      "read": "A hand reaches out of a cloud holding a single gold coin over a tended garden, where a path runs through a hedge toward distant mountains. This is the start of something you can actually touch: a new job, a class, a side project, a steadier morning routine. It is small, and it is real.",
+      "prompt": "What opportunity in front of you is small enough to start and real enough to matter?"
+    },
+    "reversed": {
+      "keywords": [
+        "missed opening",
+        "weak groundwork",
+        "hesitation"
+      ],
+      "read": "Reversed, the Ace of Pentacles can be a good opening slipping past because the timing felt wrong or the idea seemed too small to bother with. It may also be a start made without the groundwork to hold it. Ask yourself whether you need more preparation or simply less waiting.",
+      "prompt": "What are you waiting to feel ready for, and what would 'ready' actually require?"
+    }
   },
   {
     "id": "pentacles-two",
     "name": "Two of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 2
+    "number": 2,
+    "upright": {
+      "keywords": [
+        "juggling",
+        "adaptability",
+        "balancing act"
+      ],
+      "read": "A young man in a tall red hat dances while keeping two coins moving on a looping green ribbon, and behind him ships ride high waves. You may be managing a lot at once: bills and rest, work and people, plans that keep shifting. There is real skill in staying loose enough to keep it all in motion.",
+      "prompt": "What are you keeping in the air right now, and which piece gets your attention only when it is about to drop?"
+    },
+    "reversed": {
+      "keywords": [
+        "overcommitted",
+        "losing rhythm",
+        "scattered focus"
+      ],
+      "read": "Reversed, the Two of Pentacles suggests the juggling has stopped feeling like a dance. You may be saying yes to more than your hours can hold, or switching between tasks so fast that none of them gets your full attention. Something probably needs to come off the list, not be squeezed in tighter.",
+      "prompt": "What would you take off your plate if you stopped trying to prove you can carry it all?"
+    }
   },
   {
     "id": "pentacles-three",
     "name": "Three of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 3
+    "number": 3,
+    "upright": {
+      "keywords": [
+        "collaboration",
+        "skilled work",
+        "being recognized"
+      ],
+      "read": "In a cathedral archway, a stonemason stands on a bench mid-work while a monk and a figure holding the plans look on. Each one brings something the others lack. This card honors the kind of work that gets better when your skill meets other people's input, and when someone notices what you do well.",
+      "prompt": "Where could your work improve if you let someone else see it before it is finished?"
+    },
+    "reversed": {
+      "keywords": [
+        "working alone",
+        "misalignment",
+        "friction"
+      ],
+      "read": "Reversed, the Three of Pentacles can mean a team pulling in different directions, where no one agrees on the plan and good work gets lost in the friction. Or the problem is closer to home: you, insisting on doing everything yourself so no one else can get it wrong. Both leave the building half done.",
+      "prompt": "Which working relationship needs a clearer shared plan, or a more direct conversation about who does what?"
+    }
   },
   {
     "id": "pentacles-four",
@@ -570,69 +1704,249 @@
     "name": "Five of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 5
+    "number": 5,
+    "upright": {
+      "keywords": [
+        "hardship",
+        "feeling shut out",
+        "going without"
+      ],
+      "read": "Two figures trudge through the snow, one on crutches, one wrapped in a thin shawl, passing beneath a warmly lit church window without looking up. This card names hard times plainly, whether the strain is money, health, or feeling left outside. It also points to that window: support can be closer than it seems when you are cold and trying to get through.",
+      "prompt": "What kind of help have you walked past because asking felt harder than struggling?"
+    },
+    "reversed": {
+      "keywords": [
+        "recovery",
+        "accepting help",
+        "thawing"
+      ],
+      "read": "Reversed, the Five of Pentacles can mark the first steps out of a lean time: a bill paid, a diagnosis understood, a door you finally knocked on. Sometimes, though, the sense of lack lingers after things have eased, and your body keeps bracing for winter. There is no deadline on feeling safe again.",
+      "prompt": "What part of you still lives as if the cold has not lifted, even where it has?"
+    }
   },
   {
     "id": "pentacles-six",
     "name": "Six of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 6
+    "number": 6,
+    "upright": {
+      "keywords": [
+        "generosity",
+        "give and take",
+        "fair exchange"
+      ],
+      "read": "A merchant in a red cloak holds a balanced scale and drops coins into the cupped hands of a kneeling man. It is a picture of how money, time, attention, and care move between people. Sometimes you hold the scales, sometimes your hand is out, and neither says anything about your worth.",
+      "prompt": "What is easier for you right now, giving or receiving, and what does that tell you?"
+    },
+    "reversed": {
+      "keywords": [
+        "strings attached",
+        "imbalance",
+        "keeping score"
+      ],
+      "read": "Reversed, the scales tip. Help may be arriving with strings attached, or you may be giving so steadily that no one thinks to give back. Either way, someone is quietly keeping score, and it may be you.",
+      "prompt": "Which relationship has started to feel less like an exchange and more like a ledger?"
+    }
   },
   {
     "id": "pentacles-seven",
     "name": "Seven of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 7
+    "number": 7,
+    "upright": {
+      "keywords": [
+        "patience",
+        "taking stock",
+        "slow growth"
+      ],
+      "read": "A farmer leans on his hoe and looks at a green vine heavy with seven coins, taking a breath before the next round of work. You are in the long middle of something worth growing, when effort is visible but the harvest is not in yet. It is a good moment to step back and take stock.",
+      "prompt": "Looking at what you have been tending, what is actually growing, and what is just taking up space?"
+    },
+    "reversed": {
+      "keywords": [
+        "impatience",
+        "sunk effort",
+        "second thoughts"
+      ],
+      "read": "In reverse, this card often carries frustration that the work is not paying off fast enough, and a pull to dig everything up and start over. Or it can point the other way, to pouring years into something you stopped believing in. Only you can tell whether this needs more patience or an honest ending.",
+      "prompt": "Where are you mistaking a slow season for a failed one, or the other way around?"
+    }
   },
   {
     "id": "pentacles-eight",
     "name": "Eight of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 8
+    "number": 8,
+    "upright": {
+      "keywords": [
+        "practice",
+        "diligence",
+        "honing a craft"
+      ],
+      "read": "A craftsman sits at his bench chiseling one coin after another, with finished ones hung on a post and the town far off behind him. Nobody is watching, which is where skill usually gets made: in unglamorous hours and plain repetition. Whatever you are learning, the getting better happens in the doing.",
+      "prompt": "What skill are you building, and how could the practice itself become something you look forward to?"
+    },
+    "reversed": {
+      "keywords": [
+        "perfectionism",
+        "busywork",
+        "cutting corners"
+      ],
+      "read": "Reversed, the work at the bench can turn joyless. Maybe you are polishing the same piece forever because it never feels good enough, or rushing through tasks that deserve more care. Somewhere along the way, the reason you picked up the tools may have gone missing.",
+      "prompt": "Which part of your work are you over-polishing, and which part are you rushing past?"
+    }
   },
   {
     "id": "pentacles-nine",
     "name": "Nine of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 9
+    "number": 9,
+    "upright": {
+      "keywords": [
+        "self-sufficiency",
+        "earned comfort",
+        "independence"
+      ],
+      "read": "A woman stands alone in a ripe vineyard, a hooded falcon resting on her gloved hand and a large house behind her. The Nine of Pentacles is about the particular ease of a life built on your own terms. Let yourself enjoy what your own patience and discipline have made, without apologizing for it.",
+      "prompt": "What have you built for yourself that you rarely stop to enjoy?"
+    },
+    "reversed": {
+      "keywords": [
+        "overwork",
+        "isolation",
+        "earning your worth"
+      ],
+      "read": "Reversed, independence can harden into isolation. Staying self-sufficient can take so much effort that you never get to enjoy it or let anyone in. Or your sense of worth may be leaning on what you own and earn more than you would like.",
+      "prompt": "Who or what would you make room for if needing help did not feel like failing?"
+    }
   },
   {
     "id": "pentacles-ten",
     "name": "Ten of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 10
+    "number": 10,
+    "upright": {
+      "keywords": [
+        "legacy",
+        "roots",
+        "belonging"
+      ],
+      "read": "Under a stone archway, an old man in a grape-patterned robe rests with two white dogs while a young family gathers nearby. The Ten of Pentacles looks past one lifetime to what lasts: homes, habits, stories, and the ways people look after each other. It is worth asking what you inherited, from blood or chosen family, and what you are handing on.",
+      "prompt": "What would you want the people after you to inherit from the way you live now?"
+    },
+    "reversed": {
+      "keywords": [
+        "family strain",
+        "inherited patterns",
+        "unsteady roots"
+      ],
+      "read": "When the Ten of Pentacles appears reversed, it often sits with tension around family, money, or home: an inheritance that divides people, or expectations handed down so long that nobody questions them. It can also reflect worry that the ground under your life is less solid than it looks. Some patterns are worth keeping, and some can stop with you.",
+      "prompt": "What were you taught about money, home, or family that you are ready to question?"
+    }
   },
   {
     "id": "pentacles-page",
     "name": "Page of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 11
+    "number": 11,
+    "upright": {
+      "keywords": [
+        "curiosity",
+        "learning",
+        "practical dreams"
+      ],
+      "read": "A young student stands in a green field, holding a coin up in both hands and studying it as if nothing else exists. The Page of Pentacles is the beginner who takes a small idea seriously enough to learn it properly. Being new at something, and willing to go slowly, has its own kind of pleasure.",
+      "prompt": "What are you curious enough about to study slowly, without needing to be good at it yet?"
+    },
+    "reversed": {
+      "keywords": [
+        "procrastination",
+        "lost focus",
+        "planning without doing"
+      ],
+      "read": "Reversed, the Page can get stuck in the dreaming stage, collecting courses, notes, and plans without ever breaking ground. Or interest may fade as soon as the novelty wears off. It helps to sort out whether you have outgrown the goal or just reached the tedious part.",
+      "prompt": "Which idea have you been planning for so long that the planning has become the project?"
+    }
   },
   {
     "id": "pentacles-knight",
     "name": "Knight of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 12
+    "number": 12,
+    "upright": {
+      "keywords": [
+        "steadiness",
+        "routine",
+        "reliability"
+      ],
+      "read": "Of all the knights, only this one sits on a heavy dark horse standing perfectly still, looking out over a plowed field with a coin in his hand. He is the steady side of you that gets things done by showing up the same way every day. It is not exciting, and that is exactly the point.",
+      "prompt": "Which small, boring habit is quietly holding your life together?"
+    },
+    "reversed": {
+      "keywords": [
+        "inertia",
+        "stubbornness",
+        "grinding on"
+      ],
+      "read": "Reversed, steady can slide into stuck. A routine can keep running long after it stopped serving you, or you grind on out of duty with no rest in sight. The opposite can happen too, when the discipline drops away and nothing gets finished.",
+      "prompt": "Where has your routine turned into a rut, and what small change would let some air in?"
+    }
   },
   {
     "id": "pentacles-queen",
     "name": "Queen of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 13
+    "number": 13,
+    "upright": {
+      "keywords": [
+        "practical care",
+        "nourishment",
+        "grounded warmth"
+      ],
+      "read": "The Queen of Pentacles sits in a garden thick with roses, a coin resting in her lap and a rabbit nearby in the grass. She is the one who makes a home feel warm, remembers to eat lunch, and knows where the good scissors are. Care here shows up in practical, bodily ways, and it includes care for yourself.",
+      "prompt": "What small, practical act of care would make your body or your home feel more like yours today?"
+    },
+    "reversed": {
+      "keywords": [
+        "worn thin",
+        "overgiving",
+        "managing others"
+      ],
+      "read": "Upside down, the Queen of Pentacles can show the practical load crowding out the pleasure: the house runs, the bills get paid, and you are too tired to enjoy any of it. Or care may tip into control, where looking after people starts to mean managing them.",
+      "prompt": "Where has taking care of everything left no one taking care of you?"
+    }
   },
   {
     "id": "pentacles-king",
     "name": "King of Pentacles",
     "arcana": "minor",
     "suit": "pentacles",
-    "number": 14
+    "number": 14,
+    "upright": {
+      "keywords": [
+        "stability",
+        "provision",
+        "stewardship"
+      ],
+      "read": "The King of Pentacles sits on a throne carved with bulls, his robe so thick with grapevines that he almost blends into the garden, a castle rising behind him. He is what security looks like when it is built slowly and used well. Give yourself credit for the steadiness you provide, including the parts nobody claps for.",
+      "prompt": "How are you using whatever stability you have, and who besides you gets to rest in it?"
+    },
+    "reversed": {
+      "keywords": [
+        "fortress mindset",
+        "status",
+        "fear of loss"
+      ],
+      "read": "Reversed, the King can show security turning into a fortress, where money, status, or being in charge start to matter more than the people inside the walls. It can also look like fear of losing what you have built, so every choice gets made from caution. Stability is meant to hold you up, not hem you in.",
+      "prompt": "Where are you using control, money, or status to feel safe, and what does it cost the people around you?"
+    }
   }
 ]
