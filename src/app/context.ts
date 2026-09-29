@@ -89,7 +89,8 @@ export function createAppContext(search: string): AppContext {
   const settings = signal(parseSettings(readJson(SETTINGS_KEY), known, defaults));
 
   const deckPick = pickFromUrl(search, config.urlParams.deck, listDeckIds(), settings.peek().deck);
-  const deck = getDeck(deckPick.id);
+  // A deck added on the headset loads a moment later; start with the default until then.
+  const deck = getDeck(deckPick.id) ?? getDeck(config.defaults.deck);
   if (!deck) throw new Error(`[arcana] default deck "${deckPick.id}" is missing from src/decks/`);
 
   // Only draw cards the active deck can actually show.

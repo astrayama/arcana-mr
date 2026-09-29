@@ -2,7 +2,10 @@ import { Raycaster, World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { app } from './app/context.js';
 import { backRegistry } from './backs/catalog.js';
-import { deckRegistry } from './decks/registry.js';
+import { deckRegistry, getDeck } from './decks/registry.js';
+import { environmentRegistry } from './environments/catalog.js';
+import { emptyAssetStore } from './storage/assetStore.js';
+import { loadDevicePacks } from './storage/devicePacks.js';
 import { builtinSpreads, getSpread } from './spreads/catalog.js';
 import { panelRegistry } from './ui/panels.js';
 import { AmbientSystem } from './systems/ambientSystem.js';
@@ -57,6 +60,22 @@ World.create(
     .registerSystem(BuilderSystem)
     .registerSystem(CardInteractionSystem)
     .registerSystem(LandingSystem);
+
+  // Decks, backs, and surroundings the reader added on this headset (none yet:
+  // adding your own comes in a later update, and the store is empty until then).
+  void loadDevicePacks(emptyAssetStore, {
+    addDeck: (deck) => deckRegistry.register(deck),
+    addBack: (back) => backRegistry.register(back),
+    addEnvironment: (env) => environmentRegistry.register(env),
+    cardIds: [...app.cards.keys()],
+    toUrl: (blob) => URL.createObjectURL(blob),
+    revokeUrl: (url) => URL.revokeObjectURL(url),
+  }).then((problems) => {
+    for (const problem of problems) console.warn(`[arcana] skipped something saved on this headset: ${problem}`);
+    // The saved deck may be one of them.
+    const saved = app.settings.peek().deck;
+    if (saved !== app.deck.id && getDeck(saved)) app.setDeck(saved);
+  });
 
   if (import.meta.env.DEV) {
     // Handle for automated checks in the IWSDK emulator. Not present in production builds.

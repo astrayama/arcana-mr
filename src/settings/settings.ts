@@ -5,6 +5,8 @@
  * stored.
  */
 
+import { DEVICE_PREFIX } from '../lib/registry.js';
+
 export const SETTINGS_KEY = 'arcana.settings.v1';
 
 /** "deck" means the deck's own back. */
@@ -38,8 +40,10 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
  */
 export function parseSettings(raw: unknown, known: KnownIds, defaults: Settings): Settings {
   if (!isObject(raw) || raw.v !== 1) return { ...defaults };
+  // Things added on the headset ("device:" ids) load a moment after start-up,
+  // so they're kept here and checked once they've loaded.
   const pick = (value: unknown, allowed: readonly string[], fallback: string) =>
-    typeof value === 'string' && allowed.includes(value) ? value : fallback;
+    typeof value === 'string' && (allowed.includes(value) || value.startsWith(DEVICE_PREFIX)) ? value : fallback;
   return {
     v: 1,
     deck: pick(raw.deck, known.decks, defaults.deck),

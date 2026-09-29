@@ -68,3 +68,8 @@ test('storage that throws never breaks the app', () => {
   assert.equal(readJson('k', null), null);
   assert.equal(writeJson('k', 1, null), false);
 });
+
+test('choices of things added on the headset are kept until they load', () => {
+  const saved = { v: 1, deck: 'device:mine', back: 'device:myback', surroundings: 'device:sky', seenIntro: true };
+  assert.deepEqual(parseSettings(saved, known, defaults), saved);
+});

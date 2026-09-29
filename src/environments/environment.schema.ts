@@ -75,7 +75,8 @@ export function validateEnvironment(
     if (typeof path !== 'string' || !fileExists(path)) errors.push(`${at}: ${label} "${String(path)}" not found`);
   };
 
-  if (typeof e.id !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(e.id) || e.id === 'room') {
+  // Kebab-case; surroundings added on the headset carry a "device:" prefix.
+  if (typeof e.id !== 'string' || !/^(device:)?[a-z0-9]+(-[a-z0-9]+)*$/.test(e.id) || e.id === 'room') {
     errors.push(`${at}: id must be kebab-case and not "room"`);
   } else if (e.id !== folderId) {
     errors.push(`${at}: id "${e.id}" must match the folder name`);

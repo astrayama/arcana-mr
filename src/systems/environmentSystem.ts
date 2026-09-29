@@ -15,7 +15,7 @@ import {
 import { app } from '../app/context.js';
 import { buildEnvironment } from '../environments/registry.js';
 import type { EnvironmentInstance } from '../environments/types.js';
-import { getEnvironment, type ResolvedEnvironment } from '../environments/catalog.js';
+import { environmentRegistry, getEnvironment, type ResolvedEnvironment } from '../environments/catalog.js';
 import { TableSystem } from './tableSystem.js';
 
 /** Where an environment centers, as a share of the way from the mat toward the reader. */
@@ -57,6 +57,7 @@ export class EnvironmentSystem extends createSystem({}) {
     this.buildPedestal();
     this.cleanupFuncs.push(
       app.surroundings.subscribe(() => this.refresh()),
+      environmentRegistry.onChange(() => this.refresh()),
       this.world.visibilityState.subscribe(() => this.refresh()),
       app.machine.subscribe((_, event) => {
         // Re-center when the mat settles somewhere new.

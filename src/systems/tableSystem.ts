@@ -10,7 +10,7 @@ import {
   type Texture,
 } from '@iwsdk/core';
 import { app } from '../app/context.js';
-import { getBack } from '../backs/catalog.js';
+import { backRegistry, getBack } from '../backs/catalog.js';
 import { DECK_BACK } from '../settings/settings.js';
 import { config } from '../config.js';
 import { DeckPile, ReadingMat } from '../components/table.js';
@@ -132,6 +132,8 @@ export class TableSystem extends createSystem({}) {
     let firstDeck = true;
     this.cleanupFuncs.push(
       app.back.subscribe((id) => this.showBack(id)),
+      // A back added on the headset may be the chosen one; show it once it loads.
+      backRegistry.onChange(() => this.showBack(app.back.peek())),
       app.deckId.subscribe(() => {
         if (firstDeck) firstDeck = false;
         else this.rebuildForDeck();

@@ -5,6 +5,7 @@
  */
 
 import { createRegistry, type RegistryItem } from '../lib/registry.js';
+import { resolveAssetKey } from './pathKeys.js';
 import type { EnvironmentDef } from './environment.schema.js';
 
 const definitions = import.meta.glob<EnvironmentDef>('./*/environment.json', { eager: true, import: 'default' });
@@ -17,17 +18,6 @@ export interface ResolvedEnvironment extends RegistryItem {
 }
 
 const folderOf = (path: string) => path.split('/')[1];
-
-/** Resolve "assets/x.webp" or "../shared/x.webp" against an environment's folder. */
-export function resolveAssetKey(folder: string, path: string): string {
-  const parts = [folder, ...path.split('/')];
-  const out: string[] = [];
-  for (const part of parts) {
-    if (part === '..') out.pop();
-    else if (part && part !== '.') out.push(part);
-  }
-  return `./${out.join('/')}`;
-}
 
 export const environmentRegistry = createRegistry<ResolvedEnvironment>(
   Object.entries(definitions)
