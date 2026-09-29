@@ -297,14 +297,12 @@ export function buildDeckPile(
 
 /**
  * An open spot in the spread: a faint card-shaped outline in the trim color,
- * the position's name set into the cloth just in front of it, and an invisible
- * card-sized target so the spot can be tapped.
+ * with the position's name set into the cloth just in front of it.
  */
 export interface SlotMarkerVisual {
   root: Group;
   outline: MeshBasicMaterial;
   word: MeshBasicMaterial | null;
-  hit: Mesh;
 }
 
 function wordTexture(text: string, color: string): CanvasTexture {
@@ -357,16 +355,10 @@ export function buildSlotMarker(
     plate.position.set(0, 0.0005, heightM / 2 + 0.016);
     root.add(plate);
   }
-
-  const hit = new Mesh(new PlaneGeometry(widthM, heightM), new MeshBasicMaterial({ visible: false }));
-  hit.rotation.x = -Math.PI / 2;
-  hit.position.y = 0.002;
-  hit.name = 'SlotMarkerHit';
-  root.add(hit);
-  return { root, outline, word, hit };
+  return { root, outline, word };
 }
 
-/** A halo under the deck pile, lit when the deck can be tapped or grabbed. */
+/** A halo under the deck pile, lit when a hand could pick the deck up or a tap would do something. */
 export function buildDeckGlow(materials: CardMaterials, geometry: CardGeometry): Mesh<ShapeGeometry, MeshBasicMaterial> {
   const glow = new Mesh(geometry.glow, materials.glow.clone());
   glow.rotation.x = -Math.PI / 2;

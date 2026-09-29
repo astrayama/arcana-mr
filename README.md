@@ -4,8 +4,8 @@ A mixed-reality tarot reading for Meta Quest 3, built for the Quest Browser with
 WebXR and Meta's [Immersive Web SDK](https://iwsdk.dev).
 
 Put on the headset and a tarot deck appears on your real table. Pick a reading,
-watch the deck shuffle and deal, flip the cards with your hands, and read what
-each one reflects back to you.
+shuffle the deck in your hands, draw the cards yourself, turn them over, and
+read what each one reflects back to you.
 
 Arcana MR is a tool for self-reflection, not fortune telling. Every card comes
 with a short read and a question to sit with. Nothing here predicts the future.
@@ -84,24 +84,39 @@ separate from rendering:
    Spread (Past, Present, Future). Faint outlines on the mat mark each spot.
    You can also move the mat from here, and choose what surrounds you: your
    own room through passthrough, or one of the theme's VR surroundings.
-3. **Shuffling.** Tap the deck, or pick it up and give it a shake. Shuffling
-   is required, and you can shuffle again as often as you like until you draw
-   the first card. The deck order comes from a Fisher-Yates shuffle driven by
+3. **Shuffling.** Tap the deck, or lift it and give it a shake: the riffle
+   happens right there in your hand. Shuffling is required before the first
+   card. The deck order comes from a Fisher-Yates shuffle driven by
    `crypto.getRandomValues`, and each card can land reversed (50% by default,
    set in `src/config.ts`). A reading never repeats a card.
-4. **Drawing.** The next card waits beside the deck. Tap it and it goes to
-   the next open spot, tap an open spot to draw into it, or pick the card up
-   and drop it on the spot you want. Each card lands face down.
-5. **Turning cards over.** Tap a card (controller trigger, a hand pinch from a
-   distance, or a quick touch-and-release up close). You can pick any card up
-   to look at it; it glides back to its own spot when you let go.
-6. **Reflecting.** Each flipped card shows its position, whether it is upright
+4. **Drawing.** Cards come off the top of the deck in order: Past, then
+   Present, then Future. The spot waiting for the next card glows softly.
+   Pinch the top card to take it into your fingers, or tap the deck to send it
+   straight to its spot face down. Between draws you can lift the deck and
+   shake it again to shuffle whatever is left; cards already drawn stay put.
+5. **Turning cards over.** Turn your hand over while holding a card and the
+   card turns with it. Let go and it glides to its spot, face up or face down
+   the way you left it. You can also tap a card to turn it face up. Cards can
+   be turned in any order, and turned back down again; a face-down card hides
+   its meaning until it is turned up.
+6. **Reflecting.** Each face-up card shows its position, whether it is upright
    or reversed, three keywords, a short read, and a question to reflect on.
 7. **New reading** sweeps the cards back into the deck and frees their memory.
 
-Up close, you grab; from a distance, you point and tap. A quick grab counts as
-a tap, and the controller trigger also grabs when your hand is right next to
-something, so either button works near the table.
+### Hands and controllers
+
+| | Hands | Controllers |
+| --- | --- | --- |
+| Take a card (from the deck or the spread) | Pinch | Trigger, up close |
+| Lift the deck | Close your hand around it | Grip button |
+| Tap from a distance | Point and pinch | Point and pull the trigger |
+
+A held card or deck follows your hand completely, tilt and all. A quick pinch
+or grip that barely moves counts as a tap. Up close, a hand's pointing ray
+switches off, so reaching for the table never also clicks something behind
+it; it comes back when your hand moves away. How tightly the hand has to close
+to count as a fist is set in `config.grab` (dev builds log each hand's finger
+curl to the dev server so it can be tuned in the headset).
 
 ## Project structure
 
@@ -117,7 +132,7 @@ src/
   components/              ECS components
   ui/                      UIKitML panel templates, filled from the active theme
   visuals/                 mat, card, and deck meshes
-  interaction/             grab handles and "what is this hand about to touch"
+  interaction/             hand gestures (pinch, fist) and "what is this hand about to touch"
   environments/            VR surroundings generators (night-sky sanctum, cloud sea)
   data/cards.json          78 cards: keywords, reads, and reflection prompts
   data/cards.schema.ts     card types and validation rules
@@ -209,7 +224,7 @@ keywords, reads, and reflection prompts. `npm run validate` checks:
 | `npm run dev` | Dev server with the IWER emulator |
 | `npm run build` | Production build into `dist/` |
 | `npm run typecheck` | TypeScript check |
-| `npm test` | Unit tests: shuffle fairness, state machine, placement math, shake detection, spread layout, URL overrides |
+| `npm test` | Unit tests: shuffle fairness, state machine, placement math, shake detection, fist detection, spread layout, URL overrides |
 | `npm run validate` | Card, deck, and theme validation |
 | `npm run deck:rws-1909` | Rebuild the public-domain deck from Wikimedia Commons |
 | `npm run theme:dark-gold` | Regenerate the dark-gold cloth texture |

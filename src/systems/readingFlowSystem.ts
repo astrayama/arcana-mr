@@ -1,4 +1,4 @@
-import { createSystem, PanelDocument, type Entity } from '@iwsdk/core';
+import { createSystem, PanelDocument, Quaternion, type Entity } from '@iwsdk/core';
 import { app } from '../app/context.js';
 import { config } from '../config.js';
 import { UiPanel } from '../components/ui.js';
@@ -8,20 +8,28 @@ import menuTemplate from '../ui/menu.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
 import { deckPosition } from '../visuals/layout.js';
 import type { CardVisual } from '../visuals/tableVisuals.js';
+import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem } from './tableSystem.js';
 
 const GATHER_SECONDS = 0.35;
 
 const STATUS: Record<Exclude<ReadingStateName, 'PLACING'>, (s: ReadingSnapshot, drawn: number) => string> = {
   IDLE: () => 'Take a breath. When you are ready, choose a reading.',
-  READY: () => 'Shuffle the deck: tap it, or pick it up and give it a shake.',
+  READY: () => 'Shuffle the deck: tap it, or lift it and give it a shake.',
   SHUFFLING: () => 'Shuffling...',
-  DRAWING: (_, drawn) =>
-    drawn === 0
-      ? 'Draw your cards: tap the top card or an open spot, or place a card by hand. Tap the deck to shuffle again.'
-      : 'Keep drawing: tap the top card or an open spot, or place a card by hand.',
+  DRAWING: (s, drawn) => {
+    const next = s.slots.find((slot) => slot.cardId === null)?.label;
+    if (drawn === 0) {
+      return next
+        ? `Draw the card for ${next}: pinch the top card, or tap the deck.`
+        : 'Draw your card: pinch the top card, or tap the deck.';
+    }
+    return `Now the card for ${next ?? 'the next spot'}. Lift the deck and shake it to shuffle what's left.`;
+  },
   AWAITING_FLIPS: (s) =>
-    s.slots.length === 1 ? 'Turn the card over when you are ready.' : 'Turn each card over when you are ready.',
+    s.slots.length === 1
+      ? 'Turn the card over: tap it, or pick it up and turn your hand.'
+      : 'Turn the cards over in any order: tap one, or pick it up and turn your hand.',
   REVEALED: () => 'Take your time with what came up.',
 };
 
@@ -157,13 +165,16 @@ export class ReadingFlowSystem extends createSystem({
 
   /** Sweep every card back into the deck, including any held or in flight, then remove them. */
   private clearTable(): void {
+    this.world.getSystem(TableGrabSystem)!.releaseAll();
     const deck = deckPosition();
     const top = this.table.deckTopY();
+    const flat = new Quaternion();
     [...this.table.cards].forEach((card, i) => {
       card.phase = 'gathering';
-      card.handle.setEnabled(false);
+      card.heldBy = null;
       const root = card.visual.root;
       const from = root.position.clone();
+      const fromQuat = root.quaternion.clone();
       const pivotStart = card.visual.pivot.rotation.z;
       void this.table
         .move(card, {
@@ -176,6 +187,7 @@ export class ReadingFlowSystem extends createSystem({
               lerp(from.y, top, k) + Math.sin(Math.PI * k) * 0.03,
               lerp(from.z, deck.z, k),
             );
+            root.quaternion.slerpQuaternions(fromQuat, flat, k);
             // Turn face-up cards back over on the way.
             card.visual.pivot.rotation.z = lerp(pivotStart, Math.PI, k);
           },

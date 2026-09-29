@@ -17,6 +17,7 @@ import { PlacementSystem } from './systems/placementSystem.js';
 import { ReadingFlowSystem } from './systems/readingFlowSystem.js';
 import { ReadingStatusSystem } from './systems/readingStatusSystem.js';
 import { SessionSystem } from './systems/sessionSystem.js';
+import { TableGrabSystem } from './systems/tableGrabSystem.js';
 import { TableSystem } from './systems/tableSystem.js';
 import { ThemeLightingSystem } from './systems/themeLightingSystem.js';
 
@@ -37,6 +38,8 @@ World.create(
     .registerSystem(NearTriggerSystem)
     .registerSystem(PointerSafetySystem)
     .registerSystem(TableSystem)
+    // Before the reading flow, so it lets go of everything before the table is cleared.
+    .registerSystem(TableGrabSystem)
     .registerSystem(AmbientSystem)
     .registerSystem(EnvironmentSystem)
     .registerSystem(PlacementSystem)
@@ -57,6 +60,7 @@ World.create(
       flow: world.getSystem(ReadingFlowSystem),
       meaning: world.getSystem(MeaningSystem),
       table: world.getSystem(TableSystem),
+      grab: world.getSystem(TableGrabSystem),
       deck: world.getSystem(DeckSystem),
       draw: world.getSystem(DrawSystem),
       panels: panelRegistry,

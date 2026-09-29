@@ -55,6 +55,21 @@ export const config = {
     surfaceOffsetM: 0.002,
   },
 
+  /** Picking things up off the table with hands or controllers. */
+  grab: {
+    /** A pinch or fist this close (meters) to the deck or a card picks it up. */
+    reachM: 0.08,
+    /** Past this distance (meters) from everything on the table, a hand points with its ray again. */
+    releaseNearM: 0.1,
+    /** Seconds for a picked-up card or deck to settle into the fingers or palm. */
+    settleSeconds: 0.12,
+    /**
+     * Finger curl ratios for a fist (see src/lib/handPose.ts): every finger
+     * below `on` closes it, any finger above `off` opens it.
+     */
+    fist: { on: 1.3, off: 1.5 },
+  },
+
   xr: {
     /**
      * Quest Browser starts WebXR at 72 Hz. Ask for this rate when the headset

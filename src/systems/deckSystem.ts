@@ -1,44 +1,34 @@
-import {
-  createSystem,
-  Grabbed,
-  GrabSystem,
-  Pressed,
-  Quaternion,
-  RayInteractable,
-  Vector3,
-  type Object3D,
-} from '@iwsdk/core';
+import { createSystem, Pressed, Quaternion, RayInteractable, Vector3, type Object3D } from '@iwsdk/core';
 import { app } from '../app/context.js';
 import { config } from '../config.js';
-import { DeckPile, TableHandle } from '../components/table.js';
+import { DeckPile } from '../components/table.js';
 import { FocusSystem } from '../interaction/focusSystem.js';
-import { GrabHandle } from '../interaction/grabHandle.js';
 import { createShakeDetector } from '../lib/shake.js';
-import { ease, lerp, Tweens } from '../lib/tween.js';
+import { ease, lerp, Tweens, type TweenHandle } from '../lib/tween.js';
 import type { ReadingSnapshot } from '../state/readingMachine.js';
 import { buildCard, deckStackHeight, type CardVisual } from '../visuals/tableVisuals.js';
+import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem } from './tableSystem.js';
 
 const SHUFFLE_CARDS = 8;
 const HOME_SECONDS = 0.3;
 
 /**
- * The deck: tap it (controller trigger, hand pinch, or a quick grab) to
- * shuffle, or pick it up and give it a shake. Shuffling is only possible
- * before the first card is drawn. When the deck is let go it glides back to
- * its spot, and the riffle plays there.
+ * The deck. Before the first shuffle, tapping it shuffles; after that, a tap
+ * sends the next card to its spot. Lift it (close your hand around it, or
+ * squeeze the grip) and give it a shake to shuffle it right there in your
+ * hand, as often as you like while there are spots left to fill. Let go and
+ * it glides back to its place on the mat.
  */
 export class DeckSystem extends createSystem({
   pressed: { required: [DeckPile, Pressed] },
-  heldHandles: { required: [TableHandle, Grabbed] },
 }) {
   private table!: TableSystem;
+  private grab!: TableGrabSystem;
   private deck!: Object3D;
-  private handle!: GrabHandle;
   private readonly tweens = new Tweens();
   private readonly shake = createShakeDetector();
-  private shakeFired = false;
-  private going: Promise<boolean> | null = null;
+  private homing: TweenHandle | null = null;
   private shuffling = false;
   private rig!: Object3D;
   private readonly rigCards: CardVisual[] = [];
@@ -47,27 +37,17 @@ export class DeckSystem extends createSystem({
 
   init(): void {
     this.table = this.world.getSystem(TableSystem)!;
+    this.grab = this.world.getSystem(TableGrabSystem)!;
     this.deck = this.table.deck.object3D!;
     this.homePosition.copy(this.deck.position);
     this.homeQuaternion.copy(this.deck.quaternion);
+    this.world.getSystem(FocusSystem)!.register(this.deck);
 
-    const stack = deckStackHeight(app.cards.size);
-    this.handle = new GrabHandle(
-      this.world,
-      this.table.mat,
-      { width: config.card.widthM + 0.01, height: stack + 0.02, depth: app.cardHeightM + 0.01 },
-      'deck',
-      -1,
-      stack / 2,
-    );
-    this.handle.syncFrom(this.deck);
-    this.world.getSystem(FocusSystem)!.register(this.deck, this.handle.mesh);
-
-    // Loose cards used only for the riffle animation, kept hidden otherwise.
-    const rigEntity = this.world.createTransformEntity(undefined, { parent: this.table.mat });
+    // Loose cards for the riffle, riding on top of the deck so the shuffle
+    // happens wherever the deck is, in a hand or on the mat.
+    const rigEntity = this.world.createTransformEntity(undefined, { parent: this.table.deck });
     this.rig = rigEntity.object3D!;
     this.rig.name = 'ShuffleRig';
-    this.rig.position.copy(this.homePosition);
     this.rig.visible = false;
     for (let i = 0; i < SHUFFLE_CARDS; i++) {
       const card = buildCard(this.table.cardMaterials, this.table.geometry);
@@ -76,109 +56,109 @@ export class DeckSystem extends createSystem({
       this.rig.add(card.root);
     }
 
-    this.shake.onReversal = () => this.pulse(0.3, 25);
+    this.grab.deckHandlers = {
+      onGrab: (hand) => {
+        this.homing?.cancel();
+        this.homing = null;
+        this.shake.reset();
+        this.table.deckHeld = true;
+        this.grab.pulse(hand, 0.2, 20);
+      },
+      onRelease: (_hand, tap) => {
+        this.table.deckHeld = false;
+        // A quick squeeze on the deck before the first shuffle shuffles it.
+        if (tap && app.machine.state === 'READY') this.requestShuffle();
+        this.goHome();
+      },
+      onTopTap: () => this.tap(),
+    };
+
+    this.shake.onReversal = () => {
+      const hand = this.grab.holderOf(this.deck);
+      if (hand) this.grab.pulse(hand, 0.3, 25);
+    };
 
     this.cleanupFuncs.push(
       app.machine.subscribe((snapshot, event) => {
         if (event.type === 'SHUFFLE') void this.runShuffle(snapshot);
-        if (event.type === 'NEW_READING') this.letGo();
+        if (event.type === 'NEW_READING') {
+          this.table.deckHeld = false;
+          this.goHome();
+        }
         this.refresh();
       }),
       // Act when the trigger or pinch is released, like a click. Acting on press
       // and then changing the deck's state mid-press can leave IWSDK's ray stuck.
-      this.queries.pressed.subscribe('disqualify', () => {
-        if (!this.handle.held) this.requestShuffle();
-      }),
-      this.queries.heldHandles.subscribe('qualify', (entity) => {
-        if (entity !== this.handle.entity) return;
-        this.handle.markGrabStart(this.table.now);
-        this.shake.reset();
-        this.shakeFired = false;
-      }),
-      this.queries.heldHandles.subscribe('disqualify', (entity) => {
-        if (entity !== this.handle.entity) return;
-        if (!this.shakeFired && this.handle.wasTap(this.table.now)) this.requestShuffle();
-        void this.goHome();
-      }),
+      this.queries.pressed.subscribe('disqualify', () => this.tap()),
     );
     this.refresh();
   }
 
   update(delta: number): void {
     this.tweens.update(delta);
-    if (this.handle.held && !this.going) {
-      this.handle.readInto(this.deck);
-      const p = this.handle.mesh.position;
-      if (!this.shakeFired && this.shake.push(this.table.now, p.x, p.y, p.z)) {
-        this.shakeFired = true;
-        this.pulse(0.8, 80);
-        this.requestShuffle();
-        // The shake has done its job: put the deck back down to riffle.
-        this.world.getSystem(GrabSystem)?.forceRelease(this.handle.entity);
-      }
-    } else if (!this.going) {
-      this.handle.syncFrom(this.deck);
+    const hand = this.grab.holderOf(this.deck);
+    if (!hand) return;
+    const p = this.deck.position;
+    if (this.shake.push(this.table.now, p.x, p.y, p.z)) {
+      if (this.requestShuffle()) this.grab.pulse(hand, 0.8, 80);
+      else this.shake.reset();
     }
   }
 
-  private requestShuffle(): void {
-    if (this.shuffling || app.machine.state === 'PLACING') return;
-    app.machine.send({ type: 'SHUFFLE' });
+  /** A tap on the deck: shuffle before the first shuffle, then draw the next card. */
+  private tap(): void {
+    const state = app.machine.state;
+    if (state === 'READY') this.requestShuffle();
+    else if (state === 'DRAWING') app.machine.send({ type: 'DRAW' });
   }
 
-  /**
-   * The deck can be grabbed, and glows, only while shuffling is allowed. Its
-   * ray target stays on all the time (taps are simply ignored when shuffling
-   * isn't allowed), because removing it mid-press can leave IWSDK's ray stuck.
-   */
+  private requestShuffle(): boolean {
+    if (this.shuffling) return false;
+    return app.machine.send({ type: 'SHUFFLE' });
+  }
+
+  /** The deck's ray target stays on all the time; the glow says when a tap would do something. */
   private refresh(): void {
-    const canShuffle = !this.shuffling && app.machine.can({ type: 'SHUFFLE' });
     if (!this.table.deck.hasComponent(RayInteractable)) this.table.deck.addComponent(RayInteractable);
-    this.handle.setEnabled(canShuffle);
-    this.table.deckInteractive = canShuffle;
+    const state = app.machine.state;
+    this.table.deckInteractive = !this.shuffling && (state === 'READY' || state === 'DRAWING');
   }
 
-  /** Drop the deck (if held) and send it home. */
-  private letGo(): void {
-    if (this.handle.held) this.world.getSystem(GrabSystem)?.forceRelease(this.handle.entity);
-    void this.goHome();
-  }
-
-  private goHome(): Promise<boolean> {
-    if (this.going) return this.going;
+  /** Glide back to the deck's place on the mat, lying flat. */
+  private goHome(): void {
+    this.homing?.cancel();
+    this.homing = null;
+    if (this.grab.holderOf(this.deck)) return;
     const from = this.deck.position.clone();
     const fromQuat = this.deck.quaternion.clone();
-    if (from.distanceTo(this.homePosition) < 0.0005) {
+    if (from.distanceTo(this.homePosition) < 0.0005 && fromQuat.angleTo(this.homeQuaternion) < 0.001) {
       this.deck.position.copy(this.homePosition);
       this.deck.quaternion.copy(this.homeQuaternion);
-      return Promise.resolve(true);
+      return;
     }
-    this.going = this.tweens
-      .play({
+    void this.tweens.play(
+      {
         duration: HOME_SECONDS,
         easing: ease.outCubic,
         onUpdate: (k) => {
           this.deck.position.lerpVectors(from, this.homePosition, k);
           this.deck.quaternion.slerpQuaternions(fromQuat, this.homeQuaternion, k);
         },
-      })
-      .then((done) => {
-        this.going = null;
-        this.handle.syncFrom(this.deck);
-        return done;
-      });
-    return this.going;
+      },
+      (handle) => (this.homing = handle),
+    );
   }
 
-  /** Riffle once the deck is home, then tell the reading the shuffle is done. */
+  /** Riffle the deck where it is, then tell the reading the shuffle is done. */
   private async runShuffle(snapshot: ReadingSnapshot): Promise<void> {
     const token = { reading: snapshot.readingNumber, shuffles: snapshot.shuffles };
     this.shuffling = true;
     this.refresh();
-    if (this.handle.held) this.world.getSystem(GrabSystem)?.forceRelease(this.handle.entity);
-    await this.goHome();
-    await this.riffle(this.shakeFired ? 1 : 2);
+    // A shake in the hand gets one quick pass; a tap gets a fuller riffle.
+    await this.riffle(this.grab.holderOf(this.deck) ? 1 : 2);
     this.shuffling = false;
+    // Ready to hear the next shake.
+    this.shake.reset();
     const now = app.machine.current;
     if (now.state === 'SHUFFLING' && now.readingNumber === token.reading && now.shuffles === token.shuffles) {
       app.machine.send({ type: 'SHUFFLE_DONE' });
@@ -237,19 +217,5 @@ export class DeckSystem extends createSystem({
       );
     }
     this.rig.visible = false;
-  }
-
-  /** A short buzz on the controller holding the deck, where supported. */
-  private pulse(intensity: number, ms: number): void {
-    const hand = this.world.getSystem(GrabSystem)?.getHolderHand(this.handle.entity);
-    if (!hand) return;
-    const pad = this.input.xr.gamepads[hand] as unknown as {
-      inputSource?: { gamepad?: { hapticActuators?: { pulse?: (v: number, d: number) => unknown }[] } };
-    };
-    try {
-      pad?.inputSource?.gamepad?.hapticActuators?.[0]?.pulse?.(intensity, ms);
-    } catch {
-      // Haptics are a nicety; ignore devices that don't support them.
-    }
   }
 }

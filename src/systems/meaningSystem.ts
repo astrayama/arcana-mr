@@ -93,9 +93,10 @@ export class MeaningSystem extends createSystem({
         }
       }),
       app.machine.subscribe((snapshot, event) => {
-        if (event.type === 'FLIP' && snapshot.spread) {
+        if (event.type === 'TURN' && snapshot.spread) {
           const slot = snapshot.slots[event.slot];
-          if (slot?.cardId) this.reveal(slot, snapshot.spread);
+          if (slot?.cardId && event.faceUp) this.reveal(slot, snapshot.spread);
+          else if (!event.faceUp) this.conceal(event.slot, snapshot.spread);
         }
         if (snapshot.state === 'IDLE' || snapshot.state === 'PLACING' || event.type === 'CHOOSE_SPREAD') {
           this.hideAll();
@@ -115,7 +116,7 @@ export class MeaningSystem extends createSystem({
     }
   }
 
-  /** A card was just turned over. */
+  /** A card was just turned face up. */
   private reveal(slot: ReadingSlot, spread: SpreadId): void {
     const single = spread === 'single';
     if (this.layout === 'focus') {
@@ -130,6 +131,30 @@ export class MeaningSystem extends createSystem({
       this.placeTriptych(panel, single ? 1 : slot.slot);
       this.fill(panel, slot);
       setPanelActive(panel, true);
+    }
+  }
+
+  /** A card was turned back face down: its meaning goes away until it's turned up again. */
+  private conceal(slotIndex: number, spread: SpreadId): void {
+    if (this.layout === 'focus') {
+      const label = this.labels[slotIndex];
+      setPanelActive(label, false);
+      this.pending.delete(label);
+      if (this.focusedSlot !== slotIndex) return;
+      // Move the focus to another face-up card, or clear it.
+      const other = app.machine.current.slots.find((slot) => slot.faceUp && slot.cardId);
+      if (other) {
+        this.focus(other.slot);
+      } else {
+        this.focusedSlot = -1;
+        this.world.getSystem(TableSystem)!.focusedSlot = -1;
+        setPanelActive(this.meaningPanels[0], false);
+        this.pending.delete(this.meaningPanels[0]);
+      }
+    } else {
+      const panel = this.meaningPanels[spread === 'single' ? 1 : slotIndex];
+      setPanelActive(panel, false);
+      this.pending.delete(panel);
     }
   }
 

@@ -4,14 +4,16 @@
  * about Three.js, IWSDK, or the headset.
  *
  *   PLACING ─MAT_PLACED─▶ IDLE ─CHOOSE_SPREAD─▶ READY ─SHUFFLE─▶ SHUFFLING ─SHUFFLE_DONE─▶ DRAWING
- *      ▲                   │                                        ▲                      │  │
- *      └───REPLACE_MAT─────┘                                        └─SHUFFLE (none drawn)─┘  │
- *                                                                                DRAW (last) ▼
- *   IDLE ◀──NEW_READING── READY / DRAWING / AWAITING_FLIPS / REVEALED    AWAITING_FLIPS ─FLIP (last)─▶ REVEALED
+ *      ▲                   │                                        ▲                          │  │
+ *      └───REPLACE_MAT─────┘                                        └─SHUFFLE (a spot is open)─┘  │
+ *                                                                                    DRAW (last) ▼
+ *   IDLE ◀──NEW_READING── READY / DRAWING / AWAITING_FLIPS / REVEALED    AWAITING_FLIPS ◀─TURN─▶ REVEALED
  *
  * The deck order is decided at each SHUFFLE (crypto shuffle, per-card
- * reversals). The reader then draws cards one at a time into the spread's
- * spots, in any order, and can turn a card over as soon as it's down.
+ * reversals). The reader draws cards one at a time, always into the next spot
+ * in order, and can shuffle what's left of the deck between draws. Cards can
+ * be turned face up or back down at any time, in any order; the reading is
+ * REVEALED while every card is face up.
  */
 
 import { spreads, type SpreadId } from '../data/spreads.js';
@@ -32,9 +34,10 @@ export type ReadingEvent =
   | { type: 'CHOOSE_SPREAD'; spread: SpreadId }
   | { type: 'SHUFFLE' }
   | { type: 'SHUFFLE_DONE' }
-  /** Draw the next card into `slot`, or into the first open spot if omitted. */
+  /** Draw the top card into the next open spot. Listeners get the spot it went into. */
   | { type: 'DRAW'; slot?: number }
-  | { type: 'FLIP'; slot: number }
+  /** Turn a drawn card face up or face down. */
+  | { type: 'TURN'; slot: number; faceUp: boolean }
   | { type: 'NEW_READING' };
 
 export interface ReadingSlot {
@@ -171,28 +174,29 @@ export class ReadingMachine {
         return event.type === 'SHUFFLE' ? this.shuffled(event) : null;
 
       case 'SHUFFLING':
-        return event.type === 'SHUFFLE_DONE' ? same({ ...s, state: 'DRAWING' }) : null;
+        if (event.type === 'SHUFFLE_DONE') return same({ ...s, state: 'DRAWING' });
+        // A card already down can be turned over while the deck is being shuffled.
+        return event.type === 'TURN' ? this.turned(event) : null;
 
       case 'DRAWING':
-        if (event.type === 'SHUFFLE') {
-          // Shuffle again as often as you like, until the first card is drawn.
-          return this.drawnCount === 0 ? this.shuffled(event) : null;
-        }
+        // Shuffle what's left of the deck as often as you like between draws.
+        if (event.type === 'SHUFFLE') return this.shuffled(event);
         if (event.type === 'DRAW') return this.drawn(event);
-        if (event.type === 'FLIP') return this.flipped(event);
-        return null;
+        return event.type === 'TURN' ? this.turned(event) : null;
 
       case 'AWAITING_FLIPS':
-        return event.type === 'FLIP' ? this.flipped(event) : null;
-
       case 'REVEALED':
-        return null;
+        return event.type === 'TURN' ? this.turned(event) : null;
     }
   }
 
+  /** Shuffle the cards not yet drawn, for the spots still open. */
   private shuffled(event: ReadingEvent) {
     const s = this.snapshot;
-    const pending = this.draw(this.options.cardIds, s.slots.length, this.options.reversalChance);
+    const drawn = new Set(s.slots.map((slot) => slot.cardId).filter((id) => id !== null));
+    const open = s.slots.filter((slot) => slot.cardId === null).length;
+    const remaining = drawn.size ? this.options.cardIds.filter((id) => !drawn.has(id)) : this.options.cardIds;
+    const pending = this.draw(remaining, open, this.options.reversalChance);
     return {
       snapshot: { ...s, state: 'SHUFFLING' as const, shuffles: s.shuffles + 1 },
       event,
@@ -202,10 +206,12 @@ export class ReadingMachine {
 
   private drawn(event: Extract<ReadingEvent, { type: 'DRAW' }>) {
     const s = this.snapshot;
-    const slot = event.slot ?? s.slots.findIndex((candidate) => candidate.cardId === null);
+    // Cards go out in order: Past, then Present, then Future.
+    const slot = s.slots.findIndex((candidate) => candidate.cardId === null);
+    if (event.slot !== undefined && event.slot !== slot) return null;
     const target = s.slots[slot];
     const card = this.pending[0];
-    if (target === undefined || target.cardId !== null || card === undefined) return null;
+    if (target === undefined || card === undefined) return null;
     const slots = s.slots.map((candidate) =>
       candidate.slot === slot ? { ...candidate, cardId: card.cardId, reversed: card.reversed } : candidate,
     );
@@ -216,12 +222,13 @@ export class ReadingMachine {
     };
   }
 
-  private flipped(event: Extract<ReadingEvent, { type: 'FLIP' }>) {
+  private turned(event: Extract<ReadingEvent, { type: 'TURN' }>) {
     const s = this.snapshot;
     const target = s.slots[event.slot];
-    if (target === undefined || target.cardId === null || target.faceUp) return null;
-    const slots = s.slots.map((slot) => (slot.slot === event.slot ? { ...slot, faceUp: true } : slot));
-    return { snapshot: { ...s, slots, state: this.settledState(slots) }, event };
+    if (target === undefined || target.cardId === null || target.faceUp === event.faceUp) return null;
+    const slots = s.slots.map((slot) => (slot.slot === event.slot ? { ...slot, faceUp: event.faceUp } : slot));
+    const state = s.state === 'SHUFFLING' ? s.state : this.settledState(slots);
+    return { snapshot: { ...s, slots, state }, event };
   }
 
   /** Still drawing, waiting on flips, or fully revealed. */

@@ -36,7 +36,7 @@ test('choosing a spread lays out empty spots and waits for a shuffle', () => {
   assert.deepEqual(m.current.slots.map((s) => s.label), ['Past', 'Present', 'Future']);
   assert.ok(m.current.slots.every((s) => s.cardId === null));
   assert.equal(m.send({ type: 'DRAW' }), false, 'no drawing before a shuffle');
-  assert.equal(m.send({ type: 'FLIP', slot: 0 }), false);
+  assert.equal(m.send({ type: 'TURN', slot: 0, faceUp: true }), false);
 });
 
 test('a shuffle picks the cards once, then drawing reveals them one by one', () => {
@@ -61,58 +61,85 @@ test('a shuffle picks the cards once, then drawing reveals them one by one', () 
   assert.equal(m.state, 'AWAITING_FLIPS');
 });
 
-test('reshuffling is allowed until the first card is drawn', () => {
-  const m = drawing('three');
-  assert.equal(m.send({ type: 'SHUFFLE' }), true);
+test('the rest of the deck can be reshuffled between draws', () => {
+  const calls: { ids: readonly string[]; count: number }[] = [];
+  const m = drawing('three', (cardIds, count, chance) => {
+    calls.push({ ids: cardIds, count });
+    return drawCards(cardIds, count, chance);
+  });
+  assert.equal(m.send({ type: 'SHUFFLE' }), true, 'before any draw');
   m.send({ type: 'SHUFFLE_DONE' });
-  assert.equal(m.current.shuffles, 2);
   m.send({ type: 'DRAW' });
-  assert.equal(m.send({ type: 'SHUFFLE' }), false);
-  assert.equal(m.current.shuffles, 2);
+  const past = m.current.slots[0].cardId!;
+  assert.equal(m.send({ type: 'SHUFFLE' }), true, 'after a draw');
+  assert.equal(m.state, 'SHUFFLING');
+  assert.equal(m.current.shuffles, 3);
+  const last = calls[calls.length - 1];
+  assert.equal(last.count, 2, 'only the open spots are drawn');
+  assert.equal(last.ids.length, 77);
+  assert.ok(!last.ids.includes(past), 'a drawn card is not back in the deck');
+  assert.equal(m.current.slots[0].cardId, past, 'the drawn card stays put');
+  assert.equal(m.send({ type: 'DRAW' }), false, 'no drawing mid-shuffle');
+  m.send({ type: 'SHUFFLE_DONE' });
+  m.send({ type: 'DRAW' });
+  m.send({ type: 'DRAW' });
+  assert.equal(m.state, 'AWAITING_FLIPS');
+  assert.equal(m.send({ type: 'SHUFFLE' }), false, 'nothing left to shuffle for');
+  assert.equal(new Set(m.current.slots.map((s) => s.cardId)).size, 3);
 });
 
-test('DRAW without a slot fills spots in order; DRAW with a slot takes the next card', () => {
+test('cards are drawn in order, and listeners get the spot each went into', () => {
   const m = drawing('three');
   const [first, second] = m.upcoming(2).map((c) => c.cardId);
   const seen: (number | undefined)[] = [];
   m.subscribe((_, event) => {
     if (event.type === 'DRAW') seen.push(event.slot);
   });
-  m.send({ type: 'DRAW', slot: 2 });
+  assert.equal(m.send({ type: 'DRAW', slot: 2 }), false, 'no skipping ahead');
   m.send({ type: 'DRAW' });
-  assert.equal(m.current.slots[2].cardId, first);
-  assert.equal(m.current.slots[0].cardId, second);
-  assert.deepEqual(seen, [2, 0], 'listeners get the slot each card went into');
+  assert.equal(m.send({ type: 'DRAW', slot: 0 }), false, 'no drawing into a full spot');
+  assert.equal(m.send({ type: 'DRAW', slot: 1 }), true, 'naming the next spot is fine');
+  assert.equal(m.current.slots[0].cardId, first);
+  assert.equal(m.current.slots[1].cardId, second);
+  assert.deepEqual(seen, [0, 1]);
 });
 
-test('drawing into a full or missing spot is rejected', () => {
+test('cards turn over in any order, and back down again', () => {
   const m = drawing('three');
-  m.send({ type: 'DRAW', slot: 1 });
-  assert.equal(m.send({ type: 'DRAW', slot: 1 }), false);
-  assert.equal(m.send({ type: 'DRAW', slot: 3 }), false);
-  assert.equal(m.send({ type: 'DRAW', slot: -1 }), false);
-});
-
-test('cards can be turned over as soon as they are down', () => {
-  const m = drawing('three');
-  m.send({ type: 'DRAW', slot: 0 });
-  assert.equal(m.send({ type: 'FLIP', slot: 1 }), false, 'no flipping an empty spot');
-  assert.equal(m.send({ type: 'FLIP', slot: 0 }), true);
+  m.send({ type: 'DRAW' });
+  assert.equal(m.send({ type: 'TURN', slot: 1, faceUp: true }), false, 'no turning an empty spot');
+  assert.equal(m.send({ type: 'TURN', slot: 0, faceUp: true }), true);
   assert.equal(m.state, 'DRAWING');
-  assert.equal(m.send({ type: 'FLIP', slot: 0 }), false, 'double flip is ignored');
+  assert.equal(m.send({ type: 'TURN', slot: 0, faceUp: true }), false, 'already face up');
   m.send({ type: 'DRAW' });
   m.send({ type: 'DRAW' });
   assert.equal(m.state, 'AWAITING_FLIPS');
-  m.send({ type: 'FLIP', slot: 1 });
-  m.send({ type: 'FLIP', slot: 2 });
+  m.send({ type: 'TURN', slot: 2, faceUp: true });
+  m.send({ type: 'TURN', slot: 1, faceUp: true });
+  assert.equal(m.state, 'REVEALED');
+  assert.equal(m.send({ type: 'TURN', slot: 1, faceUp: false }), true, 'turned back down');
+  assert.equal(m.current.slots[1].faceUp, false);
+  assert.equal(m.state, 'AWAITING_FLIPS');
+  m.send({ type: 'TURN', slot: 1, faceUp: true });
   assert.equal(m.state, 'REVEALED');
 });
 
-test('a single-card pull is revealed after its one flip', () => {
+test('a card can be turned while the rest of the deck is shuffled', () => {
+  const m = drawing('three');
+  m.send({ type: 'DRAW' });
+  m.send({ type: 'SHUFFLE' });
+  assert.equal(m.send({ type: 'TURN', slot: 0, faceUp: true }), true);
+  assert.equal(m.state, 'SHUFFLING', 'turning a card does not end the shuffle');
+  m.send({ type: 'SHUFFLE_DONE' });
+  assert.equal(m.state, 'DRAWING');
+  assert.equal(m.current.slots[0].faceUp, true);
+});
+
+test('a single-card pull is revealed once it is face up', () => {
   const m = drawing('single');
   m.send({ type: 'DRAW' });
   assert.equal(m.state, 'AWAITING_FLIPS');
-  m.send({ type: 'FLIP', slot: 0 });
+  m.send({ type: 'TURN', slot: 0, faceUp: true });
   assert.equal(m.state, 'REVEALED');
 });
 

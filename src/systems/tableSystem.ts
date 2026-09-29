@@ -1,8 +1,18 @@
-import { createSystem, type Entity, type Mesh, type MeshBasicMaterial, type ShapeGeometry, type Texture } from '@iwsdk/core';
+import {
+  createSystem,
+  Hovered,
+  Pressed,
+  RayInteractable,
+  type Entity,
+  type Mesh,
+  type MeshBasicMaterial,
+  type ShapeGeometry,
+  type Texture,
+} from '@iwsdk/core';
 import { app } from '../app/context.js';
 import { config } from '../config.js';
 import { DeckPile, ReadingMat } from '../components/table.js';
-import { GrabHandle } from '../interaction/grabHandle.js';
+import { TarotCard } from '../components/tarotCard.js';
 import { FocusSystem } from '../interaction/focusSystem.js';
 import { Tweens, type TweenHandle, type TweenOptions } from '../lib/tween.js';
 import {
@@ -19,10 +29,13 @@ import {
   type CardVisual,
 } from '../visuals/tableVisuals.js';
 
-/** Where a physical card is in its life on the table. */
-export type CardPhase = 'offered' | 'flying' | 'placed' | 'gathering';
+/**
+ * Where a physical card is in its life on the table: just pulled into a hand,
+ * on its way to its spot, in the spread, or being swept back into the deck.
+ */
+export type CardPhase = 'held' | 'flying' | 'placed' | 'gathering';
 
-/** One physical card on the mat: the next card to draw, one in flight, or one in the spread. */
+/** One physical card on the mat: in a hand, in flight, or in the spread. */
 export interface TableCard {
   /** Unique for the life of the app. */
   key: number;
@@ -34,7 +47,8 @@ export interface TableCard {
   faceUp: boolean;
   entity: Entity;
   visual: CardVisual;
-  handle: GrabHandle;
+  /** The hand holding it, if any. */
+  heldBy: 'left' | 'right' | null;
   /** The one motion moving this card's root; starting another cancels it. */
   motion: TweenHandle | null;
   face: Texture | null;
@@ -45,7 +59,6 @@ export interface TableCard {
 }
 
 const HOVER_RATE = 12;
-const HELD_LIFT_M = 0.015;
 /** Glow on the card whose meaning is showing, as a share of the hover glow. */
 const FOCUS_GLOW = 0.45;
 
@@ -63,8 +76,10 @@ export class TableSystem extends createSystem({}) {
   geometry!: CardGeometry;
   readonly tweens = new Tweens();
   readonly cards: TableCard[] = [];
-  /** Set by the deck system when the deck can be tapped or grabbed. */
+  /** Set by the deck system when tapping the deck would do something. */
   deckInteractive = false;
+  /** Set by the deck system while a hand holds the deck. */
+  deckHeld = false;
   /** Set by the meaning system: the slot whose meaning is showing, or -1. */
   focusedSlot = -1;
   /** Seconds since the app started, advanced every frame. */
@@ -97,7 +112,7 @@ export class TableSystem extends createSystem({}) {
     return MAT_SURFACE_Y + deckStackHeight(app.cards.size);
   }
 
-  /** Make a new face-down card on the mat. It starts hidden from grabs until a system enables its handle. */
+  /** Make a new face-down card on the mat. */
   createCard(x: number, y: number, z: number, yaw = 0): TableCard {
     const key = this.nextKey++;
     const visual = buildCard(this.cardMaterials, this.geometry);
@@ -105,27 +120,17 @@ export class TableSystem extends createSystem({}) {
     visual.root.position.set(x, y, z);
     visual.root.rotation.set(0, yaw, 0);
     const entity = this.world.createTransformEntity(visual.root, { parent: this.mat });
-    const handle = new GrabHandle(
-      this.world,
-      this.mat,
-      { width: config.card.widthM + 0.01, height: 0.03, depth: app.cardHeightM + 0.01 },
-      'card',
-      key,
-      0.012,
-    );
-    handle.setEnabled(false);
-    handle.syncFrom(visual.root);
-    this.focus.register(visual.root, handle.mesh);
+    this.focus.register(visual.root);
     const card: TableCard = {
       key,
-      phase: 'offered',
+      phase: 'flying',
       slot: -1,
       cardId: null,
       reversed: false,
       faceUp: false,
       entity,
       visual,
-      handle,
+      heldBy: null,
       motion: null,
       face: null,
       landedAt: 0,
@@ -140,12 +145,27 @@ export class TableSystem extends createSystem({}) {
     return this.cards.find((card) => card.entity === entity);
   }
 
-  cardForHandle(entity: Entity): TableCard | undefined {
-    return this.cards.find((card) => card.handle.entity === entity);
-  }
-
   placedCard(slot: number): TableCard | undefined {
     return this.cards.find((card) => card.phase === 'placed' && card.slot === slot);
+  }
+
+  /** The card is in its spot: from now on it can be tapped, turned over, or picked up. */
+  land(card: TableCard): void {
+    if (card.phase !== 'flying') return;
+    card.phase = 'placed';
+    card.landedAt = this.now;
+    // A trigger or pinch still held from drawing mustn't count as a tap on the new card.
+    if (card.entity.hasComponent(Pressed)) card.entity.removeComponent(Pressed);
+    if (card.entity.hasComponent(Hovered)) card.entity.removeComponent(Hovered);
+    if (!card.entity.hasComponent(TarotCard)) {
+      card.entity.addComponent(TarotCard, {
+        slot: card.slot,
+        cardId: card.cardId ?? '',
+        reversed: card.reversed,
+        faceUp: card.faceUp,
+      });
+    }
+    if (!card.entity.hasComponent(RayInteractable)) card.entity.addComponent(RayInteractable);
   }
 
   /** Move a card's root with a tween, cancelling whatever was moving it before. */
@@ -161,8 +181,7 @@ export class TableSystem extends createSystem({}) {
 
   removeCard(card: TableCard): void {
     card.motion?.cancel();
-    this.focus.unregister(card.visual.root, card.handle.mesh);
-    card.handle.dispose();
+    this.focus.unregister(card.visual.root);
     card.visual.face.material.dispose();
     card.visual.glow.material.dispose();
     // Free the face's GPU memory; the image stays cached for a quick redraw.
@@ -185,16 +204,21 @@ export class TableSystem extends createSystem({}) {
     const baseY = config.card.thicknessM / 2;
 
     for (const card of this.cards) {
-      const interactive = live && (card.phase === 'offered' || card.phase === 'placed');
+      const interactive = live && card.phase === 'placed';
       const target = interactive && this.focus.isHot(card.visual.root) ? 1 : 0;
       card.hover += (target - card.hover) * step;
       const focused = live && card.phase === 'placed' && card.slot === this.focusedSlot ? FOCUS_GLOW : 0;
-      const held = card.handle.held ? HELD_LIFT_M : 0;
-      card.visual.pivot.position.y = baseY + card.hover * hoverLiftM + card.flipLift + held;
-      card.visual.glow.material.opacity = Math.max(card.hover, focused) * intensity;
+      // A card in the hand goes exactly where the hand puts it.
+      const lift = card.heldBy ? 0 : card.hover * hoverLiftM;
+      card.visual.pivot.position.y = baseY + lift + card.flipLift;
+      card.visual.glow.material.opacity = (card.heldBy ? 0 : Math.max(card.hover, focused)) * intensity;
     }
 
-    const deckTarget = this.deckInteractive && this.focus.isHot(this.deck.object3D!) ? 1 : 0;
+    // The deck glows when a hand could pick it up, or a ray tap on it would do something.
+    const deck = this.deck.object3D!;
+    const deckHot =
+      live && !this.deckHeld && (this.focus.isNearHot(deck) || (this.deckInteractive && this.focus.isHot(deck)));
+    const deckTarget = deckHot ? 1 : 0;
     this.deckHover += (deckTarget - this.deckHover) * step;
     this.deckGlow.material.opacity = this.deckHover * intensity;
   }
