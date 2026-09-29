@@ -362,7 +362,10 @@ export class TableSystem extends createSystem({}) {
       const lift = card.heldBy || covered ? 0 : card.hover * hoverLiftM;
       const under = this.cardUnder(card);
       card.visual.pivot.position.y = baseY + lift + card.flipLift + (under && !card.heldBy ? under.flipLift : 0);
-      card.visual.glow.material.opacity = (card.heldBy ? 0 : Math.max(card.hover, focused)) * intensity;
+      const glow = (card.heldBy ? 0 : Math.max(card.hover, focused)) * intensity;
+      card.visual.glow.material.opacity = glow;
+      // An unlit glow still costs a draw call; skip it until it shows.
+      card.visual.glow.visible = glow > 0.002;
     }
 
     // The deck glows when a hand could pick it up, or a ray tap on it would do something.
@@ -372,6 +375,7 @@ export class TableSystem extends createSystem({}) {
     const deckTarget = deckHot ? 1 : 0;
     this.deckHover += (deckTarget - this.deckHover) * step;
     this.deckGlow.material.opacity = this.deckHover * intensity;
+    this.deckGlow.visible = this.deckGlow.material.opacity > 0.002;
   }
 
   /** True if another placed card lies across this one. */

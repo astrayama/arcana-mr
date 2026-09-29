@@ -239,9 +239,7 @@ async function main(): Promise<void> {
 
   writeFileSync(join(DECK_DIR, 'deck.json'), JSON.stringify(manifest, null, 2) + '\n');
 
-  const credits = `# Credits
-
-## Card art: \`src/decks/rws-1909\`
+  const section = `## Card art: \`src/decks/rws-1909\`
 
 The \`rws-1909\` deck uses scans of an original 1909 printing of the
 Waite-Smith tarot (often called Rider-Waite-Smith), the "Roses & Lilies"
@@ -276,7 +274,11 @@ ${WEBP_QUALITY}. The 3D cards have rounded corners, like the physical deck.
 | --- | --- | --- | --- |
 ${rows.join('\n')}
 `;
-  writeFileSync(join(ROOT, 'CREDITS.md'), credits);
+  // Replace only this deck's section (the last one), keeping every other credit.
+  const creditsPath = join(ROOT, 'CREDITS.md');
+  const existing = existsSync(creditsPath) ? readFileSync(creditsPath, 'utf8') : '# Credits\n\n';
+  const at = existing.indexOf('## Card art: `src/decks/rws-1909`');
+  writeFileSync(creditsPath, (at >= 0 ? existing.slice(0, at) : existing.trimEnd() + '\n\n') + section);
   console.log(`Wrote ${cards.length} faces, back, deck.json, and CREDITS.md`);
 }
 
