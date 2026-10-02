@@ -5,7 +5,7 @@
  */
 
 /** The generators that can build VR surroundings. */
-export const ENVIRONMENT_KINDS = ['night-sanctum', 'cloud-sea'] as const;
+export const ENVIRONMENT_KINDS = ['night-sanctum', 'cloud-sea', 'fairy-circle'] as const;
 
 /** Settings every environment shares. */
 interface EnvironmentBase {
@@ -42,11 +42,25 @@ export interface CloudSeaEnvironment extends EnvironmentBase {
   birds: { count: number; color: string } | null;
 }
 
+/** A forest clearing at golden hour, the table inside a fairy circle of flat pebbles and mushrooms. */
+export interface FairyCircleEnvironment extends EnvironmentBase {
+  kind: 'fairy-circle';
+  sky: { top: string; horizon: string; bottom: string };
+  /** Soft sun through the trees, and sky and ground light for the low-poly facets. */
+  light: { sun: string; sky: string; ground: string; intensity: number };
+  ground: { moss: string; floor: string; soil: string };
+  pebbles: { color: string; count: number; ringRadiusM: number };
+  mushrooms: { cap: string; spots: string; brown: string; glow: string; count: number };
+  plants: { moss: string; grass: string; fern: string; flowers: string[] };
+  trees: { trunk: string; pine: string; leaves: string; count: number };
+  motes: { count: number; color: string } | null;
+}
+
 /**
  * VR surroundings shown instead of passthrough when the reader chooses them.
  * `kind` picks a generator in src/environments; the rest tunes its look.
  */
-export type EnvironmentDef = NightSanctumEnvironment | CloudSeaEnvironment;
+export type EnvironmentDef = NightSanctumEnvironment | CloudSeaEnvironment | FairyCircleEnvironment;
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -120,6 +134,25 @@ export function validateEnvironment(
     if (e.birds) {
       num(`birds.count`, e.birds.count, 0, 30);
       hex(`birds.color`, e.birds.color);
+    }
+  } else if (e.kind === 'fairy-circle') {
+    for (const key of ['top', 'horizon', 'bottom'] as const) hex(`sky.${key}`, e.sky?.[key]);
+    for (const key of ['sun', 'sky', 'ground'] as const) hex(`light.${key}`, e.light?.[key]);
+    num(`light.intensity`, e.light?.intensity, 0, 3);
+    for (const key of ['moss', 'floor', 'soil'] as const) hex(`ground.${key}`, e.ground?.[key]);
+    hex(`pebbles.color`, e.pebbles?.color);
+    num(`pebbles.count`, e.pebbles?.count, 0, 120);
+    num(`pebbles.ringRadiusM`, e.pebbles?.ringRadiusM, 1, 6);
+    for (const key of ['cap', 'spots', 'brown', 'glow'] as const) hex(`mushrooms.${key}`, e.mushrooms?.[key]);
+    num(`mushrooms.count`, e.mushrooms?.count, 0, 300);
+    for (const key of ['moss', 'grass', 'fern'] as const) hex(`plants.${key}`, e.plants?.[key]);
+    if (!Array.isArray(e.plants?.flowers) || e.plants.flowers.length === 0) errors.push(`${at}: plants.flowers must list colors`);
+    else e.plants.flowers.forEach((c, i) => hex(`plants.flowers[${i}]`, c));
+    for (const key of ['trunk', 'pine', 'leaves'] as const) hex(`trees.${key}`, e.trees?.[key]);
+    num(`trees.count`, e.trees?.count, 0, 200);
+    if (e.motes) {
+      num(`motes.count`, e.motes.count, 0, 500);
+      hex(`motes.color`, e.motes.color);
     }
   } else {
     errors.push(`${at}: kind must be one of ${ENVIRONMENT_KINDS.join(', ')}`);

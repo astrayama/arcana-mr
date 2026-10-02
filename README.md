@@ -65,7 +65,7 @@ Add these to the page URL while testing:
 | `?deck=rws-1909` | Use a specific deck folder. Unknown names fall back to the default with a console warning. |
 | `?theme=dark-gold` | Use a specific theme folder, with the same fallback. |
 | `?placement=fallback` | Skip table detection and use the floating fallback mat. Denying the spatial data prompt does the same on the headset. |
-| `?view=cloud-sea`, `?view=night-sanctum`, or `?view=room` | Start in one of the VR surroundings, or in your own room through passthrough. `?view=vr` picks the first VR one. These don't change your saved choice. |
+| `?view=fairy-circle`, `?view=cloud-sea`, `?view=night-sanctum`, or `?view=room` | Start in one of the VR surroundings, or in your own room through passthrough. `?view=vr` picks the first VR one. These don't change your saved choice. |
 | `?draw=cups-queen:R,major-17-the-star` | Dev server only: deal these cards (`:R` = reversed). Ignored in production builds. |
 
 ## How a reading works
@@ -150,7 +150,8 @@ the spread as you build it. Up to 8 spreads are saved on the headset, under
   circuit, Winter) and the deck. Every back is the same turned upside down,
   so a reversed card can't be spotted from its back.
 - **Around you:** VR surroundings (the night sky sanctum, until you choose
-  otherwise) or your own room through passthrough.
+  otherwise; a sunset cloud sea; or a fairy circle in a forest) or your own
+  room through passthrough.
 - **Your data:** what's kept on the headset, and a button to clear it.
 
 Adding your own decks, backs, and surroundings from the headset comes in a

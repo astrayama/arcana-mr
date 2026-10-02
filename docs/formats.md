@@ -73,10 +73,11 @@ my-place/
 ```
 
 `environment.json` picks a generator with `kind` and tunes it. The kinds
-available now are `night-sanctum` (a stone platform under a starry sky) and
-`cloud-sea` (a terrace above clouds at sunset); see
-`src/environments/night-sanctum/environment.json` and
-`src/environments/cloud-sea/environment.json` for every setting.
+available now are `night-sanctum` (a stone platform under a starry sky),
+`cloud-sea` (a terrace above clouds at sunset), and `fairy-circle` (a forest
+clearing at golden hour, inside a ring of pebbles and mushrooms, all low-poly
+and generated, with no textures); see each folder's `environment.json` under
+`src/environments/` for every setting.
 
 ```json
 {

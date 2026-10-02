@@ -40,13 +40,11 @@ function deckChoices(): Choice[] {
   return listDeckIds().map((id) => ({ id, label: getDeck(id)?.manifest.name ?? id }));
 }
 
-function environmentChoices(): (Choice & { icon: 'House' | 'MoonStar' | 'Sun' })[] {
+const ENVIRONMENT_ICONS = { 'night-sanctum': 'MoonStar', 'cloud-sea': 'Sun', 'fairy-circle': 'Trees' } as const;
+
+function environmentChoices(): (Choice & { icon: 'House' | (typeof ENVIRONMENT_ICONS)[keyof typeof ENVIRONMENT_ICONS] })[] {
   return [
-    ...listEnvironments().map(({ id, env }) => ({
-      id,
-      label: env.label,
-      icon: env.kind === 'cloud-sea' ? ('Sun' as const) : ('MoonStar' as const),
-    })),
+    ...listEnvironments().map(({ id, env }) => ({ id, label: env.label, icon: ENVIRONMENT_ICONS[env.kind] })),
     { id: 'room', label: 'Your room', icon: 'House' as const },
   ];
 }

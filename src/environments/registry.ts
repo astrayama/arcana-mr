@@ -6,6 +6,7 @@
 import type { ResolvedTheme } from '../themes/registry.js';
 import type { ResolvedEnvironment } from './catalog.js';
 import { buildCloudSea } from './cloudSea.js';
+import { buildFairyCircle } from './fairyCircle.js';
 import { buildNightSanctum } from './nightSanctum.js';
 import type { EnvironmentInstance } from './types.js';
 
@@ -16,5 +17,7 @@ export function buildEnvironment(resolved: ResolvedEnvironment, theme: ResolvedT
       return buildNightSanctum(env, resolved, theme);
     case 'cloud-sea':
       return buildCloudSea(env, resolved, theme);
+    case 'fairy-circle':
+      return buildFairyCircle(env, resolved, theme);
   }
 }

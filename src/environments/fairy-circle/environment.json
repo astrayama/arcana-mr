@@ -1,0 +1,59 @@
+{
+  "id": "fairy-circle",
+  "label": "Fairy circle",
+  "kind": "fairy-circle",
+  "order": 3,
+  "fog": {
+    "color": "#b9c29a",
+    "density": 0.055
+  },
+  "sky": {
+    "top": "#9fc0cf",
+    "horizon": "#f1dfa8",
+    "bottom": "#3b4a2f"
+  },
+  "light": {
+    "sun": "#ffd9a0",
+    "sky": "#e8efc8",
+    "ground": "#3e5a2a",
+    "intensity": 0.85
+  },
+  "ground": {
+    "moss": "#56763a",
+    "floor": "#3a4927",
+    "soil": "#66533a"
+  },
+  "pebbles": {
+    "color": "#aaa69c",
+    "count": 44,
+    "ringRadiusM": 1.7
+  },
+  "mushrooms": {
+    "cap": "#c43b2b",
+    "spots": "#f6efe2",
+    "brown": "#9a6a42",
+    "glow": "#8ff5dc",
+    "count": 70
+  },
+  "plants": {
+    "moss": "#4f7a35",
+    "grass": "#6c9440",
+    "fern": "#4f8a3c",
+    "flowers": [
+      "#f4e8a2",
+      "#ecaccb",
+      "#bcaaf2",
+      "#ffffff"
+    ]
+  },
+  "trees": {
+    "trunk": "#5a4532",
+    "pine": "#335e3c",
+    "leaves": "#5f8f3e",
+    "count": 46
+  },
+  "motes": {
+    "count": 90,
+    "color": "#fff1bf"
+  }
+}
