@@ -38,6 +38,9 @@ const styles = (c: ViewColors) => `
 .sw-bar { position: absolute; left: 12px; right: 12px; top: max(12px, env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; }
 .sw-bar .sw-status { flex: 1; min-width: 0; }
 .sw-bar button { padding: 6px 14px; }
+.sw-bar button.sw-shuffle { padding: 8px 18px; }
+.sw-bar button:disabled { opacity: 0.6; cursor: default; }
+.sw-tip { position: absolute; left: 50%; top: calc(max(12px, env(safe-area-inset-top)) + 62px); transform: translateX(-50%); font-size: 13px; color: ${c.panelText}; background: ${c.panelBackground}e6; border: 1px solid ${c.panelBorder}; padding: 5px 14px; border-radius: 999px; white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
 .sw-list { position: absolute; right: 12px; top: 76px; bottom: 12px; width: 340px; display: flex; flex-direction: column; overflow: hidden; }
 .sw-list header { display: flex; align-items: center; gap: 8px; padding: 14px 16px 8px; }
 .sw-list h2 { font-size: 20px; flex: 1; margin: 0; }
@@ -79,6 +82,8 @@ export class ScreenWatchView {
   private readonly bar = el('div', 'sw-card sw-bar');
   private readonly status = el('div', 'sw-status');
   private readonly leave = el('button', '', 'Leave');
+  private readonly shuffle = el('button', 'sw-primary sw-shuffle', 'Shuffle');
+  private readonly tip = el('div', 'sw-tip');
   private readonly list = el('section', 'sw-card sw-list');
   private readonly title = el('h2');
   private readonly fold = el('button', '', 'Hide');
@@ -109,7 +114,9 @@ export class ScreenWatchView {
       el('p', 'sw-fine', 'Nothing is recorded. The reading reaches this screen encrypted, through a relay that stores nothing.'),
     );
 
-    this.bar.append(this.status, this.leave);
+    this.bar.append(this.status, this.shuffle, this.leave);
+    this.shuffle.hidden = true;
+    this.tip.hidden = true;
     const header = el('header');
     header.append(this.title, this.fold);
     this.list.append(header, this.rows);
@@ -118,7 +125,7 @@ export class ScreenWatchView {
       this.fold.textContent = folded ? 'Show' : 'Hide';
     });
 
-    this.root.append(this.entry, this.join, this.bar, this.list, this.hint);
+    this.root.append(this.entry, this.join, this.bar, this.tip, this.list, this.hint);
     document.body.append(this.root);
     this.show('entry');
   }
@@ -128,6 +135,7 @@ export class ScreenWatchView {
     this.entry.hidden = part !== 'entry';
     this.join.hidden = part !== 'join';
     for (const node of [this.bar, this.list, this.hint]) node.hidden = part !== 'watching';
+    if (part !== 'watching') this.tip.hidden = true;
     if (part === 'join') setTimeout(() => this.input.focus(), 0);
   }
 
@@ -152,6 +160,23 @@ export class ScreenWatchView {
     this.cancel.addEventListener('click', handler);
   }
 
+  onShuffle(handler: () => void): void {
+    this.shuffle.addEventListener('click', handler);
+  }
+
+  /** The Shuffle button: hidden, ready, or waiting on the reader's headset. */
+  setShuffle(state: 'hidden' | 'ready' | 'asking' | 'shuffling'): void {
+    this.shuffle.hidden = state === 'hidden';
+    this.shuffle.disabled = state !== 'ready';
+    this.shuffle.textContent = state === 'asking' ? 'Asking...' : state === 'shuffling' ? 'Shuffling...' : 'Shuffle';
+  }
+
+  /** A short hint under the bar, or none. */
+  setTip(text: string | null): void {
+    this.tip.hidden = !text || this.bar.hidden;
+    if (text) this.tip.textContent = text;
+  }
+
   onLeave(handler: () => void): void {
     this.leave.addEventListener('click', handler);
   }
@@ -168,8 +193,13 @@ export class ScreenWatchView {
    * The spread, spot by spot: each turned card with its picture, words, and
    * meaning; face-down and undrawn spots say so.
    */
-  renderCards(snapshot: ReadingSnapshot, cards: ReadonlyMap<string, CardData>, faceUrl: (id: string) => string | null): void {
-    this.title.textContent = snapshot.spread?.name ?? 'Waiting for a spread';
+  renderCards(
+    snapshot: ReadingSnapshot,
+    cards: ReadonlyMap<string, CardData>,
+    faceUrl: (id: string) => string | null,
+    catchingUp = false,
+  ): void {
+    this.title.textContent = catchingUp ? 'Catching up...' : (snapshot.spread?.name ?? 'Waiting for a spread');
     const rows = snapshot.slots.map((slot) => {
       const row = el('li', 'sw-row');
       const card = slot.cardId ? cards.get(slot.cardId) : undefined;

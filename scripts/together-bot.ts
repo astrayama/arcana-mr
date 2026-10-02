@@ -53,6 +53,8 @@ let mode: Mode = roleArg === 'host' && arg === 'shuffle' ? 'shuffle' : 'watch';
 const code = role === 'host' ? (option('code') ?? newRoomCode()) : arg;
 const out = option('out');
 const wants: Mode = option('wants') === 'shuffle' ? 'shuffle' : 'watch';
+/** --proto 1 pretends to be an older copy of the app. */
+const proto = Number(option('proto') ?? PROTOCOL_VERSION);
 const steps = (option('steps') ?? '').split(';').map((s) => s.trim()).filter(Boolean);
 const log = (...args: unknown[]) => console.log(`[bot ${role}]`, ...args);
 
@@ -99,11 +101,11 @@ const relay = new RelayClient({
       peer = c.r === 'welcome' ? c.peer : c.present;
       log('peer', peer, role === 'host' ? `guest=${c.guest} viewers=${c.viewers}` : '');
       if (peer && role !== 'host') {
-        void send({ t: 'hello', v: PROTOCOL_VERSION, role, deck: 'rws-1909', ...(role === 'guest' ? { wants } : {}) });
+        void send({ t: 'hello', v: proto, role, deck: 'rws-1909', ...(role === 'guest' ? { wants } : {}) });
         void send({ t: 'sync-req', why: 'join' });
         tracker.requested(0);
       }
-      if (peer && role === 'host') void send({ t: 'hello', v: PROTOCOL_VERSION, role, deck: 'rws-1909', mode, epoch });
+      if (peer && role === 'host') void send({ t: 'hello', v: proto, role, deck: 'rws-1909', mode, epoch });
     },
     onFrame: async (frame) => {
       const raw = await open(room, frame, from);

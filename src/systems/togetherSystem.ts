@@ -88,7 +88,8 @@ export class TogetherSystem extends createSystem({}) {
   /** A guest asked for the state too soon after the last one; send it when allowed. */
   private stateOwed = false;
   private intent: { id: number; at: number } | null = null;
-  private nextIntentId = 1;
+  /** Starts somewhere random, so two people asking at once don't share ids. */
+  private nextIntentId = 1 + Math.floor(Math.random() * 1_000_000);
   private time = 0;
   private deck!: DeckSystem;
   private grab!: TableGrabSystem;
@@ -114,6 +115,14 @@ export class TogetherSystem extends createSystem({}) {
     this.grab.onRemoteDropped = (hold, putBack) => this.remoteDropped(hold, putBack);
     this.world.getSystem(DrawSystem)!.onRemotePull = (card, fly) => this.remotePulled(card, fly);
     app.machine.setGate((event) => this.gate(event));
+    // A phone or headset waking up may have missed things: check the line and catch up.
+    const woke = () => {
+      if (document.visibilityState !== 'visible' || (this.role !== 'guest' && this.role !== 'viewer')) return;
+      this.tracker.markUnsynced();
+      this.relay?.probe();
+    };
+    document.addEventListener('visibilitychange', woke);
+    this.cleanupFuncs.push(() => document.removeEventListener('visibilitychange', woke));
     this.cleanupFuncs.push(
       app.machine.subscribe((snapshot, event, origin) => this.onReading(snapshot, event, origin)),
       () => this.end(),
@@ -166,6 +175,11 @@ export class TogetherSystem extends createSystem({}) {
         this.send({ t: 'sync-req', why: this.tracker.lastSeq < 0 ? 'join' : 'stale' });
       }
     }
+    // Followers: whether they're in step with the host, for the screens that show it.
+    if (this.role === 'guest' || this.role === 'viewer') {
+      const synced = this.tracker.status === 'synced';
+      if (s.synced !== synced) this.patchSession({ synced });
+    }
     if (this.intent && this.time - this.intent.at > INTENT_TIMEOUT_S) {
       this.intent = null;
       this.deck.intentEnded();
@@ -186,7 +200,7 @@ export class TogetherSystem extends createSystem({}) {
     this.end();
     const generation = ++this.generation;
     this.role = role;
-    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, viewers: 0, problem: null });
+    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, viewers: 0, synced: false, problem: null });
     const room = await deriveRoom(code);
     if (generation !== this.generation) return;
     this.room = room;
@@ -340,8 +354,8 @@ export class TogetherSystem extends createSystem({}) {
   }
 
   private handleAsHost(msg: Msg, from: PeerRole): void {
-    // Screen viewers only ever ask to catch up.
-    if (from === 'viewer' && msg.t !== 'hello' && msg.t !== 'sync-req') return;
+    // Screen viewers only ever ask to catch up, or to shuffle.
+    if (from === 'viewer' && msg.t !== 'hello' && msg.t !== 'sync-req' && msg.t !== 'intent') return;
     switch (msg.t) {
       case 'hello':
         // The headset guest's choice, made when joining, sets who shuffles.
@@ -369,6 +383,11 @@ export class TogetherSystem extends createSystem({}) {
   private handleAsGuest(msg: Msg): void {
     switch (msg.t) {
       case 'hello':
+        // An older copy of the app on the host's side can't answer us properly.
+        if (msg.v !== PROTOCOL_VERSION) {
+          this.outdated();
+          break;
+        }
         if (msg.mode) this.modeChanged(msg.mode);
         break;
       case 'mode':
@@ -410,6 +429,13 @@ export class TogetherSystem extends createSystem({}) {
       default:
         this.onMotion(msg);
     }
+  }
+
+  /** The host is running a different version: stop, and say why. */
+  private outdated(): void {
+    this.end();
+    this.setSession({ ...SOLO, status: 'ended', problem: 'outdated' });
+    app.machine.adopt();
   }
 
   /** A guest hears who shuffles now. Losing the shuffle means putting the deck down. */

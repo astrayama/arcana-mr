@@ -1,8 +1,10 @@
 /**
- * Who may do what in a shared reading. The host chose a mode when opening
- * the room: "watch" (the host reads, the guest watches) or "shuffle" (the
- * guest shuffles, the host lays out). With no guest present, the host can do
- * everything, and anyone reading alone always can.
+ * Who may do what in a shared reading. The room's mode is "watch" (the host
+ * reads, the guests watch) or "shuffle" (the guests shuffle, the host lays
+ * out); the headset guest picks it when joining and the host can switch it.
+ * In shuffle mode the headset guest lifts and shakes the deck, and screen
+ * viewers ask to shuffle with a button or a shake of the phone. With nobody
+ * else present, the host can do everything, and anyone reading alone always can.
  */
 
 import type { GateDecision, ReadingEvent } from '../state/readingMachine.js';
@@ -24,7 +26,8 @@ export type Allowance = 'yes' | 'no' | 'forward';
 
 export function allowed(ctx: PermissionContext, action: Action): Allowance {
   if (ctx.role === 'solo' || (ctx.role === 'host' && !ctx.peerPresent)) return 'yes';
-  if (ctx.role === 'viewer') return 'no';
+  // Someone watching on a screen can only ask to shuffle, when guests shuffle.
+  if (ctx.role === 'viewer') return ctx.mode === 'shuffle' && action === 'shuffle' ? 'forward' : 'no';
   if (ctx.role === 'host') {
     // In shuffle mode the deck is the guest's to shuffle.
     if (ctx.mode === 'shuffle' && (action === 'shuffle' || action === 'liftDeck')) return 'no';

@@ -22,6 +22,8 @@ export function problemText(problem: SessionProblem): string {
       return 'That reading already has a guest.';
     case 'taken':
       return "Couldn't open a room just now. Try again in a moment.";
+    case 'outdated':
+      return "Your reader's Carta Luna is an older version. Ask them to reload the page, then try again.";
     case 'replaced':
       return 'This reading was opened on another headset.';
     case 'unavailable':
@@ -71,10 +73,10 @@ export function viewersLine(viewers: number): string {
 
 /** Under the host's watch/shuffle choice. */
 export function roomModeNote(s: Session): string {
-  if (!s.peerPresent) return 'Your guest picks when they join; you can change it here any time.';
+  if (!s.peerPresent && s.viewers === 0) return 'Your guest picks when they join; you can change it here any time.';
   return s.mode === 'shuffle'
-    ? 'Your guest lifts the deck and shakes it to shuffle. Change it any time.'
-    : 'Your guest watches while you shuffle. Change it any time.';
+    ? 'Your guests shuffle: in a headset by shaking the deck, on a phone with a button or a shake. Change it any time.'
+    : 'Your guests watch while you shuffle. Change it any time.';
 }
 
 /** One line under the reading's status, while reading together. */
@@ -112,10 +114,10 @@ export function guestReadingStatus(state: ReadingState, mode: Mode): string {
 
 /** The host's status while a guest does the shuffling, or null to use the usual words. */
 export function hostShuffleModeStatus(state: ReadingState, snapshot: ReadingSnapshot, drawn: number): string | null {
-  if (state === 'READY') return 'Your guest shuffles: they lift the deck and give it a shake.';
+  if (state === 'READY') return 'Your guests shuffle this time: wait for one of them to shuffle the deck.';
   if (state !== 'DRAWING') return null;
   if (snapshot.slots.length === 1) return 'Draw your card: pinch the top card, or tap the deck.';
   const next = snapshot.slots.find((slot) => slot.cardId === null)?.label ?? 'the next spot';
   if (drawn === 0) return `Draw the card for ${next}: pinch the top card, or tap the deck.`;
-  return `Now the card for ${next}. Your guest can shuffle what's left.`;
+  return `Now the card for ${next}. Your guests can shuffle what's left.`;
 }

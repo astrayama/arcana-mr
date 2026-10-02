@@ -262,16 +262,27 @@ test('a guest turned away for want of a host hears it at once, but a dropped gue
   }
 });
 
-test('screen viewers can never touch anything, in either mode', () => {
+test('screen viewers touch nothing, but may ask to shuffle when guests shuffle', () => {
   for (const mode of ['watch', 'shuffle'] as const) {
     const viewer: PermissionContext = { role: 'viewer', mode, peerPresent: true };
-    for (const action of ['chooseSpread', 'newReading', 'shuffle', 'draw', 'turn', 'liftDeck', 'grabCard'] as const) {
+    for (const action of ['chooseSpread', 'newReading', 'draw', 'turn', 'liftDeck', 'grabCard'] as const) {
       assert.equal(allowed(viewer, action), 'no', `${mode} ${action}`);
     }
-    assert.equal(gateFor(viewer, { type: 'SHUFFLE' }), 'reject');
+    assert.equal(allowed(viewer, 'shuffle'), mode === 'shuffle' ? 'forward' : 'no');
+    assert.equal(gateFor(viewer, { type: 'SHUFFLE' }), mode === 'shuffle' ? 'forwarded' : 'reject');
     assert.equal(gateFor(viewer, { type: 'SHUFFLE_DONE' }), 'reject');
     assert.equal(gateFor(viewer, { type: 'REPLACE_MAT' }), 'apply', 'their own view of the table is theirs');
   }
+});
+
+test('a host with only screen viewers hands them the shuffle in shuffle mode', async () => {
+  const { permissionContext } = await import('../src/net/session.ts');
+  const base = { role: 'host', code: '123456', status: 'connected', peerPresent: false, synced: false, problem: null } as const;
+  const watched = permissionContext({ ...base, mode: 'shuffle', viewers: 2 });
+  assert.equal(allowed(watched, 'shuffle'), 'no', 'the viewers shuffle');
+  assert.equal(allowed(watched, 'draw'), 'yes');
+  const alone = permissionContext({ ...base, mode: 'shuffle', viewers: 0 });
+  assert.equal(allowed(alone, 'shuffle'), 'yes', 'nobody else here: the host does everything');
 });
 
 test('a guest says what they want when joining, and the host can change the mode', () => {

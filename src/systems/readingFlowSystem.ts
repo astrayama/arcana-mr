@@ -121,7 +121,7 @@ export class ReadingFlowSystem extends createSystem({
     const drawn = app.machine.drawnCount;
     const status = guest
       ? guestReadingStatus(state, s.mode)
-      : s.role === 'host' && s.mode === 'shuffle' && s.peerPresent
+      : s.role === 'host' && s.mode === 'shuffle' && (s.peerPresent || s.viewers > 0)
         ? (hostShuffleModeStatus(state, snapshot, drawn) ?? STATUS[state](snapshot, drawn))
         : STATUS[state](snapshot, drawn);
     setText(document, 'mn-status', status);
@@ -135,8 +135,8 @@ export class ReadingFlowSystem extends createSystem({
     show('mn-another', !guest && state === 'READY');
     show('mn-session', line !== null);
     show('mn-move', state !== 'SHUFFLING');
-    show('mn-mode', s.role === 'host' && s.peerPresent && state !== 'SHUFFLING');
-    setText(document, 'mn-mode-text', s.mode === 'watch' ? 'Let your guest shuffle' : 'Shuffle it yourself');
+    show('mn-mode', s.role === 'host' && (s.peerPresent || s.viewers > 0) && state !== 'SHUFFLING');
+    setText(document, 'mn-mode-text', s.mode === 'watch' ? 'Let your guests shuffle' : 'Shuffle it yourself');
     show('mn-leave', s.role !== 'solo');
   }
 

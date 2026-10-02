@@ -145,6 +145,21 @@ export class RelayClient {
     return true;
   }
 
+  /**
+   * Check the line right now (a phone just woke up, say): ping, and if no pong
+   * comes back soon, drop the connection so it reconnects.
+   */
+  probe(timeoutMs = 4000): void {
+    if (!this.connected) return;
+    const ws = this.ws!;
+    const missedBefore = this.missed;
+    this.missed++;
+    ws.send('ping');
+    setTimeout(() => {
+      if (this.ws === ws && this.missed > missedBefore) ws.close(4000, 'silent');
+    }, timeoutMs);
+  }
+
   /** Leave for good. */
   close(): void {
     this.closedByUs = true;

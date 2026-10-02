@@ -24,7 +24,8 @@ export type SessionStatus =
   /** Couldn't join or the session ended; see `problem`. */
   | 'ended';
 
-export type SessionProblem = 'no-host' | 'taken' | 'full' | 'replaced' | 'unavailable' | null;
+/** `outdated`: the host's Carta Luna is a different version (an old tab still open). */
+export type SessionProblem = 'no-host' | 'taken' | 'full' | 'replaced' | 'unavailable' | 'outdated' | null;
 
 export interface Session {
   role: SessionRole;
@@ -36,13 +37,25 @@ export interface Session {
   peerPresent: boolean;
   /** Host: how many people are watching on a phone or computer. */
   viewers: number;
+  /** Guest or viewer: in step with the host's reading (false while catching up). */
+  synced: boolean;
   problem: SessionProblem;
 }
 
-export const SOLO: Session = { role: 'solo', mode: 'watch', code: null, status: 'off', peerPresent: false, viewers: 0, problem: null };
+export const SOLO: Session = {
+  role: 'solo',
+  mode: 'watch',
+  code: null,
+  status: 'off',
+  peerPresent: false,
+  viewers: 0,
+  synced: false,
+  problem: null,
+};
 
 export const session = signal<Session>(SOLO);
 
+/** For permissions, a host is "with someone" when the headset guest or any screen viewer is here. */
 export function permissionContext(s: Session = session.peek()): PermissionContext {
-  return { role: s.role, mode: s.mode, peerPresent: s.peerPresent };
+  return { role: s.role, mode: s.mode, peerPresent: s.role === 'host' ? s.peerPresent || s.viewers > 0 : s.peerPresent };
 }

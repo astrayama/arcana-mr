@@ -213,11 +213,11 @@ export function togetherMarkup(): string {
       <div class="hb-tg-choice">
         <div id="hb-tg-room-watch" class="hb-chip">
           <Eye class="hb-chip-icon"></Eye>
-          <div class="hb-chip-text">Guest watches</div>
+          <div class="hb-chip-text">Guests watch</div>
         </div>
         <div id="hb-tg-room-shuffle" class="hb-chip">
           <Shuffle class="hb-chip-icon"></Shuffle>
-          <div class="hb-chip-text">Guest shuffles</div>
+          <div class="hb-chip-text">Guests shuffle</div>
         </div>
       </div>
       <div id="hb-tg-room-mode" class="hb-tg-modeline">Your guest picks when they join; you can change it here any time.</div>

@@ -25,6 +25,19 @@ const NOTES = {
     'The headset view has not opened yet. Look around in the headset for a permission prompt and allow it. If none appears, fully close the Quest Browser, open this page again, and tap Begin.',
 } as const;
 
+/**
+ * Where the card sits on the screen: centered on a computer, nearly the full
+ * width of a phone held upright, and most of the height of one held sideways.
+ * Leaves room at the bottom for the "watch on this screen" button.
+ */
+function cardBox(): { top: string; left: string; width: string; height: string } {
+  if (window.innerHeight < 520) return { top: '4vh', left: '18vw', width: '64vw', height: '74vh' };
+  if (window.innerWidth < 720 || window.innerHeight > window.innerWidth) {
+    return { top: '5vh', left: '4vw', width: '92vw', height: '78vh' };
+  }
+  return { top: '18vh', left: '30vw', width: '40vw', height: '64vh' };
+}
+
 /** The flat-browser welcome card with the button that starts the headset session. */
 export class LandingSystem extends createSystem({
   panels: { required: [UiPanel, PanelDocument] },
@@ -39,12 +52,15 @@ export class LandingSystem extends createSystem({
     this.panel.addComponent(PanelUI, {
       config: themedPanelUrl('landing', landingTemplate, app.theme),
     });
-    this.panel.addComponent(ScreenSpace, {
-      top: '18vh',
-      left: '30vw',
-      width: '40vw',
-      height: '64vh',
-    });
+    this.panel.addComponent(ScreenSpace, cardBox());
+    // Turning a phone, or resizing a window, refits the card.
+    const refit = () => {
+      if (!this.panel.hasComponent(ScreenSpace)) return;
+      const box = cardBox();
+      for (const key of ['top', 'left', 'width', 'height'] as const) this.panel.setValue(ScreenSpace, key, box[key]);
+    };
+    window.addEventListener('resize', refit);
+    this.cleanupFuncs.push(() => window.removeEventListener('resize', refit));
 
     this.cleanupFuncs.push(
       this.queries.panels.subscribe('qualify', (entity) => {

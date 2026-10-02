@@ -10,7 +10,8 @@ import { MAX_SPREAD_CARDS, validateSpread, type SpreadDef } from '../spreads/spr
 import type { Mode } from './permissions.js';
 import type { PeerRole } from './secure.js';
 
-export const PROTOCOL_VERSION = 1;
+/** Bumped when messages change in a way older copies of the app can't follow. */
+export const PROTOCOL_VERSION = 2;
 
 export type Obj = 'deck' | number;
 export type V3 = [number, number, number];
