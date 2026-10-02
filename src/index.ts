@@ -1,5 +1,6 @@
 import { Raycaster, World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
+import { loadingFailed } from './app/loading.js';
 import { app } from './app/context.js';
 import { backRegistry } from './backs/catalog.js';
 import { deckRegistry, getDeck } from './decks/registry.js';
@@ -110,4 +111,7 @@ World.create(
       Raycaster,
     };
   }
+}).catch((error) => {
+  console.error('[arcana] could not start', error);
+  loadingFailed();
 });

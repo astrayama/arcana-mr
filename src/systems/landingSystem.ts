@@ -12,6 +12,7 @@ import { app } from '../app/context.js';
 import { UiPanel } from '../components/ui.js';
 import landingTemplate from '../ui/landing.uikitml?raw';
 import { setText } from '../ui/panels.js';
+import { finishLoading } from '../app/loading.js';
 import { onScreen } from '../app/screen.js';
 import { themedPanelUrl } from '../ui/themedPanel.js';
 
@@ -69,6 +70,8 @@ export class LandingSystem extends createSystem({
     const document = entity.getValue(PanelDocument, 'document') as UIKitDocument;
     this.document = document;
     this.refreshVisibility();
+    // The welcome card is ready to show: the loading screen can go.
+    finishLoading();
     const enter = document.getElementById('landing-enter');
     if (!enter) return;
     const note = (text: string | null) => {

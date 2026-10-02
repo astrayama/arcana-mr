@@ -11,8 +11,27 @@
     <meta name="referrer" content="no-referrer" />
     <link rel="icon" href="data:," />
     <title>Carta Luna</title>
+    <style>
+      /* Shown from the first moment, until the app's welcome card is ready. */
+      #loading { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; background: #0f0d0b; color: #bba985; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center; transition: opacity 0.5s; }
+      #loading.done { opacity: 0; pointer-events: none; }
+      #loading .loading-title { font: 600 34px/1.2 Georgia, "Times New Roman", serif; color: #d4af37; }
+      #loading .loading-bar { width: 140px; height: 2px; border-radius: 1px; background: #3a2e1e; overflow: hidden; }
+      #loading .loading-bar span { display: block; width: 40%; height: 100%; background: #d4af37; animation: loading-slide 1.6s ease-in-out infinite; }
+      #loading .loading-slow { max-width: 300px; font-size: 13px; opacity: 0; animation: loading-show 0.6s 15s forwards; }
+      #loading.failed .loading-bar, #loading.failed .loading-slow { display: none; }
+      @keyframes loading-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+      @keyframes loading-show { to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { #loading .loading-bar span { animation: none; width: 100%; opacity: 0.5; } }
+    </style>
   </head>
   <body style="margin: 0; background: #0f0d0b">
+    <div id="loading" role="status" aria-live="polite">
+      <div class="loading-title">Carta Luna</div>
+      <div class="loading-text">Setting the table...</div>
+      <div class="loading-bar"><span></span></div>
+      <div class="loading-slow">Still loading. On a slow connection this can take a minute.</div>
+    </div>
     <div id="scene-container"></div>
     <script type="module" src="/src/index.ts"></script>
   </body>
