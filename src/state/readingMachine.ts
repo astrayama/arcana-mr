@@ -31,14 +31,46 @@ export type ReadingStateName =
 export type ReadingEvent =
   | { type: 'MAT_PLACED' }
   | { type: 'REPLACE_MAT' }
-  | { type: 'CHOOSE_SPREAD'; spread: SpreadDef }
-  | { type: 'SHUFFLE' }
+  /** `rn` carries the host's reading number in a shared reading. */
+  | { type: 'CHOOSE_SPREAD'; spread: SpreadDef; rn?: number }
+  /** `passes` is how many riffles to show (one when shaken in the hand). */
+  | { type: 'SHUFFLE'; passes?: 1 | 2 }
   | { type: 'SHUFFLE_DONE' }
-  /** Draw the top card into the next open spot. Listeners get the spot it went into. */
-  | { type: 'DRAW'; slot?: number }
+  /**
+   * Draw the top card into the next open spot. Listeners get the spot it went
+   * into and the card. A shared reading's host sends `card`; `toHand` means it
+   * went into someone's fingers rather than straight to its spot.
+   */
+  | { type: 'DRAW'; slot?: number; card?: DrawnCard; toHand?: boolean }
   /** Turn a drawn card face up or face down. */
   | { type: 'TURN'; slot: number; faceUp: boolean }
-  | { type: 'NEW_READING' };
+  | { type: 'NEW_READING' }
+  /** The whole reading was replaced from a shared reading's host (see `restore`). Never sent. */
+  | { type: 'RESTORE' };
+
+/**
+ * Where an event came from: this headset, the host of a shared reading, or a
+ * guest's request that the host has accepted.
+ */
+export type Origin = 'local' | 'remote' | 'intent';
+
+/** What a shared reading's rules say about a local event: go ahead, refuse, or it was passed to the host. */
+export type GateDecision = 'apply' | 'reject' | 'forwarded';
+export type Gate = (event: ReadingEvent, machine: ReadingMachine) => GateDecision;
+
+/** Events about this headset's own table, never shared or gated. */
+const DEVICE_EVENTS: ReadonlySet<ReadingEvent['type']> = new Set(['MAT_PLACED', 'REPLACE_MAT']);
+
+/** A reading as shared between headsets: everything except where the mat is. */
+export interface SharedReading {
+  phase: Exclude<ReadingStateName, 'PLACING'>;
+  spread: SpreadDef | null;
+  /** Reading number. */
+  rn: number;
+  shuffles: number;
+  /** Per spot: card id (or null), reversed, face up. */
+  slots: { c: string | null; r: boolean; u: boolean }[];
+}
 
 export interface ReadingSlot {
   /** Index into the spread's positions. */
@@ -70,9 +102,9 @@ export interface ReadingMachineOptions {
   draw?: typeof drawCards;
 }
 
-/** Listeners get DRAW with the slot it actually went into. */
+/** Listeners get DRAW with the slot it actually went into, and the card. */
 export type ResolvedEvent = ReadingEvent;
-type Listener = (snapshot: ReadingSnapshot, event: ResolvedEvent) => void;
+type Listener = (snapshot: ReadingSnapshot, event: ResolvedEvent, origin: Origin) => void;
 
 export class ReadingMachine {
   private snapshot: ReadingSnapshot = {
@@ -87,6 +119,7 @@ export class ReadingMachine {
   private readonly listeners = new Set<Listener>();
   private readonly draw: typeof drawCards;
   private cardIds: readonly string[];
+  private gate: Gate | null = null;
 
   constructor(private readonly options: ReadingMachineOptions) {
     this.draw = options.draw ?? drawCards;
@@ -127,29 +160,102 @@ export class ReadingMachine {
     return () => this.listeners.delete(listener);
   }
 
-  /** Whether `event` would be accepted in the current state. */
+  /** Whether `event` would be accepted in the current state (without shuffling anything). */
   can(event: ReadingEvent): boolean {
-    return this.next(event) !== null;
+    return this.next(event, 'dry') !== null;
   }
 
   /**
-   * Apply an event. Returns true if it caused a transition. Events that make
-   * no sense in the current state (a double tap, a late animation callback)
-   * are ignored rather than thrown, so input glitches can't break the flow.
+   * In a shared reading, decide what happens to events from this headset
+   * (see `Gate`). Device events are never gated. Null removes the gate.
    */
-  send(event: ReadingEvent): boolean {
-    const result = this.next(event);
-    if (result === null) return false;
-    this.snapshot = result.snapshot;
-    if (result.pending) this.pending = result.pending;
-    for (const listener of this.listeners) {
-      listener(result.snapshot, result.event);
+  setGate(gate: Gate | null): void {
+    this.gate = gate;
+  }
+
+  /**
+   * Apply an event. Returns true if it caused a transition (or was passed to a
+   * shared reading's host). Events that make no sense in the current state (a
+   * double tap, a late animation callback) are ignored rather than thrown, so
+   * input glitches can't break the flow.
+   */
+  send(event: ReadingEvent, origin: Origin = 'local'): boolean {
+    if (event.type === 'RESTORE') return false;
+    if (origin === 'local' && this.gate && !DEVICE_EVENTS.has(event.type)) {
+      const decision = this.gate(event, this);
+      if (decision === 'reject') return false;
+      if (decision === 'forwarded') return true;
     }
+    const result = this.next(event, origin);
+    if (result === null) return false;
+    this.emit(result.snapshot, result.event, origin, result.pending);
     return true;
+  }
+
+  /**
+   * Replace the whole reading with a shared reading's (a guest catching up).
+   * Not while this headset is placing its mat. Emits RESTORE so everything
+   * on the table can be rebuilt.
+   */
+  restore(shared: SharedReading): boolean {
+    if (this.snapshot.state === 'PLACING') return false;
+    const spread = shared.spread;
+    if (spread && shared.slots.length !== spread.positions.length) return false;
+    if (!spread && shared.slots.length > 0) return false;
+    const ids = shared.slots.map((slot) => slot.c).filter((id) => id !== null);
+    if (new Set(ids).size !== ids.length) return false;
+    const slots: ReadingSlot[] = (spread?.positions ?? []).map((position, index) => ({
+      slot: index,
+      label: position.label,
+      meaning: position.meaning,
+      cardId: shared.slots[index].c,
+      reversed: shared.slots[index].c !== null && shared.slots[index].r,
+      faceUp: shared.slots[index].c !== null && shared.slots[index].u,
+    }));
+    let state: ReadingStateName = spread ? shared.phase : 'IDLE';
+    if (state === 'IDLE' && spread) state = 'READY';
+    if (state === 'DRAWING' || state === 'AWAITING_FLIPS' || state === 'REVEALED') state = this.settledState(slots);
+    const snapshot: ReadingSnapshot = { state, spread, slots, readingNumber: shared.rn, shuffles: shared.shuffles };
+    this.emit(snapshot, { type: 'RESTORE' }, 'remote', []);
+    return true;
+  }
+
+  /** The reading as shared with a guest. */
+  exportShared(): SharedReading {
+    const s = this.snapshot;
+    return {
+      phase: s.state === 'PLACING' ? 'IDLE' : s.state,
+      spread: s.spread,
+      rn: s.readingNumber,
+      shuffles: s.shuffles,
+      slots: s.slots.map((slot) => ({ c: slot.cardId, r: slot.reversed, u: slot.faceUp })),
+    };
+  }
+
+  /**
+   * Take over a reading that was being followed (a guest leaving a shared
+   * reading): shuffle what's left so drawing can go on, and finish a shuffle
+   * that was waiting on the host. Clear the gate first.
+   */
+  adopt(): void {
+    const s = this.snapshot;
+    if (!s.spread) return;
+    const drawn = new Set(s.slots.map((slot) => slot.cardId).filter((id) => id !== null));
+    const open = s.slots.filter((slot) => slot.cardId === null).length;
+    const remaining = this.cardIds.filter((id) => !drawn.has(id));
+    this.pending = open > 0 && remaining.length >= open ? this.draw(remaining, open, this.options.reversalChance) : [];
+    if (s.state === 'SHUFFLING') this.send({ type: 'SHUFFLE_DONE' });
+  }
+
+  private emit(snapshot: ReadingSnapshot, event: ResolvedEvent, origin: Origin, pending?: DrawnCard[]): void {
+    this.snapshot = snapshot;
+    if (pending) this.pending = pending;
+    for (const listener of this.listeners) listener(snapshot, event, origin);
   }
 
   private next(
     event: ReadingEvent,
+    origin: Origin | 'dry',
   ): { snapshot: ReadingSnapshot; event: ResolvedEvent; pending?: DrawnCard[] } | null {
     const s = this.snapshot;
     const same = (snapshot: ReadingSnapshot) => ({ snapshot, event });
@@ -168,12 +274,14 @@ export class ReadingMachine {
         if (event.type === 'CHOOSE_SPREAD') {
           const spread = event.spread;
           const count = spread.positions.length;
-          if (count === 0 || count > MAX_SPREAD_CARDS || count > this.cardIds.length) return null;
+          if (count === 0 || count > MAX_SPREAD_CARDS) return null;
+          // A shared reading's host decides whether its deck can hold the spread.
+          if (origin !== 'remote' && count > this.cardIds.length) return null;
           return same({
             ...s,
             state: 'READY',
             spread: event.spread,
-            readingNumber: s.readingNumber + 1,
+            readingNumber: origin === 'remote' && event.rn !== undefined ? event.rn : s.readingNumber + 1,
             shuffles: 0,
             slots: spread.positions.map((position, index) => ({
               slot: index,
@@ -188,7 +296,7 @@ export class ReadingMachine {
         return null;
 
       case 'READY':
-        return event.type === 'SHUFFLE' ? this.shuffled(event) : null;
+        return event.type === 'SHUFFLE' ? this.shuffled(event, origin) : null;
 
       case 'SHUFFLING':
         if (event.type === 'SHUFFLE_DONE') return same({ ...s, state: 'DRAWING' });
@@ -197,8 +305,8 @@ export class ReadingMachine {
 
       case 'DRAWING':
         // Shuffle what's left of the deck as often as you like between draws.
-        if (event.type === 'SHUFFLE') return this.shuffled(event);
-        if (event.type === 'DRAW') return this.drawn(event);
+        if (event.type === 'SHUFFLE') return this.shuffled(event, origin);
+        if (event.type === 'DRAW') return this.drawn(event, origin);
         return event.type === 'TURN' ? this.turned(event) : null;
 
       case 'AWAITING_FLIPS':
@@ -207,35 +315,39 @@ export class ReadingMachine {
     }
   }
 
-  /** Shuffle the cards not yet drawn, for the spots still open. */
-  private shuffled(event: ReadingEvent) {
+  /**
+   * Shuffle the cards not yet drawn, for the spots still open. A shared
+   * reading's guest (and a dry run) skips the shuffle itself: the host draws.
+   */
+  private shuffled(event: ReadingEvent, origin: Origin | 'dry') {
     const s = this.snapshot;
+    const snapshot = { ...s, state: 'SHUFFLING' as const, shuffles: s.shuffles + 1 };
+    if (origin === 'dry') return { snapshot, event };
+    if (origin === 'remote') return { snapshot, event, pending: [] };
     const drawn = new Set(s.slots.map((slot) => slot.cardId).filter((id) => id !== null));
     const open = s.slots.filter((slot) => slot.cardId === null).length;
     const remaining = drawn.size ? this.cardIds.filter((id) => !drawn.has(id)) : this.cardIds;
-    const pending = this.draw(remaining, open, this.options.reversalChance);
-    return {
-      snapshot: { ...s, state: 'SHUFFLING' as const, shuffles: s.shuffles + 1 },
-      event,
-      pending,
-    };
+    if (open > remaining.length) return null;
+    return { snapshot, event, pending: this.draw(remaining, open, this.options.reversalChance) };
   }
 
-  private drawn(event: Extract<ReadingEvent, { type: 'DRAW' }>) {
+  private drawn(event: Extract<ReadingEvent, { type: 'DRAW' }>, origin: Origin | 'dry') {
     const s = this.snapshot;
     // Cards go out in order: Past, then Present, then Future.
     const slot = s.slots.findIndex((candidate) => candidate.cardId === null);
     if (event.slot !== undefined && event.slot !== slot) return null;
     const target = s.slots[slot];
-    const card = this.pending[0];
+    // A shared reading's host says which card it was; otherwise it's the top of the deck.
+    const card = origin === 'remote' ? event.card : this.pending[0];
     if (target === undefined || card === undefined) return null;
+    if (s.slots.some((candidate) => candidate.cardId === card.cardId)) return null;
     const slots = s.slots.map((candidate) =>
       candidate.slot === slot ? { ...candidate, cardId: card.cardId, reversed: card.reversed } : candidate,
     );
     return {
       snapshot: { ...s, slots, state: this.settledState(slots) },
-      event: { type: 'DRAW' as const, slot },
-      pending: this.pending.slice(1),
+      event: { ...event, type: 'DRAW' as const, slot, card },
+      pending: origin === 'remote' ? this.pending : this.pending.slice(1),
     };
   }
 

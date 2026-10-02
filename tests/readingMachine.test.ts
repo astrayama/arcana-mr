@@ -231,3 +231,92 @@ test('the drawable cards change only between readings, and a spread needs enough
   m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.three });
   assert.equal(m.setCardIds(['a']), false, 'not mid-reading');
 });
+
+// Shared readings
+
+test('the gate decides local events, never device or remote ones', () => {
+  const m = drawing('three');
+  const seen: string[] = [];
+  m.subscribe((_, e, origin) => seen.push(`${e.type}:${origin}`));
+  m.setGate((e) => (e.type === 'DRAW' ? 'reject' : e.type === 'SHUFFLE' ? 'forwarded' : 'apply'));
+  assert.equal(m.send({ type: 'DRAW' }), false, 'rejected');
+  assert.equal(m.send({ type: 'SHUFFLE' }), true, 'forwarded counts as handled');
+  assert.equal(m.state, 'DRAWING', 'but nothing changed');
+  const card = m.upcoming(1)[0];
+  assert.equal(m.send({ type: 'DRAW', slot: 0, card }, 'remote'), true, 'remote events skip the gate');
+  m.setGate(null);
+  assert.deepEqual(seen, ['DRAW:remote']);
+});
+
+test('can() and remote shuffles never run the shuffle itself', () => {
+  let calls = 0;
+  const m = ready('three', (ids, count, chance) => {
+    calls++;
+    return drawCards(ids, count, chance);
+  });
+  assert.equal(m.can({ type: 'SHUFFLE' }), true);
+  assert.equal(calls, 0);
+  m.send({ type: 'SHUFFLE', passes: 1 }, 'remote');
+  assert.equal(calls, 0);
+  assert.equal(m.current.shuffles, 1);
+  assert.equal(m.upcoming(1).length, 0, 'the guest has no deck order of its own');
+});
+
+test('a remote draw places the host card, in order, and keeps its payload', () => {
+  const m = ready('three');
+  m.send({ type: 'SHUFFLE' }, 'remote');
+  m.send({ type: 'SHUFFLE_DONE' }, 'remote');
+  let resolved: unknown = null;
+  m.subscribe((_, e) => (resolved = e));
+  const card = { cardId: 'card-7', reversed: true };
+  assert.equal(m.send({ type: 'DRAW', slot: 1, card }, 'remote'), false, 'not the next spot');
+  assert.equal(m.send({ type: 'DRAW', slot: 0, card, toHand: true }, 'remote'), true);
+  assert.deepEqual(resolved, { type: 'DRAW', slot: 0, card, toHand: true });
+  assert.equal(m.current.slots[0].cardId, 'card-7');
+  assert.equal(m.send({ type: 'DRAW', slot: 1, card }, 'remote'), false, 'the same card twice');
+  assert.equal(m.send({ type: 'DRAW', slot: 1 }, 'remote'), false, 'a remote draw must name its card');
+});
+
+test('a remote spread keeps the host reading number and skips the deck-size check', () => {
+  const m = make();
+  m.send({ type: 'MAT_PLACED' });
+  m.setCardIds(['a']);
+  assert.equal(m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.three, rn: 41 }, 'remote'), true);
+  assert.equal(m.current.readingNumber, 41);
+});
+
+test('restore replaces the reading from any state but placing, and round-trips', () => {
+  const host = drawing('three');
+  host.send({ type: 'DRAW' });
+  host.send({ type: 'TURN', slot: 0, faceUp: true });
+  const shared = host.exportShared();
+
+  const guest = make();
+  assert.equal(guest.restore(shared), false, 'not while placing');
+  guest.send({ type: 'MAT_PLACED' });
+  const events: string[] = [];
+  guest.subscribe((_, e, origin) => events.push(`${e.type}:${origin}`));
+  assert.equal(guest.restore(shared), true);
+  assert.deepEqual(events, ['RESTORE:remote']);
+  assert.deepEqual(guest.exportShared(), shared);
+  assert.equal(guest.state, 'DRAWING');
+  assert.equal(guest.restore({ ...shared, slots: shared.slots.slice(1) }), false, 'spots must match the spread');
+  assert.equal(guest.restore({ phase: 'IDLE', spread: null, rn: 3, shuffles: 0, slots: [] }), true, 'back to no reading');
+  assert.equal(guest.state, 'IDLE');
+  assert.equal(guest.send({ type: 'RESTORE' }), false, 'RESTORE is never sent');
+});
+
+test('a guest who leaves can carry on drawing without repeating cards', () => {
+  const m = ready('three');
+  m.send({ type: 'SHUFFLE' }, 'remote');
+  m.send({ type: 'SHUFFLE_DONE' }, 'remote');
+  m.send({ type: 'DRAW', slot: 0, card: { cardId: 'card-1', reversed: false } }, 'remote');
+  m.send({ type: 'SHUFFLE' }, 'remote');
+  assert.equal(m.state, 'SHUFFLING');
+  m.adopt();
+  assert.equal(m.state, 'DRAWING', 'the stuck shuffle finished');
+  m.send({ type: 'DRAW' });
+  m.send({ type: 'DRAW' });
+  assert.equal(m.state, 'AWAITING_FLIPS');
+  assert.equal(new Set(m.current.slots.map((s) => s.cardId)).size, 3);
+});

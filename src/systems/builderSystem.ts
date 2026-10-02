@@ -211,9 +211,8 @@ export class BuilderSystem extends createSystem({}) {
     customSpreads.value = [...customSpreads.peek(), spread];
     this.active = false;
     this.draw.highlightSlot = -1;
-    if (begin) {
-      app.machine.send({ type: 'CHOOSE_SPREAD', spread });
-    } else {
+    // If the reading can't start right now, the spread is still saved: show it under Yours.
+    if (!begin || !app.machine.send({ type: 'CHOOSE_SPREAD', spread })) {
       this.table.resetLayout('builder');
       this.hub.openSpreads('yours');
     }

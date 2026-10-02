@@ -149,7 +149,8 @@ export class ReadingFlowSystem extends createSystem({
         })
         .then(() => {
           this.table.removeCard(card);
-          if (--remaining === 0) this.table.resetLayout('reading');
+          // Only if no new reading has started while the cards were gathering.
+          if (--remaining === 0 && app.machine.state === 'IDLE') this.table.resetLayout('reading');
         });
     });
   }
