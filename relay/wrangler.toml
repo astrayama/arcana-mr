@@ -4,10 +4,11 @@ name = "arcana-relay"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
 
-# Pages allowed to connect, comma-separated. "*" matches one name label, for
-# preview deployments. Set the production address here before deploying.
 [vars]
-ALLOWED_ORIGINS = "https://localhost:8081,http://localhost:8081"
+# Web pages allowed to open rooms: the deployed site and its previews, plus
+# the local dev server (on this computer, or on the Wi-Fi for a headset).
+# In a pattern, * stands for letters, digits, and dashes.
+ALLOWED_ORIGINS = "https://arcana-mr.vercel.app,https://arcana-mr-*.vercel.app,https://localhost:8081,http://localhost:8081,https://192.168.*.*:8081,https://10.*.*.*:8081"
 
 [[durable_objects.bindings]]
 name = "ROOM"

@@ -1,0 +1,8 @@
+# Only what the site build needs goes up to Vercel.
+.env*
+.tmp/
+.iwsdk/
+.claude/
+node_modules/
+dist/
+relay/

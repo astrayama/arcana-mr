@@ -307,9 +307,51 @@ keywords, reads, and reflection prompts. `npm run validate` checks:
 
 ## Deploy
 
-The app is a static site. On Vercel, import the repository (framework preset:
-Vite), keep the build command `npm run build` and output directory `dist`.
-Every push to `main` then deploys. WebXR needs HTTPS, which Vercel provides.
+Two parts: the relay for reading together (Cloudflare), then the site
+(Vercel). The site works without the relay; it just hides Read together.
+
+### 1. The relay (Cloudflare Workers, free plan)
+
+1. In the Cloudflare dashboard, under **Workers & Pages**, choose your
+   `workers.dev` subdomain. It appears in the relay's public address, so pick
+   something that isn't your name.
+2. Sign in from this folder (opens the browser):
+   ```bash
+   cd relay && npm install && npx wrangler login
+   ```
+3. Check `ALLOWED_ORIGINS` in [`relay/wrangler.toml`](relay/wrangler.toml)
+   lists the site's address, then deploy:
+   ```bash
+   npm run deploy
+   ```
+   The relay is then at `wss://arcana-relay.<subdomain>.workers.dev`.
+
+To try it locally instead, run `npm run dev` in `relay/` and put
+`VITE_RELAY_URL=ws://localhost:8787` in `.env.local` (never committed). A
+headset on the Wi-Fi can't reach that `ws://` address from the https page, so
+for headset tests use the deployed relay.
+
+### 2. The site (Vercel)
+
+The app is a static site. [`vercel.json`](vercel.json) installs with
+`npm ci --ignore-scripts` (some development tools download binaries the site
+doesn't need), builds with `npm run build`, and serves `dist`.
+
+1. Set the relay address for production builds:
+   ```bash
+   npx vercel env add VITE_RELAY_URL production
+   ```
+   and enter `wss://arcana-relay.<subdomain>.workers.dev`.
+2. Deploy:
+   ```bash
+   npx vercel deploy --prod
+   ```
+3. Open the address on a Quest. WebXR needs HTTPS, which Vercel provides.
+   Under the project's **Settings > Deployment Protection**, the production
+   address should be public, or a guest's headset will hit a sign-in page.
+
+Or import the repository in the Vercel dashboard and set the same variable;
+every push to `main` then deploys.
 
 ## Privacy
 
