@@ -56,7 +56,7 @@ export interface TableCard {
   entity: Entity;
   visual: CardVisual;
   /** The hand holding it, if any. */
-  heldBy: 'left' | 'right' | null;
+  heldBy: 'left' | 'right' | 'remote' | null;
   /** The one motion moving this card's root; starting another cancels it. */
   motion: TweenHandle | null;
   face: Texture | null;
@@ -142,6 +142,12 @@ export class TableSystem extends createSystem({}) {
         if (event.type === 'CHOOSE_SPREAD') this.setLayout(this.fit(snapshot.spread), 'reading');
         // Placing always uses the everyday mat, which is what placement fits to the table.
         if (event.type === 'REPLACE_MAT') this.setLayout(this.fit(null), 'base', false);
+        // A shared reading caught up at once: clear the table and lay out its spread.
+        if (event.type === 'RESTORE') {
+          this.removeAllCards();
+          if (snapshot.spread) this.setLayout(this.fit(snapshot.spread), 'reading', false);
+          else this.resetLayout('reading');
+        }
       }),
     );
   }
@@ -324,6 +330,11 @@ export class TableSystem extends createSystem({}) {
         if (finished) card.motion = null;
         return finished;
       });
+  }
+
+  /** Take every card off the table at once, without animation. */
+  removeAllCards(): void {
+    for (const card of [...this.cards]) this.removeCard(card);
   }
 
   removeCard(card: TableCard): void {

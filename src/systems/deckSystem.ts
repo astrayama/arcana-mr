@@ -5,7 +5,9 @@ import { DeckPile } from '../components/table.js';
 import { FocusSystem } from '../interaction/focusSystem.js';
 import { createShakeDetector } from '../lib/shake.js';
 import { ease, lerp, Tweens, type TweenHandle } from '../lib/tween.js';
-import type { ReadingSnapshot } from '../state/readingMachine.js';
+import { allowed } from '../net/permissions.js';
+import { permissionContext } from '../net/session.js';
+import type { Origin, ReadingSnapshot } from '../state/readingMachine.js';
 import { buildCard, deckStackHeight, type CardVisual } from '../visuals/tableVisuals.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem } from './tableSystem.js';
@@ -83,7 +85,8 @@ export class DeckSystem extends createSystem({
 
     this.cleanupFuncs.push(
       app.machine.subscribe((snapshot, event) => {
-        if (event.type === 'SHUFFLE') void this.runShuffle(snapshot);
+        if (event.type === 'SHUFFLE') void this.runShuffle(snapshot, event.passes ?? 2);
+        if (event.type === 'RESTORE') this.table.deckHeld = false;
         if (event.type === 'NEW_READING') {
           this.table.deckHeld = false;
           this.goHome();
@@ -131,16 +134,35 @@ export class DeckSystem extends createSystem({
     else if (state === 'DRAWING') app.machine.send({ type: 'DRAW' });
   }
 
-  private requestShuffle(): boolean {
+  /**
+   * Shuffle, from a tap or a shake (or, on a shared reading's host, the
+   * guest's shake). In a shared reading a guest's request goes to the host,
+   * and this returns true once it's on its way.
+   */
+  requestShuffle(origin: Origin = 'local'): boolean {
     if (this.shuffling) return false;
-    return app.machine.send({ type: 'SHUFFLE' });
+    // One quick riffle when shaken in the hand, a fuller one when tapped.
+    const passes: 1 | 2 = origin === 'intent' || this.grab.holderOf(this.deck) ? 1 : 2;
+    return app.machine.send({ type: 'SHUFFLE', passes }, origin);
+  }
+
+  /** A guest's shuffle request was turned down or went unanswered: listen for the next shake. */
+  intentEnded(): void {
+    this.shake.reset();
+  }
+
+  /** Whether a riffle is playing. */
+  get busy(): boolean {
+    return this.shuffling;
   }
 
   /** The deck's ray target stays on all the time; the glow says when a tap would do something. */
   private refresh(): void {
     if (!this.table.deck.hasComponent(RayInteractable)) this.table.deck.addComponent(RayInteractable);
     const state = app.machine.state;
-    this.table.deckInteractive = !this.shuffling && (state === 'READY' || state === 'DRAWING');
+    const ctx = permissionContext();
+    const tapDoes = state === 'READY' ? allowed(ctx, 'shuffle') !== 'no' : state === 'DRAWING' && allowed(ctx, 'draw') === 'yes';
+    this.table.deckInteractive = !this.shuffling && tapDoes;
   }
 
   /** Glide back to the deck's place on the mat, lying flat. */
@@ -169,12 +191,12 @@ export class DeckSystem extends createSystem({
   }
 
   /** Riffle the deck where it is, then tell the reading the shuffle is done. */
-  private async runShuffle(snapshot: ReadingSnapshot): Promise<void> {
+  private async runShuffle(snapshot: ReadingSnapshot, passes: 1 | 2): Promise<void> {
     const token = { reading: snapshot.readingNumber, shuffles: snapshot.shuffles };
     this.shuffling = true;
     this.refresh();
     // A shake in the hand gets one quick pass; a tap gets a fuller riffle.
-    await this.riffle(this.grab.holderOf(this.deck) ? 1 : 2);
+    await this.riffle(passes);
     this.shuffling = false;
     // Ready to hear the next shake.
     this.shake.reset();

@@ -5,6 +5,9 @@ import { FocusSystem } from '../interaction/focusSystem.js';
 import { HANDS, HandGestures, type Hand, type HandGesture } from '../interaction/handGestures.js';
 import { ease } from '../lib/tween.js';
 import type { ReadingStateName } from '../state/readingMachine.js';
+import { allowed } from '../net/permissions.js';
+import type { HoldState } from '../net/protocol.js';
+import { permissionContext } from '../net/session.js';
 import { isGrabTap } from '../visuals/layout.js';
 import { deckStackHeight } from '../visuals/tableVisuals.js';
 import { TableSystem, type TableCard } from './tableSystem.js';
@@ -71,6 +74,8 @@ export class TableGrabSystem extends createSystem({}) {
   private focus!: FocusSystem;
   private deck!: Object3D;
   private readonly holds: Record<Hand, Hold | null> = { left: null, right: null };
+  /** Objects someone else is holding in a shared reading: the deck, or a card by its spot. */
+  readonly remoteHolds = new Map<'deck' | number, { hid: number; object: Object3D; card: TableCard | null }>();
   private readonly nearMode: Record<Hand, boolean> = { left: false, right: false };
   private readonly rayOn: Record<Hand, boolean> = { left: true, right: true };
 
@@ -126,6 +131,20 @@ export class TableGrabSystem extends createSystem({}) {
   /** Let go of everything without telling anyone (the caller is clearing up). */
   releaseAll(): void {
     for (const hand of HANDS) this.release(hand, false);
+    this.releaseRemote();
+  }
+
+  /** Forget what the other person in a shared reading was holding. */
+  releaseRemote(): void {
+    for (const hold of this.remoteHolds.values()) {
+      if (hold.card) hold.card.heldBy = null;
+    }
+    this.remoteHolds.clear();
+  }
+
+  /** What this headset is holding right now, for a guest catching up. Filled in with live motion. */
+  localHoldStates(): HoldState[] {
+    return [];
   }
 
   /** A short buzz on a controller, where supported. */
@@ -184,8 +203,12 @@ export class TableGrabSystem extends createSystem({}) {
   /** Distance from the pinch to the nearest thing a pinch can take; sets `foundCard` (null means the deck). */
   private pinchTarget(g: HandGesture): number {
     this.foundCard = null;
-    let best = this.boxDistance(this.deck, this.deckCenterY, this.deckHalf, g.pinchPoint);
+    // In a shared reading, only reach for what this person may touch.
+    const ctx = permissionContext();
+    const deckOk = !this.remoteHolds.has('deck') && (allowed(ctx, 'draw') === 'yes' || allowed(ctx, 'shuffle') !== 'no');
+    let best = deckOk ? this.boxDistance(this.deck, this.deckCenterY, this.deckHalf, g.pinchPoint) : Infinity;
     let bestHeight = -Infinity;
+    if (allowed(ctx, 'grabCard') !== 'yes') return best;
     for (const card of this.table.cards) {
       if (card.phase !== 'placed' || card.heldBy) continue;
       const d = this.boxDistance(card.visual.root, config.card.thicknessM / 2, this.cardHalf, g.pinchPoint);
@@ -204,6 +227,7 @@ export class TableGrabSystem extends createSystem({}) {
   private fistTarget(hand: Hand, g: HandGesture): number {
     const holder = this.holderOf(this.deck);
     if (holder && holder !== hand) return Infinity;
+    if (this.remoteHolds.has('deck') || allowed(permissionContext(), 'liftDeck') !== 'yes') return Infinity;
     return this.boxDistance(this.deck, this.deckCenterY, this.deckHalf, g.palmPoint);
   }
 

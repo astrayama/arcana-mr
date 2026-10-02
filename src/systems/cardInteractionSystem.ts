@@ -44,6 +44,13 @@ export class CardInteractionSystem extends createSystem({
     };
 
     this.cleanupFuncs.push(
+      // In a shared reading, the other person turned a card.
+      app.machine.subscribe((_, event, origin) => {
+        if (event.type === 'RESTORE') this.flips.clear();
+        if (event.type !== 'TURN' || origin !== 'remote') return;
+        const card = this.table.cards.find((c) => c.slot === event.slot && c.phase !== 'gathering');
+        if (card) this.showTurn(card, event.faceUp, card.heldBy !== 'remote');
+      }),
       this.queries.pressed.subscribe('qualify', (entity) => {
         const card = this.table.cardForEntity(entity);
         if (!card || card.phase !== 'placed' || card.heldBy) return;
@@ -99,6 +106,34 @@ export class CardInteractionSystem extends createSystem({
     this.flips.set(card, handle);
   }
 
+  /**
+   * Show a card turning to `faceUp`. Animated for a card on the table; for a
+   * card in someone else's hand only the face is recorded, and settling it
+   * later turns it the right way.
+   */
+  showTurn(card: TableCard, faceUp: boolean, animate: boolean): void {
+    card.faceUp = faceUp;
+    if (card.entity.hasComponent(TarotCard)) card.entity.setValue(TarotCard, 'faceUp', faceUp);
+    if (!animate) return;
+    const pivot = card.visual.pivot;
+    const from = pivot.rotation.z;
+    const to = faceUp ? 0 : Math.PI;
+    this.flips.get(card)?.cancel();
+    const handle = this.table.tweens.add({
+      duration: FLIP_SECONDS,
+      easing: ease.inOutCubic,
+      onUpdate: (k) => {
+        pivot.rotation.z = from + (to - from) * k;
+        card.flipLift = Math.sin(Math.PI * k) * FLIP_LIFT_M;
+      },
+      onDone: () => {
+        card.flipLift = 0;
+        this.flips.delete(card);
+      },
+    });
+    this.flips.set(card, handle);
+  }
+
   /** Jump a flip in progress to its end, so a card picked up mid-flip is already turned. */
   private finishFlip(card: TableCard): void {
     const flip = this.flips.get(card);
@@ -113,7 +148,7 @@ export class CardInteractionSystem extends createSystem({
    * Glide to the card's own spot, lying flat, upright or reversed as it was
    * drawn, and face up or down as it is now.
    */
-  private settle(card: TableCard): void {
+  settle(card: TableCard): void {
     const to = this.table.slotPose(card.slot);
     if (!to || card.phase === 'gathering') return;
     const root = card.visual.root;

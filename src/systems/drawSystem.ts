@@ -12,6 +12,7 @@ import {
   MAT_SURFACE_Y,
   type SlotOutline,
 } from '../visuals/tableVisuals.js';
+import { getDeck } from '../decks/registry.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem, type TableCard } from './tableSystem.js';
 
@@ -51,6 +52,8 @@ export class DrawSystem extends createSystem({}) {
   private names: SpotName[] = [];
   /** Set while a pinch is drawing, so the new card goes to the hand instead of flying. */
   private pulling = false;
+  /** Set by the together system: a card the other person pulled into their hand. */
+  onRemotePull: ((card: TableCard, fallback: () => void) => void) | null = null;
   private pulled: TableCard | null = null;
   private time = 0;
 
@@ -66,14 +69,17 @@ export class DrawSystem extends createSystem({}) {
       // The spots on the mat follow the layout: a reading's spread, or the
       // builder's preview, or nothing between readings.
       this.table.onLayout((layout) => this.buildMarkers(layout)),
-      app.machine.subscribe((snapshot, event) => {
+      app.machine.subscribe((snapshot, event, origin) => {
         switch (event.type) {
           case 'SHUFFLE_DONE':
             this.preloadUpcoming();
             break;
           case 'DRAW':
-            this.drawn(snapshot, event.slot!);
+            this.drawn(snapshot, event.slot!, origin === 'remote' && event.toHand === true);
             this.preloadUpcoming();
+            break;
+          case 'RESTORE':
+            this.restoreCards(snapshot);
             break;
           case 'NEW_READING':
             this.removeMarkers();
@@ -106,7 +112,7 @@ export class DrawSystem extends createSystem({}) {
     this.pulling = true;
     this.pulled = null;
     try {
-      app.machine.send({ type: 'DRAW' });
+      app.machine.send({ type: 'DRAW', toHand: true });
     } finally {
       this.pulling = false;
     }
@@ -116,7 +122,7 @@ export class DrawSystem extends createSystem({}) {
   }
 
   /** A card came off the deck for `slot`: into the hand that pinched it, or flying to its spot. */
-  private drawn(snapshot: ReadingSnapshot, slot: number): void {
+  private drawn(snapshot: ReadingSnapshot, slot: number, remoteToHand = false): void {
     const data = snapshot.slots[slot];
     if (!data?.cardId || !snapshot.spread) return;
 
@@ -136,6 +142,12 @@ export class DrawSystem extends createSystem({}) {
     if (this.pulling) {
       card.phase = 'held';
       this.pulled = card;
+      return;
+    }
+    // In a shared reading, the other person pinched it off the deck: it waits
+    // for their hand's motion, and flies to its spot if none arrives.
+    if (remoteToHand && this.onRemotePull) {
+      this.onRemotePull(card, () => this.fly(card, app.machine.current));
       return;
     }
     this.fly(card, snapshot);
@@ -169,8 +181,9 @@ export class DrawSystem extends createSystem({}) {
       });
   }
 
-  private loadFace(card: TableCard): void {
-    const url = card.cardId ? app.deck.faceUrl(card.cardId) : null;
+  /** Put the card's face image on it (the deck in use, or the default deck if this one lacks it). */
+  loadFace(card: TableCard): void {
+    const url = card.cardId ? (app.deck.faceUrl(card.cardId) ?? getDeck(config.defaults.deck)?.faceUrl(card.cardId) ?? null) : null;
     if (!url) return;
     loadColorTexture(url).then((texture) => {
       if (!this.table.cards.includes(card)) return;
@@ -178,6 +191,27 @@ export class DrawSystem extends createSystem({}) {
       card.visual.face.material.map = texture;
       card.visual.face.material.needsUpdate = true;
     });
+  }
+
+  /**
+   * A shared reading caught up all at once: put every drawn card in its
+   * spot, face up or down, without animation. The table has already been
+   * cleared and laid out for the spread.
+   */
+  private restoreCards(snapshot: ReadingSnapshot): void {
+    for (const data of snapshot.slots) {
+      const pose = this.table.slotPose(data.slot);
+      if (!data.cardId || !pose) continue;
+      const card = this.table.createCard(pose.x, pose.y, pose.z, pose.yaw + (data.reversed ? Math.PI : 0));
+      card.slot = data.slot;
+      card.cardId = data.cardId;
+      card.reversed = data.reversed;
+      card.faceUp = data.faceUp;
+      card.visual.pivot.rotation.z = data.faceUp ? 0 : Math.PI;
+      this.loadFace(card);
+      this.table.land(card);
+    }
+    this.refreshNames(snapshot);
   }
 
   /** Warm the image cache for the next few cards so faces are ready when they're drawn. */

@@ -82,6 +82,11 @@ export class MeaningSystem extends createSystem({
         if (snapshot.state === 'IDLE' || snapshot.state === 'PLACING' || event.type === 'CHOOSE_SPREAD') {
           this.hideAll();
         }
+        // A shared reading caught up at once: label every face-up card.
+        if (event.type === 'RESTORE') {
+          this.hideAll();
+          for (const slot of snapshot.slots) if (slot.faceUp) this.refreshLabelFor(slot.slot);
+        }
       }),
     );
   }
