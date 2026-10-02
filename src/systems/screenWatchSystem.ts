@@ -3,6 +3,7 @@ import { app } from '../app/context.js';
 import { onScreen } from '../app/screen.js';
 import { config } from '../config.js';
 import { getDeck } from '../decks/registry.js';
+import { createPhoneShake, motionStrength } from '../lib/phoneShake.js';
 import { allowed } from '../net/permissions.js';
 import { formatCode, isRoomCode } from '../net/roomCode.js';
 import { permissionContext, session } from '../net/session.js';
@@ -18,8 +19,6 @@ const SCREEN_MAT = { x: 0, y: 0.75, z: 0, yaw: 0 };
 const ORBIT = { yaw: 0, pitch: 0.85, distance: 1.25, minPitch: 0.12, maxPitch: 1.45, minDistance: 0.45, maxDistance: 3.2 };
 const DRAG_YAW = 0.006;
 const DRAG_PITCH = 0.005;
-/** A shake: this many jolts (m/s², gravity left out) within the window, then a pause before the next. */
-const SHAKE = { jolt: 13, jolts: 3, windowMs: 1200, gapMs: 120, restMs: 2500 };
 /** How long a shuffle request waits for the reader's headset before the button is offered again. */
 const ASK_MS = 2500;
 /** Catching up for longer than this suggests the reader's app needs a reload. */
@@ -51,10 +50,9 @@ export class ScreenWatchSystem extends createSystem({}) {
   private listening = false;
   private askedAt = 0;
   private unsyncedSince = 0;
-  private motion: 'off' | 'asking' | 'on' = 'off';
-  private readonly jolts: number[] = [];
-  private lastJolt = 0;
-  private lastShake = 0;
+  /** Shaking the phone: not yet asked, being asked, listening, or refused (or not possible here). */
+  private motion: 'off' | 'asking' | 'on' | 'refused' = 'off';
+  private readonly shook = createPhoneShake();
   private nextRefresh = 0;
 
   init(): void {
@@ -172,6 +170,7 @@ export class ScreenWatchSystem extends createSystem({}) {
     if (!mine || !this.canShuffle()) view.setTip(null);
     else if (touch && this.motion === 'on') view.setTip('Tap Shuffle or shake your phone.');
     else if (touch && this.motion === 'off') view.setTip('Tap Shuffle. After that, a shake works too.');
+    // A computer, or a phone that said no to motion: the button only.
     else view.setTip('Your reader lets you shuffle: tap Shuffle.');
   }
 
@@ -182,11 +181,11 @@ export class ScreenWatchSystem extends createSystem({}) {
     this.motion = 'asking';
     try {
       if (ask && (await ask()) !== 'granted') {
-        this.motion = 'off';
+        this.motion = 'refused';
         return;
       }
     } catch {
-      this.motion = 'off';
+      this.motion = 'refused';
       return;
     }
     this.motion = 'on';
@@ -195,26 +194,10 @@ export class ScreenWatchSystem extends createSystem({}) {
     this.cleanupFuncs.push(() => window.removeEventListener('devicemotion', onMotion));
   }
 
-  /** Count sharp jolts; a few in quick succession is a shake. */
+  /** A few sharp jolts in quick succession is a shake: ask to shuffle. */
   private felt(e: DeviceMotionEvent): void {
-    const a = e.acceleration;
-    let strength: number;
-    if (a && a.x !== null && a.y !== null && a.z !== null) strength = Math.hypot(a.x, a.y, a.z);
-    else {
-      const g = e.accelerationIncludingGravity;
-      if (!g || g.x === null || g.y === null || g.z === null) return;
-      strength = Math.abs(Math.hypot(g.x, g.y, g.z) - 9.81);
-    }
-    const now = performance.now();
-    if (strength < SHAKE.jolt || now - this.lastJolt < SHAKE.gapMs) return;
-    this.lastJolt = now;
-    this.jolts.push(now);
-    while (this.jolts.length && now - this.jolts[0] > SHAKE.windowMs) this.jolts.shift();
-    if (this.jolts.length >= SHAKE.jolts && now - this.lastShake > SHAKE.restMs && this.canShuffle()) {
-      this.lastShake = now;
-      this.jolts.length = 0;
-      this.shuffle();
-    }
+    const strength = motionStrength(e);
+    if (strength !== null && this.shook(strength, performance.now()) && this.canShuffle()) this.shuffle();
   }
 
   private refreshStatus(): void {
