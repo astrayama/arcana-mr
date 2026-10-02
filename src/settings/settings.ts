@@ -27,8 +27,8 @@ export interface KnownIds {
   surroundings: readonly string[];
 }
 
-export function defaultSettings(defaultDeck: string): Settings {
-  return { v: 1, deck: defaultDeck, back: DECK_BACK, surroundings: 'room', seenIntro: false };
+export function defaultSettings(defaultDeck: string, defaultSurroundings = 'room'): Settings {
+  return { v: 1, deck: defaultDeck, back: DECK_BACK, surroundings: defaultSurroundings, seenIntro: false };
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);

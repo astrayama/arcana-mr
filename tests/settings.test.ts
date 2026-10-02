@@ -22,7 +22,7 @@ test('choices that no longer exist fall back one by one', () => {
   const parsed = parseSettings(saved, known, defaults);
   assert.equal(parsed.deck, 'rws-1909');
   assert.equal(parsed.back, DECK_BACK);
-  assert.equal(parsed.surroundings, 'room');
+  assert.equal(parsed.surroundings, defaults.surroundings);
   assert.equal(parsed.seenIntro, false, 'only a real true counts');
 });
 
@@ -67,6 +67,13 @@ test('storage that throws never breaks the app', () => {
   assert.equal(writeJson('k', 1, throwing), false);
   assert.equal(readJson('k', null), null);
   assert.equal(writeJson('k', 1, null), false);
+});
+
+test('surroundings default to what the app chooses, and your room stays a valid choice', () => {
+  const sanctum = defaultSettings('rws-1909', 'night-sanctum');
+  assert.equal(parseSettings(null, known, sanctum).surroundings, 'night-sanctum');
+  assert.equal(parseSettings({ v: 1, surroundings: 'gone' }, known, sanctum).surroundings, 'night-sanctum');
+  assert.equal(parseSettings({ v: 1, surroundings: 'room' }, known, sanctum).surroundings, 'room');
 });
 
 test('choices of things added on the headset are kept until they load', () => {

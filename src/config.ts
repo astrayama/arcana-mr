@@ -8,6 +8,8 @@ export const config = {
   defaults: {
     deck: 'rws-1909',
     theme: 'dark-gold',
+    /** What's around you until you choose: an environment id, or 'room' for passthrough. */
+    surroundings: 'night-sanctum',
   },
 
   /** Query-string names for testing overrides, e.g. `?deck=rws-1909&theme=dark-gold`. */

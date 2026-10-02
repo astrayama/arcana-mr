@@ -49,13 +49,14 @@ export interface AppContext {
 }
 
 /**
- * `?view=<id>` picks an environment and `?view=vr` means the first one;
- * otherwise the saved choice.
+ * `?view=<id>` picks an environment, `?view=vr` means the first one, and
+ * `?view=room` means passthrough; otherwise the saved choice.
  */
 function initialSurroundings(search: string, saved: string): string {
   const requested = new URLSearchParams(search).get(config.urlParams.view);
   const environments = listEnvironments();
   if (!requested) return saved;
+  if (requested === 'room') return 'room';
   if (environments.length === 0) return 'room';
   if (requested === 'vr') return environments[0].id;
   return environments.some((env) => env.id === requested) ? requested : 'room';
@@ -85,7 +86,9 @@ export function createAppContext(search: string): AppContext {
     backs: listBacks().map((b) => b.manifest.id),
     surroundings: listEnvironments().map((env) => env.id),
   };
-  const defaults = defaultSettings(config.defaults.deck);
+  // The night sanctum to start with, if it's installed; otherwise your room.
+  const defaultSurroundings = known.surroundings.includes(config.defaults.surroundings) ? config.defaults.surroundings : 'room';
+  const defaults = defaultSettings(config.defaults.deck, defaultSurroundings);
   const settings = signal(parseSettings(readJson(SETTINGS_KEY), known, defaults));
 
   const deckPick = pickFromUrl(search, config.urlParams.deck, listDeckIds(), settings.peek().deck);

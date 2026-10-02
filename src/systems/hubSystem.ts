@@ -42,12 +42,12 @@ function deckChoices(): Choice[] {
 
 function environmentChoices(): (Choice & { icon: 'House' | 'MoonStar' | 'Sun' })[] {
   return [
-    { id: 'room', label: 'Your room', icon: 'House' as const },
     ...listEnvironments().map(({ id, env }) => ({
       id,
       label: env.label,
       icon: env.kind === 'cloud-sea' ? ('Sun' as const) : ('MoonStar' as const),
     })),
+    { id: 'room', label: 'Your room', icon: 'House' as const },
   ];
 }
 
@@ -401,7 +401,7 @@ export class HubSystem extends createSystem({
     app.clearSavedData();
     customSpreads.value = [];
     app.back.value = DECK_BACK;
-    app.surroundings.value = 'room';
+    app.surroundings.value = app.settings.peek().surroundings;
     this.refreshSettings();
   }
 }
