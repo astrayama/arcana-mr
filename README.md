@@ -167,12 +167,14 @@ move for everyone.
    six-digit code.
 2. A friend in a headset opens **Read together > Join a reading**, picks
    **I'll watch** or **I'll shuffle for them**, and taps in the code. The
-   reader can switch who shuffles any time, from the room page or the panel
-   beside the mat.
+   reader can switch between **Guests watch** and **Guests shuffle** any
+   time, from the room page or the panel beside the mat.
 3. Up to six more people can watch on a phone or computer: they open the
    site there, tap **Watch a reading on this screen**, and type the code.
    They see the table in 3D (drag to look around, scroll or pinch to zoom)
-   and a list of the cards with their meanings. They can't touch anything.
+   and a list of the cards with their meanings. When the reader lets guests
+   shuffle, they can too: a Shuffle button, or a shake of the phone (an
+   iPhone asks once for motion access). Otherwise they can't touch anything.
 
 Anyone can join or rejoin at any point and catches up straight away. If the
 guest leaves, the reading on their table stays and becomes theirs. Reading
