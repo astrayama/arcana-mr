@@ -3,6 +3,7 @@ import { app } from '../app/context.js';
 import { config } from '../config.js';
 import { UiPanel } from '../components/ui.js';
 import { ease, lerp } from '../lib/tween.js';
+import { onScreen } from '../app/screen.js';
 import { session } from '../net/session.js';
 import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.js';
 import hudTemplate from '../ui/hud.uikitml?raw';
@@ -73,6 +74,7 @@ export class ReadingFlowSystem extends createSystem({
       // The panel stays just beyond the mat's left edge as the mat grows.
       this.table.onLayout(() => this.placeMenu()),
       session.subscribe(() => this.refreshMenu(app.machine.current)),
+      onScreen.subscribe(() => this.refreshMenu(app.machine.current)),
     );
     this.refreshMenu(app.machine.current);
   }
@@ -88,6 +90,11 @@ export class ReadingFlowSystem extends createSystem({
         'mn-leave': () => this.world.getSystem(TogetherSystem)?.leave(),
         // The reading waits while the mat moves, and carries on once it's down.
         'mn-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
+        // The host hands the shuffle to the guest, or takes it back.
+        'mn-mode': () => {
+          const together = this.world.getSystem(TogetherSystem);
+          together?.setMode(session.peek().mode === 'watch' ? 'shuffle' : 'watch');
+        },
       }),
     );
     this.refreshMenu(app.machine.current);
@@ -103,7 +110,7 @@ export class ReadingFlowSystem extends createSystem({
 
   private refreshMenu(snapshot: ReadingSnapshot): void {
     const state = snapshot.state;
-    const reading = state !== 'IDLE' && state !== 'PLACING';
+    const reading = state !== 'IDLE' && state !== 'PLACING' && !onScreen.peek();
     setPanelActive(this.menu, reading);
     if (!reading) return;
     this.placeMenu();
@@ -128,6 +135,8 @@ export class ReadingFlowSystem extends createSystem({
     show('mn-another', !guest && state === 'READY');
     show('mn-session', line !== null);
     show('mn-move', state !== 'SHUFFLING');
+    show('mn-mode', s.role === 'host' && s.peerPresent && state !== 'SHUFFLING');
+    setText(document, 'mn-mode-text', s.mode === 'watch' ? 'Let your guest shuffle' : 'Shuffle it yourself');
     show('mn-leave', s.role !== 'solo');
   }
 

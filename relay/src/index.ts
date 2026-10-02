@@ -1,20 +1,22 @@
 /**
- * Carta Luna relay: one Durable Object per room, holding at most one host and
- * one guest. It forwards each side's binary frames to the other, unchanged.
- * Frames are encrypted by the headsets; the relay never sees the room code,
- * never reads a frame, and never stores anything.
+ * Carta Luna relay: one Durable Object per room, holding one host, at most
+ * one headset guest, and up to six screen viewers watching on a phone or
+ * computer. The host's frames go to everyone else; the guest's and viewers'
+ * frames go to the host only. Frames are encrypted by the devices; the relay
+ * never sees the room code, never reads a frame, and never stores anything.
  *
- *   GET /health                        -> "ok"
- *   GET /v1/room/<32 hex>?role=host|guest  (WebSocket)
+ *   GET /health                                   -> "ok"
+ *   GET /v1/room/<32 hex>?role=host|guest|viewer   (WebSocket)
  *
  * Text frames from the relay itself:
- *   {"r":"welcome","peer":bool}   on joining: is the other side here?
- *   {"r":"peer","present":bool}   the other side joined or left
+ *   to the host:   {"r":"welcome"|"peer","peer"|"present":bool,"guest":bool,"viewers":n}
+ *                  (anyone here, the headset guest here, how many viewers)
+ *   to the others: {"r":"welcome","peer":bool} / {"r":"peer","present":bool} (the host)
  * "ping" is answered with "pong" without waking the room.
  *
- * Close codes: 4001 no host yet, 4002 host already there, 4003 guest already
- * there, 4004 unexpected text, 4008 too many messages, 4010 replaced by a
- * newer connection, 1009 frame too big.
+ * Close codes: 4001 no host yet, 4002 host already there, 4003 room full (a
+ * guest already there, or six viewers), 4004 unexpected text, 4008 too many
+ * messages, 4010 replaced by a newer connection, 1009 frame too big.
  */
 
 import { DurableObject } from 'cloudflare:workers';
@@ -24,7 +26,10 @@ export interface Env {
   ALLOWED_ORIGINS: string;
 }
 
-type Role = 'host' | 'guest';
+type Role = 'host' | 'guest' | 'viewer';
+
+/** Screen viewers one room can hold. */
+const MAX_VIEWERS = 6;
 
 interface Attachment {
   role: Role | 'rejected';
@@ -66,7 +71,7 @@ export default {
       return new Response('forbidden', { status: 403 });
     }
     const role = url.searchParams.get('role');
-    if (role !== 'host' && role !== 'guest') return new Response('bad role', { status: 400 });
+    if (role !== 'host' && role !== 'guest' && role !== 'viewer') return new Response('bad role', { status: 400 });
     const room = env.ROOM.get(env.ROOM.idFromName(match[1]));
     return room.fetch(request);
   },
@@ -83,20 +88,26 @@ export class Room extends DurableObject<Env> {
 
   async fetch(request: Request): Promise<Response> {
     const role = new URL(request.url).searchParams.get('role') as Role;
-    const other: Role = role === 'host' ? 'guest' : 'host';
     const { 0: client, 1: server } = new WebSocketPair();
 
     const now = Date.now();
     const same = this.open(role);
     let refuse: [number, string] | null = null;
-    if (same.length > 0) {
+    if (role !== 'host' && this.open('host').length === 0) {
+      refuse = [4001, 'no host'];
+    } else if (role === 'viewer') {
+      // Room for six; a viewer gone quiet makes way for a new one.
+      if (same.length >= MAX_VIEWERS) {
+        const stale = same.find((ws) => this.isStale(ws, now));
+        if (stale) stale.close(4010, 'replaced');
+        else refuse = [4003, 'full'];
+      }
+    } else if (same.length > 0) {
       if (same.every((ws) => this.isStale(ws, now))) {
         for (const ws of same) ws.close(4010, 'replaced');
       } else {
         refuse = role === 'host' ? [4002, 'taken'] : [4003, 'full'];
       }
-    } else if (role === 'guest' && this.open('host').length === 0) {
-      refuse = [4001, 'no host'];
     }
 
     if (refuse) {
@@ -108,9 +119,13 @@ export class Room extends DurableObject<Env> {
 
     this.ctx.acceptWebSocket(server, [role]);
     server.serializeAttachment({ role, joinedAt: now } satisfies Attachment);
-    const peers = this.open(other);
-    server.send(JSON.stringify({ r: 'welcome', peer: peers.length > 0 }));
-    for (const ws of peers) ws.send(JSON.stringify({ r: 'peer', present: true }));
+    if (role === 'host') {
+      server.send(JSON.stringify({ r: 'welcome', ...this.audience() }));
+      for (const ws of this.followers()) ws.send(JSON.stringify({ r: 'peer', present: true }));
+    } else {
+      server.send(JSON.stringify({ r: 'welcome', peer: true }));
+      this.tellHost();
+    }
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -129,8 +144,9 @@ export class Room extends DurableObject<Env> {
       ws.close(4008, 'slow down');
       return;
     }
-    const other: Role = attachment.role === 'host' ? 'guest' : 'host';
-    for (const peer of this.open(other)) peer.send(message);
+    // The host speaks to everyone; the others speak only to the host.
+    const to = attachment.role === 'host' ? this.followers() : this.open('host');
+    for (const peer of to) peer.send(message);
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
@@ -146,9 +162,27 @@ export class Room extends DurableObject<Env> {
     this.left(ws);
   }
 
-  /** Open connections with this role. */
-  private open(role: Role): WebSocket[] {
-    return this.ctx.getWebSockets(role).filter((ws) => ws.readyState === WebSocket.OPEN);
+  /** Open connections with this role (leaving out one that is closing). */
+  private open(role: Role, except?: WebSocket): WebSocket[] {
+    return this.ctx.getWebSockets(role).filter((ws) => ws !== except && ws.readyState === WebSocket.OPEN);
+  }
+
+  /** Everyone who follows the host: the headset guest and the screen viewers. */
+  private followers(except?: WebSocket): WebSocket[] {
+    return [...this.open('guest', except), ...this.open('viewer', except)];
+  }
+
+  /** Who is with the host, as the host hears it. */
+  private audience(except?: WebSocket): { peer: boolean; guest: boolean; viewers: number } {
+    const guest = this.open('guest', except).length > 0;
+    const viewers = this.open('viewer', except).length;
+    return { peer: guest || viewers > 0, guest, viewers };
+  }
+
+  private tellHost(except?: WebSocket): void {
+    const { peer, guest, viewers } = this.audience(except);
+    const frame = JSON.stringify({ r: 'peer', present: peer, guest, viewers });
+    for (const host of this.open('host', except)) host.send(frame);
   }
 
   private isStale(ws: WebSocket, now: number): boolean {
@@ -168,14 +202,16 @@ export class Room extends DurableObject<Env> {
     return true;
   }
 
-  /** Tell the other side someone left, unless a newer connection already took their place. */
+  /** Tell the others someone left (unless a newer host already took the host's place). */
   private left(ws: WebSocket): void {
     this.buckets.delete(ws);
     const attachment = ws.deserializeAttachment() as Attachment | null;
     if (!attachment || attachment.role === 'rejected') return;
-    const role = attachment.role;
-    if (this.open(role).some((other) => other !== ws)) return;
-    const otherRole: Role = role === 'host' ? 'guest' : 'host';
-    for (const peer of this.open(otherRole)) peer.send(JSON.stringify({ r: 'peer', present: false }));
+    if (attachment.role !== 'host') {
+      this.tellHost(ws);
+      return;
+    }
+    if (this.open('host', ws).length > 0) return;
+    for (const peer of this.followers(ws)) peer.send(JSON.stringify({ r: 'peer', present: false }));
   }
 }

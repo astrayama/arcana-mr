@@ -4,25 +4,26 @@ import type { Mode } from '../net/permissions.js';
 import { formatCode, isRoomCode, pressKey, CODE_LENGTH, type KeypadKey } from '../net/roomCode.js';
 import { session } from '../net/session.js';
 import { bindClicks, setText } from '../ui/panels.js';
-import { GUEST_MODE_NOTE, guestStatus, hostStatus, MODE_TITLE, problemText } from '../ui/togetherCopy.js';
+import { GUEST_MODE_NOTE, guestStatus, hostStatus, problemText, roomModeNote, viewersLine } from '../ui/togetherCopy.js';
 import { HubSystem, type HubPage } from './hubSystem.js';
 import { TogetherSystem } from './togetherSystem.js';
 
-type View = 'start' | 'setup' | 'room' | 'join' | 'joined';
-const VIEWS: readonly View[] = ['start', 'setup', 'room', 'join', 'joined'];
+type View = 'start' | 'room' | 'join' | 'joined';
+const VIEWS: readonly View[] = ['start', 'room', 'join', 'joined'];
 const KEYS: readonly KeypadKey[] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'del'];
 
 /**
- * The hub's Read together page: open a room (choosing how you'll read) or
- * join one by tapping in its code, then the room's code and how the
- * connection is doing. While someone is a guest, the hub opens here instead
+ * The hub's Read together page: open a room, or join one by choosing to
+ * watch or shuffle and tapping in its code; then the room's code, who
+ * shuffles (the host can switch it any time), and who's watching. While someone is a guest, the hub opens here instead
  * of Home, since the reader chooses the spreads.
  */
 export class TogetherPanelSystem extends createSystem({}) {
   private hub!: HubSystem;
   private together!: TogetherSystem;
   private view: View = 'start';
-  private mode: Mode = 'watch';
+  /** What this person chooses to do when joining as a guest. */
+  private wants: Mode = 'watch';
   private entry = '';
   /** What was last tried, so a failure shows on the page it came from. */
   private attempt: 'host' | 'join' | null = null;
@@ -35,15 +36,16 @@ export class TogetherPanelSystem extends createSystem({}) {
       const handlers: Record<string, () => void> = {
         'hb-together-go': () => this.open(),
         'hb-tg-back': () => this.back(),
-        'hb-tg-go-host': () => this.go('setup'),
+        'hb-tg-go-host': () => this.host(),
         'hb-tg-go-join': () => {
           this.entry = '';
           this.attempt = null;
           this.go('join');
         },
-        'hb-tg-mode-watch': () => this.pickMode('watch'),
-        'hb-tg-mode-shuffle': () => this.pickMode('shuffle'),
-        'hb-tg-open': () => this.host(),
+        'hb-tg-wants-watch': () => this.pickWants('watch'),
+        'hb-tg-wants-shuffle': () => this.pickWants('shuffle'),
+        'hb-tg-room-watch': () => this.together.setMode('watch'),
+        'hb-tg-room-shuffle': () => this.together.setMode('shuffle'),
         'hb-tg-begin': () => this.hub.openSpreads('classic'),
         'hb-tg-close': () => this.leave(),
         'hb-tg-key-join': () => this.join(),
@@ -97,18 +99,18 @@ export class TogetherPanelSystem extends createSystem({}) {
 
   private back(): void {
     const s = session.peek();
-    if (s.role === 'solo' && (this.view === 'setup' || this.view === 'join')) this.go('start');
+    if (s.role === 'solo' && this.view === 'join') this.go('start');
     else this.hub.show('home');
   }
 
-  private pickMode(mode: Mode): void {
-    this.mode = mode;
+  private pickWants(mode: Mode): void {
+    this.wants = mode;
     this.refresh();
   }
 
   private host(): void {
     this.attempt = 'host';
-    void this.together.host(this.mode);
+    void this.together.host();
   }
 
   private press(key: KeypadKey): void {
@@ -120,7 +122,7 @@ export class TogetherPanelSystem extends createSystem({}) {
   private join(): void {
     if (!isRoomCode(this.entry)) return;
     this.attempt = 'join';
-    void this.together.join(this.entry);
+    void this.together.join(this.entry, this.wants);
   }
 
   private leave(): void {
@@ -145,7 +147,7 @@ export class TogetherPanelSystem extends createSystem({}) {
     const s = session.peek();
     const { colors } = app.theme.theme;
     // Joining or failing to: back where it was tried, with what went wrong.
-    if (s.role === 'solo' && s.status === 'ended' && this.attempt) this.view = this.attempt === 'host' ? 'setup' : 'join';
+    if (s.role === 'solo' && s.status === 'ended' && this.attempt) this.view = this.attempt === 'host' ? 'start' : 'join';
     const view: View = s.role === 'host' ? 'room' : s.role === 'guest' ? 'joined' : this.view;
     const show = (id: string, on: boolean) => doc.getElementById(id)?.setProperties({ display: on ? 'flex' : 'none' });
     for (const v of VIEWS) show(`hb-tg-${v}`, v === view);
@@ -154,23 +156,27 @@ export class TogetherPanelSystem extends createSystem({}) {
     show('hb-tg-noback', s.role === 'guest');
     const failed = s.role === 'solo' && s.status === 'ended' && this.attempt !== null;
 
-    if (view === 'setup') {
-      for (const mode of ['watch', 'shuffle'] as const) {
-        const on = mode === this.mode;
-        doc.getElementById(`hb-tg-mode-${mode}`)?.setProperties({
-          borderColor: on ? colors.accent : colors.panelBorder,
-          backgroundColor: on ? colors.panelBorder : 'transparent',
-        });
-      }
-      show('hb-tg-setup-error', failed);
-      if (failed) setText(doc, 'hb-tg-setup-error', problemText(s.problem));
+    const chip = (id: string, on: boolean) =>
+      doc.getElementById(id)?.setProperties({
+        borderColor: on ? colors.accent : colors.panelBorder,
+        backgroundColor: on ? colors.panelBorder : 'transparent',
+      });
+    if (view === 'start') {
+      show('hb-tg-start-error', failed);
+      if (failed) setText(doc, 'hb-tg-start-error', problemText(s.problem));
     }
     if (view === 'room') {
       setText(doc, 'hb-tg-code', s.code ? formatCode(s.code) : '');
       setText(doc, 'hb-tg-room-status', hostStatus(s));
-      setText(doc, 'hb-tg-room-mode', MODE_TITLE[s.mode]);
+      chip('hb-tg-room-watch', s.mode === 'watch');
+      chip('hb-tg-room-shuffle', s.mode === 'shuffle');
+      setText(doc, 'hb-tg-room-mode', roomModeNote(s));
+      show('hb-tg-room-viewers', s.viewers > 0);
+      if (s.viewers > 0) setText(doc, 'hb-tg-room-viewers', viewersLine(s.viewers));
     }
     if (view === 'join') {
+      chip('hb-tg-wants-watch', this.wants === 'watch');
+      chip('hb-tg-wants-shuffle', this.wants === 'shuffle');
       for (let i = 0; i < CODE_LENGTH; i++) {
         setText(doc, `hb-tg-digit-${i}`, this.entry[i] ?? '');
         doc.getElementById(`hb-tg-box-${i}`)?.setProperties({

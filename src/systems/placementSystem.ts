@@ -391,6 +391,17 @@ export class PlacementSystem extends createSystem({
     );
   }
 
+  /**
+   * Put the mat at a fixed spot without searching for a table (watching a
+   * reading on a screen, where there's no room to find one in).
+   */
+  placeAt(pose: MatPose): void {
+    this.applyPose(pose);
+    this.mat.visible = true;
+    this.mode = 'waiting';
+    if (app.machine.state === 'PLACING') app.machine.send({ type: 'MAT_PLACED' });
+  }
+
   private confirm(): void {
     if (this.mode === 'searching') return;
     // Anchor the mat to the room so it stays on the table if the headset recenters.

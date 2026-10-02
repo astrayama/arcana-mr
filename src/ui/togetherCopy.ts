@@ -8,11 +8,6 @@ import type { Mode } from '../net/permissions.js';
 import type { Session, SessionProblem } from '../net/session.js';
 import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.js';
 
-export const MODE_TITLE: Record<Mode, string> = {
-  watch: "I'll read, you watch",
-  shuffle: "You shuffle, I'll lay out",
-};
-
 /** What the guest does in each mode, said to the guest. */
 export const GUEST_MODE_NOTE: Record<Mode, string> = {
   watch: 'Your reader shuffles, draws, and turns the cards. You see every move on your own mat.',
@@ -43,9 +38,8 @@ export function hostStatus(s: Session): string {
     case 'connecting':
       return 'Opening the room...';
     case 'waiting':
-      return 'Waiting for your guest...';
     case 'connected':
-      return 'Your guest is here.';
+      return s.peerPresent ? 'Your guest is here.' : 'Waiting for your guest...';
     case 'reconnecting':
       return 'Reconnecting...';
     default:
@@ -70,13 +64,27 @@ export function guestStatus(s: Session): string {
   }
 }
 
+/** "2 people watching on a screen." */
+export function viewersLine(viewers: number): string {
+  return viewers === 1 ? '1 person watching on a screen.' : `${viewers} people watching on a screen.`;
+}
+
+/** Under the host's watch/shuffle choice. */
+export function roomModeNote(s: Session): string {
+  if (!s.peerPresent) return 'Your guest picks when they join; you can change it here any time.';
+  return s.mode === 'shuffle'
+    ? 'Your guest lifts the deck and shakes it to shuffle. Change it any time.'
+    : 'Your guest watches while you shuffle. Change it any time.';
+}
+
 /** One line under the reading's status, while reading together. */
 export function sessionLine(s: Session): string | null {
   if (s.role === 'solo') return null;
   if (s.status === 'reconnecting') return 'Reconnecting...';
   if (s.role === 'host') {
     const room = s.code ? `Room ${formatCode(s.code)}` : 'Your room';
-    return s.peerPresent ? `${room}: reading together` : `${room}: waiting for your guest`;
+    const watching = s.viewers > 0 ? `, ${s.viewers} watching on a screen` : '';
+    return (s.peerPresent ? `${room}: reading together` : `${room}: waiting for your guest`) + watching;
   }
   if (s.status === 'alone') return 'Your reader stepped away';
   return s.peerPresent ? 'Reading together' : 'Joining...';

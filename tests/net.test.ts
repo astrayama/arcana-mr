@@ -261,3 +261,34 @@ test('a guest turned away for want of a host hears it at once, but a dropped gue
     mock.timers.reset();
   }
 });
+
+test('screen viewers can never touch anything, in either mode', () => {
+  for (const mode of ['watch', 'shuffle'] as const) {
+    const viewer: PermissionContext = { role: 'viewer', mode, peerPresent: true };
+    for (const action of ['chooseSpread', 'newReading', 'shuffle', 'draw', 'turn', 'liftDeck', 'grabCard'] as const) {
+      assert.equal(allowed(viewer, action), 'no', `${mode} ${action}`);
+    }
+    assert.equal(gateFor(viewer, { type: 'SHUFFLE' }), 'reject');
+    assert.equal(gateFor(viewer, { type: 'SHUFFLE_DONE' }), 'reject');
+    assert.equal(gateFor(viewer, { type: 'REPLACE_MAT' }), 'apply', 'their own view of the table is theirs');
+  }
+});
+
+test('a guest says what they want when joining, and the host can change the mode', () => {
+  const ctx = { isCardId: () => true };
+  assert.ok(parseMessage({ t: 'hello', v: 1, role: 'guest', deck: 'rws-1909', wants: 'shuffle' }, ctx));
+  assert.ok(parseMessage({ t: 'hello', v: 1, role: 'viewer', deck: 'rws-1909' }, ctx));
+  assert.equal(parseMessage({ t: 'hello', v: 1, role: 'guest', deck: 'rws-1909', wants: 'everything' }, ctx), null);
+  assert.ok(parseMessage({ t: 'mode', mode: 'watch' }, ctx));
+  assert.equal(parseMessage({ t: 'mode', mode: 'watch', extra: 1 }, ctx), null);
+  assert.equal(parseMessage({ t: 'mode' }, ctx), null);
+});
+
+test('the host opens frames from the guest and from viewers, and can tell them apart', async () => {
+  const room = await deriveRoom('246810');
+  const fromViewer = await seal(room, 'viewer', { t: 'sync-req', why: 'join' });
+  assert.equal(fromViewer[1], 2);
+  assert.deepEqual(await open(room, fromViewer, ['guest', 'viewer']), { t: 'sync-req', why: 'join' });
+  assert.equal(await open(room, fromViewer, 'guest'), null, 'a viewer frame is not a guest frame');
+  assert.equal(await open(room, fromViewer, 'host'), null);
+});

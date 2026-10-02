@@ -30,8 +30,13 @@ function connect(roomId, role, origin = ORIGIN) {
     inbox.length
       ? Promise.resolve(inbox.shift())
       : new Promise((resolve, reject) => {
-          const t = setTimeout(() => reject(new Error('timed out waiting for a message')), ms);
-          waiters.push((item) => (clearTimeout(t), resolve(item)));
+          const waiter = (item) => (clearTimeout(t), resolve(item));
+          // A wait that times out gives up its place, so it can't swallow a later message.
+          const t = setTimeout(() => {
+            waiters.splice(waiters.indexOf(waiter), 1);
+            reject(new Error('timed out waiting for a message'));
+          }, ms);
+          waiters.push(waiter);
         });
   return { ws, opened, closed, next };
 }
@@ -65,10 +70,10 @@ const guest = connect(r, 'guest');
 
 await check('host and guest meet', async () => {
   await host.opened;
-  assert.deepEqual(await json(host), { r: 'welcome', peer: false });
+  assert.deepEqual(await json(host), { r: 'welcome', peer: false, guest: false, viewers: 0 });
   await guest.opened;
   assert.deepEqual(await json(guest), { r: 'welcome', peer: true });
-  assert.deepEqual(await json(host), { r: 'peer', present: true });
+  assert.deepEqual(await json(host), { r: 'peer', present: true, guest: true, viewers: 0 });
 });
 
 await check('frames pass through unchanged, both ways', async () => {
@@ -78,6 +83,40 @@ await check('frames pass through unchanged, both ways', async () => {
   const b = randomBytes(5000);
   guest.ws.send(b);
   assert.ok((await host.next()).bin.equals(b));
+});
+
+await check('screen viewers join, hear the host, and only the host hears them', async () => {
+  assert.equal(await connect(room(), 'viewer').closed, 4001, 'no host, no viewers');
+  const v = connect(r, 'viewer');
+  await v.opened;
+  assert.deepEqual(await json(v), { r: 'welcome', peer: true });
+  assert.deepEqual(await json(host), { r: 'peer', present: true, guest: true, viewers: 1 });
+  const a = randomBytes(200);
+  host.ws.send(a);
+  assert.ok((await guest.next()).bin.equals(a), 'the guest hears the host');
+  assert.ok((await v.next()).bin.equals(a), 'so does the viewer');
+  const b = randomBytes(100);
+  v.ws.send(b);
+  assert.ok((await host.next()).bin.equals(b), 'the host hears the viewer');
+  await assert.rejects(guest.next(300), /timed out/, 'the guest does not');
+  v.ws.close();
+  assert.deepEqual(await json(host), { r: 'peer', present: true, guest: true, viewers: 0 });
+});
+
+await check('a room holds six viewers', async () => {
+  const viewers = [];
+  for (let i = 0; i < 6; i++) {
+    const v = connect(r, 'viewer');
+    await v.opened;
+    await v.next();
+    assert.equal((await json(host)).viewers, i + 1);
+    viewers.push(v);
+  }
+  assert.equal(await connect(r, 'viewer').closed, 4003);
+  for (const v of viewers) {
+    v.ws.close();
+    await host.next();
+  }
 });
 
 await check('ping gets pong', async () => {
@@ -92,7 +131,7 @@ await check('a second host or guest is refused', async () => {
 
 await check('the host hears when the guest leaves', async () => {
   guest.ws.close();
-  assert.deepEqual(await json(host), { r: 'peer', present: false });
+  assert.deepEqual(await json(host), { r: 'peer', present: false, guest: false, viewers: 0 });
 });
 
 await check('frames over 16 KiB close the connection', async () => {
@@ -102,7 +141,7 @@ await check('frames over 16 KiB close the connection', async () => {
   await host.next(); // peer present
   g.ws.send(randomBytes(17 * 1024));
   assert.equal(await g.closed, 1009);
-  assert.deepEqual(await json(host), { r: 'peer', present: false });
+  assert.deepEqual(await json(host), { r: 'peer', present: false, guest: false, viewers: 0 });
 });
 
 await check('stray text closes the connection', async () => {

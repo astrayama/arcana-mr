@@ -160,6 +160,11 @@ export class TableGrabSystem extends createSystem({}) {
     return null;
   }
 
+  /** Let go of whatever this headset holds, as if the hands opened (the deck glides home). */
+  letGoAll(): void {
+    for (const hand of HANDS) this.release(hand, true);
+  }
+
   /** Let go of everything without the release handlers (the caller is clearing up). */
   releaseAll(): void {
     for (const hand of HANDS) this.release(hand, false);

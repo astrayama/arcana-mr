@@ -1,11 +1,11 @@
 /**
  * Markup for the Read together page inside the hub: open a room or join one,
- * the host's room code, the guest's keypad, and the joined view. One page
- * with five views; TogetherPanelSystem shows one at a time.
+ * the host's room code and who shuffles, the guest's keypad and choice, and
+ * the joined view. One page with four views; TogetherPanelSystem shows one
+ * at a time.
  */
 
 import { CODE_LENGTH } from '../net/roomCode.js';
-import { MODE_TITLE } from './togetherCopy.js';
 
 export const TOGETHER_STYLES = `
   .hb-tg-pair {
@@ -40,52 +40,17 @@ export const TOGETHER_STYLES = `
     text-align: center;
     color: {{colors.panelMuted}};
   }
-  .hb-tg-mode {
-    flex-direction: row;
-    align-items: center;
-    gap: 1.2;
-    width: 35.6;
-    margin-bottom: 1;
-    padding-top: 1.1;
-    padding-bottom: 1.1;
-    padding-left: 1.4;
-    padding-right: 1.4;
-    border-radius: 1.2;
-    border-width: 0.12;
-    border-color: {{colors.panelBorder}};
-    cursor: pointer;
-  }
-  .hb-tg-mode:hover {
-    border-color: {{colors.highlight}};
-  }
-  .hb-tg-mode-icon {
-    flex-shrink: 0;
-    width: 2.6;
-    height: 2.6;
-    color: {{colors.accent}};
-  }
-  .hb-tg-mode-body {
-    flex-direction: column;
-    flex-shrink: 1;
-  }
-  .hb-tg-mode-title {
-    {{headingFont}}
-    font-size: 1.5;
-    font-weight: semi-bold;
-    color: {{colors.panelText}};
-  }
-  .hb-tg-mode-sub {
-    {{bodyFont}}
-    margin-top: 0.3;
-    font-size: 1.1;
-    line-height: 1.35;
-    color: {{colors.panelMuted}};
-  }
   .hb-tg-footer {
     flex-direction: row;
     justify-content: center;
     gap: 1.4;
     margin-top: 1.8;
+  }
+  .hb-tg-choice {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1;
+    margin-top: 1;
   }
   .hb-tg-links {
     flex-direction: row;
@@ -111,6 +76,7 @@ export const TOGETHER_STYLES = `
   }
   .hb-tg-modeline {
     {{bodyFont}}
+    width: 34;
     margin-top: 0.5;
     font-size: 1.15;
     text-align: center;
@@ -159,7 +125,7 @@ export const TOGETHER_STYLES = `
     justify-content: center;
     gap: 0.5;
     width: 7.2;
-    height: 3.9;
+    height: 3.4;
     border-radius: 1;
     border-width: 0.12;
     border-color: {{colors.panelBorder}};
@@ -227,7 +193,7 @@ export function togetherMarkup(): string {
         <div id="hb-tg-go-host" class="hb-tg-tile">
           <DoorOpen class="hb-go-icon"></DoorOpen>
           <div class="hb-go-title">Open a room</div>
-          <div class="hb-go-sub">You read. Your guest joins with a code.</div>
+          <div class="hb-go-sub">You read. Your guest joins with a code, to watch or to shuffle.</div>
         </div>
         <div id="hb-tg-go-join" class="hb-tg-tile">
           <KeyRound class="hb-go-icon"></KeyRound>
@@ -235,32 +201,8 @@ export function togetherMarkup(): string {
           <div class="hb-go-sub">Tap in the code your reader gives you.</div>
         </div>
       </div>
-      <div class="hb-tg-fine">Messages are locked with a key made from the code. Our relay only passes them along and never stores them.</div>
-    </div>
-
-    <div id="hb-tg-setup" class="hb-center" style="display: none">
-      <div class="hb-section">HOW YOU'LL READ</div>
-      <div id="hb-tg-mode-watch" class="hb-tg-mode">
-        <Eye class="hb-tg-mode-icon"></Eye>
-        <div class="hb-tg-mode-body">
-          <div class="hb-tg-mode-title">${MODE_TITLE.watch}</div>
-          <div class="hb-tg-mode-sub">You shuffle, draw, and turn the cards. Your guest sees every move.</div>
-        </div>
-      </div>
-      <div id="hb-tg-mode-shuffle" class="hb-tg-mode">
-        <Shuffle class="hb-tg-mode-icon"></Shuffle>
-        <div class="hb-tg-mode-body">
-          <div class="hb-tg-mode-title">${MODE_TITLE.shuffle}</div>
-          <div class="hb-tg-mode-sub">Your guest lifts the deck and shakes it to shuffle. You draw and turn the cards.</div>
-        </div>
-      </div>
-      <div id="hb-tg-setup-error" class="hb-tg-error" style="display: none">Error</div>
-      <div class="hb-tg-footer">
-        <div id="hb-tg-open" class="hb-button">
-          <DoorOpen class="hb-button-icon"></DoorOpen>
-          <div class="hb-button-text">Open a room</div>
-        </div>
-      </div>
+      <div id="hb-tg-start-error" class="hb-tg-error" style="display: none">Error</div>
+      <div class="hb-tg-fine">Friends without a headset can watch on a phone or computer: they open this page there and tap in the code. Messages are locked with a key made from the code; our relay only passes them along and never stores them.</div>
     </div>
 
     <div id="hb-tg-room" class="hb-center" style="display: none">
@@ -268,7 +210,18 @@ export function togetherMarkup(): string {
       <div id="hb-tg-code" class="hb-tg-code">000 000</div>
       <div class="hb-note" style="width: 34">Tell your guest this code. They tap it in under Read together on their headset.</div>
       <div id="hb-tg-room-status" class="hb-tg-status">Opening the room...</div>
-      <div id="hb-tg-room-mode" class="hb-tg-modeline">Mode</div>
+      <div class="hb-tg-choice">
+        <div id="hb-tg-room-watch" class="hb-chip">
+          <Eye class="hb-chip-icon"></Eye>
+          <div class="hb-chip-text">Guest watches</div>
+        </div>
+        <div id="hb-tg-room-shuffle" class="hb-chip">
+          <Shuffle class="hb-chip-icon"></Shuffle>
+          <div class="hb-chip-text">Guest shuffles</div>
+        </div>
+      </div>
+      <div id="hb-tg-room-mode" class="hb-tg-modeline">Your guest picks when they join; you can change it here any time.</div>
+      <div id="hb-tg-room-viewers" class="hb-tg-modeline" style="display: none">Watching on a screen</div>
       <div class="hb-tg-footer">
         <div id="hb-tg-begin" class="hb-button">
           <Sparkles class="hb-button-icon"></Sparkles>
@@ -288,6 +241,16 @@ export function togetherMarkup(): string {
     </div>
 
     <div id="hb-tg-join" class="hb-center" style="display: none">
+      <div class="hb-tg-choice">
+        <div id="hb-tg-wants-watch" class="hb-chip">
+          <Eye class="hb-chip-icon"></Eye>
+          <div class="hb-chip-text">I'll watch</div>
+        </div>
+        <div id="hb-tg-wants-shuffle" class="hb-chip">
+          <Shuffle class="hb-chip-icon"></Shuffle>
+          <div class="hb-chip-text">I'll shuffle for them</div>
+        </div>
+      </div>
       <div class="hb-section">YOUR READER'S CODE</div>
       <div class="hb-tg-boxes">${boxes}</div>
       <div id="hb-tg-join-error" class="hb-tg-error" style="display: none">Error</div>

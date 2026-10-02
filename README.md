@@ -159,21 +159,26 @@ later update; the formats are ready in [docs/formats.md](docs/formats.md).
 
 ### Reading together
 
-Two people, each in their own Quest, anywhere, can share one reading. Each
-sets the mat on their own table; the cards, and the deck or a card while
-someone holds it, move on both.
+Readings can be shared, wherever everyone is. Each headset sets the mat on
+its own table; the cards, and the deck or a card while someone holds it,
+move for everyone.
 
-1. The reader opens **Read together > Open a room** and picks how to read:
-   - **I'll read, you watch:** the reader does everything, the guest watches.
-   - **You shuffle, I'll lay out:** the guest lifts the deck and shakes it to
-     shuffle; the reader draws and turns the cards.
-2. The reader tells the guest the six-digit code.
-3. The guest opens **Read together > Join a reading** and taps it in.
+1. The reader opens **Read together > Open a room** and tells the others the
+   six-digit code.
+2. A friend in a headset opens **Read together > Join a reading**, picks
+   **I'll watch** or **I'll shuffle for them**, and taps in the code. The
+   reader can switch who shuffles any time, from the room page or the panel
+   beside the mat.
+3. Up to six more people can watch on a phone or computer: they open the
+   site there, tap **Watch a reading on this screen**, and type the code.
+   They see the table in 3D (drag to look around, scroll or pinch to zoom)
+   and a list of the cards with their meanings. They can't touch anything.
 
-Either can join or rejoin at any point and catches up straight away. If the
+Anyone can join or rejoin at any point and catches up straight away. If the
 guest leaves, the reading on their table stays and becomes theirs. Reading
-together needs the relay address set at build time (`VITE_RELAY_URL`); without
-it the button is hidden. How it's kept private is under [Privacy](#privacy).
+together needs the relay address set at build time (`VITE_RELAY_URL`);
+without it these options are hidden. How it's kept private is under
+[Privacy](#privacy).
 
 ## Project structure
 
@@ -381,7 +386,7 @@ data** removes the settings and your spreads.
 
 ### Reading together
 
-When two people read together, their headsets exchange messages through a
+When people read together, their devices exchange messages through a
 small relay (a Cloudflare Worker in [`relay/`](relay/)). The relay passes
 messages from one headset to the other and stores nothing: no logs of what
 was sent, no database.
@@ -393,14 +398,15 @@ was sent, no database.
   carry the reading (spread, cards, which are face up) and where a held card
   or the deck is on the mat, which follows the hand holding it. Nothing else
   about your room, your voice, or your hands is sent.
-- **What the relay can see:** the derived room ID, the two headsets' IP
-  addresses, when messages are sent and how big they are, and the encrypted
+- **What the relay can see:** the derived room ID, each device's IP
+  address, when messages are sent and how big they are, and the encrypted
   bytes.
 - **The limit of a six-digit code.** A code has a million possibilities, so the
   encryption keeps readings out of the relay's sight, but someone who
   recorded the encrypted traffic could try every code offline and read it.
   Treat a shared reading like a phone call, not a vault. A room exists only
-  while the host has it open, and a room takes only one guest.
+  while the host has it open, and holds one headset guest and up to six
+  screen viewers.
 
 ## License
 

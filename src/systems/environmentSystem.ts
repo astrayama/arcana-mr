@@ -12,6 +12,7 @@ import {
   type Material,
   type Object3D,
 } from '@iwsdk/core';
+import { onScreen } from '../app/screen.js';
 import { app } from '../app/context.js';
 import { buildEnvironment } from '../environments/registry.js';
 import type { EnvironmentInstance } from '../environments/types.js';
@@ -59,6 +60,7 @@ export class EnvironmentSystem extends createSystem({}) {
       app.surroundings.subscribe(() => this.refresh()),
       environmentRegistry.onChange(() => this.refresh()),
       this.world.visibilityState.subscribe(() => this.refresh()),
+      onScreen.subscribe(() => this.refresh()),
       app.machine.subscribe((_, event) => {
         // Re-center when the mat settles somewhere new.
         if (event.type === 'MAT_PLACED' && this.current) this.center(this.current.instance.root);
@@ -86,7 +88,8 @@ export class EnvironmentSystem extends createSystem({}) {
 
   private refresh(): void {
     const id = app.surroundings.peek();
-    const immersive = this.world.visibilityState.peek() !== VisibilityState.NonImmersive;
+    // In the headset, or watching a reading on a screen.
+    const immersive = this.world.visibilityState.peek() !== VisibilityState.NonImmersive || onScreen.peek();
     const env = immersive ? getEnvironment(id) : undefined;
     const next = env ? this.get(env) : null;
     if (next === this.current) return;

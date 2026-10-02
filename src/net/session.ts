@@ -32,11 +32,14 @@ export interface Session {
   /** The room code, for the host to read out. */
   code: string | null;
   status: SessionStatus;
+  /** Host: the headset guest is here. Guest or viewer: the host is here. */
   peerPresent: boolean;
+  /** Host: how many people are watching on a phone or computer. */
+  viewers: number;
   problem: SessionProblem;
 }
 
-export const SOLO: Session = { role: 'solo', mode: 'watch', code: null, status: 'off', peerPresent: false, problem: null };
+export const SOLO: Session = { role: 'solo', mode: 'watch', code: null, status: 'off', peerPresent: false, viewers: 0, problem: null };
 
 export const session = signal<Session>(SOLO);
 

@@ -10,10 +10,11 @@
  * nothing worth more than that.
  */
 
-export type PeerRole = 'host' | 'guest';
+/** Who sent a frame: the host, the headset guest, or a viewer watching on a screen. */
+export type PeerRole = 'host' | 'guest' | 'viewer';
 
 export const FRAME_VERSION = 1;
-const ROLE_BYTE: Record<PeerRole, number> = { host: 0, guest: 1 };
+const ROLE_BYTE: Record<PeerRole, number> = { host: 0, guest: 1, viewer: 2 };
 const SALT = new TextEncoder().encode('arcana-mr/together/v1');
 const ITERATIONS = 210_000;
 const IV_LENGTH = 12;
@@ -55,8 +56,9 @@ export async function seal(room: Room, from: PeerRole, message: unknown): Promis
  * else: another version, a frame sent by our own role, a wrong key, or a
  * frame that was tampered with.
  */
-export async function open(room: Room, frame: Uint8Array, from: PeerRole): Promise<unknown | null> {
-  if (frame.length < 2 + IV_LENGTH + 16 || frame[0] !== FRAME_VERSION || frame[1] !== ROLE_BYTE[from]) return null;
+export async function open(room: Room, frame: Uint8Array, from: PeerRole | readonly PeerRole[]): Promise<unknown | null> {
+  const allowed = typeof from === 'string' ? [from] : from;
+  if (frame.length < 2 + IV_LENGTH + 16 || frame[0] !== FRAME_VERSION || !allowed.some((role) => frame[1] === ROLE_BYTE[role])) return null;
   try {
     const plain = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: frame.slice(2, 2 + IV_LENGTH), additionalData: frame.slice(0, 2) },

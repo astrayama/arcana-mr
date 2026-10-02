@@ -4,7 +4,8 @@
  * of its own.
  *
  *   npx tsx scripts/together-bot.ts host watch --steps "wait-guest; choose past-present-future; shuffle; done; draw; turn 0 up"
- *   npx tsx scripts/together-bot.ts join 472913 --out .tmp/bot-state.json
+ *   npx tsx scripts/together-bot.ts join 472913 --wants shuffle --out .tmp/bot-state.json
+ *   npx tsx scripts/together-bot.ts watch 472913      (a screen viewer)
  *
  * Environment: RELAY (default ws://localhost:8787), ORIGIN (default https://localhost:8081).
  */
@@ -47,10 +48,11 @@ const option = (name: string) => {
   const i = rest.indexOf(`--${name}`);
   return i >= 0 ? rest[i + 1] : undefined;
 };
-const role: PeerRole = roleArg === 'join' ? 'guest' : 'host';
-const mode: Mode = roleArg === 'host' && arg === 'shuffle' ? 'shuffle' : 'watch';
+const role: PeerRole = roleArg === 'join' ? 'guest' : roleArg === 'watch' ? 'viewer' : 'host';
+let mode: Mode = roleArg === 'host' && arg === 'shuffle' ? 'shuffle' : 'watch';
 const code = role === 'host' ? (option('code') ?? newRoomCode()) : arg;
 const out = option('out');
+const wants: Mode = option('wants') === 'shuffle' ? 'shuffle' : 'watch';
 const steps = (option('steps') ?? '').split(';').map((s) => s.trim()).filter(Boolean);
 const log = (...args: unknown[]) => console.log(`[bot ${role}]`, ...args);
 
@@ -65,14 +67,14 @@ const received: Msg[] = [];
 const ctx = { isCardId: (id: string) => cardIds.includes(id) };
 
 const room = await deriveRoom(code);
-const from: PeerRole = role === 'host' ? 'guest' : 'host';
+const from: PeerRole[] = role === 'host' ? ['guest', 'viewer'] : ['host'];
 let chain = Promise.resolve();
 const send = (msg: Msg) => {
   chain = chain.then(async () => void relay.send(await seal(room, role, msg)));
   return chain;
 };
 const dump = () => {
-  if (out) writeFileSync(out, JSON.stringify({ shared: machine.exportShared(), synced: tracker.status, received: received.map((m) => m.t) }, null, 2));
+  if (out) writeFileSync(out, JSON.stringify({ shared: machine.exportShared(), synced: tracker.status, mode, received: received.map((m) => m.t) }, null, 2));
 };
 
 if (role === 'host') {
@@ -95,9 +97,9 @@ const relay = new RelayClient({
     onOpen: () => log('connected', role === 'host' ? `CODE=${code}` : ''),
     onControl: (c) => {
       peer = c.r === 'welcome' ? c.peer : c.present;
-      log('peer', peer);
-      if (peer && role === 'guest') {
-        void send({ t: 'hello', v: PROTOCOL_VERSION, role, deck: 'rws-1909' });
+      log('peer', peer, role === 'host' ? `guest=${c.guest} viewers=${c.viewers}` : '');
+      if (peer && role !== 'host') {
+        void send({ t: 'hello', v: PROTOCOL_VERSION, role, deck: 'rws-1909', ...(role === 'guest' ? { wants } : {}) });
         void send({ t: 'sync-req', why: 'join' });
         tracker.requested(0);
       }
@@ -129,6 +131,11 @@ function handle(msg: Msg) {
   log('got', msg.t, msg.t === 'ev' ? `${msg.ev.type} seq=${msg.seq}` : msg.t === 'hold' ? `${msg.obj} on=${msg.on}${msg.on ? '' : ` after ${poses} poses`}` : '');
   if (msg.t === 'hold') poses = 0;
   if (role === 'host') {
+    if (msg.t === 'hello' && msg.role === 'guest' && msg.wants && msg.wants !== mode) {
+      mode = msg.wants;
+      void send({ t: 'mode', mode });
+      log('mode now', mode);
+    }
     if (msg.t === 'hello' || msg.t === 'sync-req') sendState();
     if (msg.t === 'intent') {
       if (mode === 'shuffle' && machine.send({ type: 'SHUFFLE', passes: 1 }, 'intent')) {
@@ -137,8 +144,14 @@ function handle(msg: Msg) {
     }
     return;
   }
+  if (msg.t === 'mode' || (msg.t === 'hello' && msg.mode)) {
+    mode = (msg as { mode: Mode }).mode;
+    dump();
+  }
   if (msg.t === 'state') {
-    if (machine.restore(msg.reading)) tracker.onState(msg.epoch, msg.seq);
+    mode = msg.mode;
+    const current = tracker.status === 'synced' && msg.epoch === tracker.epoch && msg.seq === tracker.lastSeq;
+    if (!current && machine.restore(msg.reading)) tracker.onState(msg.epoch, msg.seq);
     dump();
   }
   if (msg.t === 'ev') {
@@ -287,6 +300,11 @@ for (const step of steps) {
           await sleep(50);
         }
       }
+      break;
+    case 'setmode':
+      // setmode <watch|shuffle>: the host changes who shuffles.
+      mode = a[0] === 'shuffle' ? 'shuffle' : 'watch';
+      await send({ t: 'mode', mode });
       break;
     case 'print':
       log(JSON.stringify(machine.exportShared()));

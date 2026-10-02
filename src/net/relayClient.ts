@@ -6,7 +6,13 @@
 
 import type { PeerRole } from './secure.js';
 
-export type RelayControl = { r: 'welcome'; peer: boolean } | { r: 'peer'; present: boolean };
+/**
+ * Who's here, from the relay. A host also hears whether the headset guest is
+ * here and how many screen viewers are; the others hear only about the host.
+ */
+export type RelayControl =
+  | { r: 'welcome'; peer: boolean; guest?: boolean; viewers?: number }
+  | { r: 'peer'; present: boolean; guest?: boolean; viewers?: number };
 
 /** Why the relay closed a connection, and whether trying again could help. */
 export const CLOSE = {

@@ -12,6 +12,7 @@ import { BUILDER_STYLES, builderMarkup } from '../ui/builderMarkup.js';
 import { TOGETHER_STYLES, togetherMarkup } from '../ui/togetherMarkup.js';
 import hubTemplate from '../ui/hub.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
+import { onScreen } from '../app/screen.js';
 import { TableSystem } from './tableSystem.js';
 
 export type HubPage = 'home' | 'spreads' | 'builder' | 'together' | 'settings' | 'how' | 'credits';
@@ -151,6 +152,7 @@ export class HubSystem extends createSystem({
       deckRegistry.onChange(() => this.rebuild()),
       backRegistry.onChange(() => this.rebuild()),
       environmentRegistry.onChange(() => this.rebuild()),
+      onScreen.subscribe(() => this.refreshVisibility()),
     );
     this.refreshVisibility();
   }
@@ -217,7 +219,8 @@ export class HubSystem extends createSystem({
   }
 
   private refreshVisibility(): void {
-    const idle = app.machine.state === 'IDLE';
+    // Someone watching on a screen follows the reader; the menu is for headsets.
+    const idle = app.machine.state === 'IDLE' && !onScreen.peek();
     setPanelActive(this.hub, idle);
     // Pages only come alive while the hub is showing (the builder previews on the mat).
     if (idle) this.show(this.page);

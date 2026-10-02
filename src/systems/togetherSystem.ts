@@ -74,7 +74,11 @@ export class TogetherSystem extends createSystem({}) {
   private role: PeerRole | null = null;
   /** Bumped whenever a session starts or ends, so stale async work can tell. */
   private generation = 0;
-  private readonly inbox: Msg[] = [];
+  private readonly inbox: { msg: Msg; from: PeerRole }[] = [];
+  /** Host: anyone (the guest or a screen viewer) is here to hear what happens. */
+  private anyone = false;
+  /** Guest: what they chose when joining. */
+  private wants: Mode = 'watch';
   private sendChain: Promise<void> = Promise.resolve();
   private recvChain: Promise<void> = Promise.resolve();
   private readonly tracker = new SyncTracker();
@@ -116,24 +120,39 @@ export class TogetherSystem extends createSystem({}) {
     );
   }
 
-  /** Open a room as the host. */
-  async host(mode: Mode): Promise<void> {
+  /** Open a room as the host. The guest picks watch or shuffle when they join. */
+  async host(mode: Mode = 'watch'): Promise<void> {
     await this.start('host', mode, newRoomCode());
   }
 
-  /** Join a room as the guest. */
-  async join(code: string): Promise<void> {
-    await this.start('guest', 'watch', code);
+  /** Join a room in a headset, choosing to watch or to shuffle for the reader. */
+  async join(code: string, wants: Mode = 'watch'): Promise<void> {
+    this.wants = wants;
+    await this.start('guest', wants, code);
+  }
+
+  /** Watch a room's reading on a phone or computer screen. */
+  async watch(code: string): Promise<void> {
+    await this.start('viewer', 'watch', code);
+  }
+
+  /** The host changes who shuffles, for the guest here now and anyone joining later. */
+  setMode(mode: Mode): void {
+    if (this.role !== 'host' || session.peek().mode === mode) return;
+    this.patchSession({ mode });
+    this.send({ t: 'mode', mode });
+    // The deck isn't the guest's to hold any more: put it back.
+    if (mode === 'watch') this.grab.releaseRemote(true);
   }
 
   /** Leave the shared reading and carry on alone. */
   leave(): void {
     if (this.role === null) return;
-    const wasGuest = this.role === 'guest';
+    const wasFollower = this.role !== 'host';
     this.send({ t: 'bye' });
     this.end();
     // A guest keeps the reading that's on the table and can carry it on.
-    if (wasGuest) app.machine.adopt();
+    if (wasFollower) app.machine.adopt();
   }
 
   update(delta: number): void {
@@ -141,7 +160,7 @@ export class TogetherSystem extends createSystem({}) {
     while (this.inbox.length) this.handle(this.inbox.shift()!);
     if (this.stateOwed && this.role === 'host') this.sendState();
     const s = session.peek();
-    if (this.role === 'guest' && s.status === 'connected' && app.machine.state !== 'PLACING') {
+    if ((this.role === 'guest' || this.role === 'viewer') && s.status === 'connected' && app.machine.state !== 'PLACING') {
       if (this.tracker.shouldRequest(this.time)) {
         this.tracker.requested(this.time);
         this.send({ t: 'sync-req', why: this.tracker.lastSeq < 0 ? 'join' : 'stale' });
@@ -151,7 +170,7 @@ export class TogetherSystem extends createSystem({}) {
       this.intent = null;
       this.deck.intentEnded();
     }
-    if (this.outgoing.size > 0 && s.peerPresent) this.streamPoses();
+    if (this.outgoing.size > 0 && this.listening()) this.streamPoses();
     if (this.grab.remoteHolds.size > 0) this.dropStaleHolds();
     if (this.pendingPulls.size > 0) this.flyUnclaimedPulls();
   }
@@ -159,6 +178,7 @@ export class TogetherSystem extends createSystem({}) {
   // Session lifecycle
 
   private async start(role: PeerRole, mode: Mode, code: string, tries = 0): Promise<void> {
+    this.anyone = false;
     if (!this.available) {
       this.setSession({ ...SOLO, status: 'ended', problem: 'unavailable' });
       return;
@@ -166,7 +186,7 @@ export class TogetherSystem extends createSystem({}) {
     this.end();
     const generation = ++this.generation;
     this.role = role;
-    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, problem: null });
+    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, viewers: 0, problem: null });
     const room = await deriveRoom(code);
     if (generation !== this.generation) return;
     this.room = room;
@@ -188,7 +208,8 @@ export class TogetherSystem extends createSystem({}) {
         onControl: (control) => {
           if (generation !== this.generation) return;
           const present = control.r === 'welcome' ? control.peer : control.present;
-          this.peerChanged(present);
+          if (role === 'host') this.audienceChanged(control.guest ?? present, control.viewers ?? 0);
+          else this.hostChanged(present);
         },
         onFrame: (frame) => this.receive(frame, generation),
         onClose: (reason, final) => {
@@ -219,7 +240,8 @@ export class TogetherSystem extends createSystem({}) {
 
   private closed(reason: CloseReason, final: boolean, role: PeerRole, mode: Mode, tries: number): void {
     if (!final) {
-      this.patchSession({ status: 'reconnecting', peerPresent: false });
+      this.anyone = false;
+      this.patchSession({ status: 'reconnecting', peerPresent: false, viewers: 0 });
       this.tracker.markUnsynced();
       this.flushPulls(true);
       this.grab.releaseRemote(true);
@@ -231,29 +253,37 @@ export class TogetherSystem extends createSystem({}) {
       return;
     }
     const problem: SessionProblem = reason === 'lost' ? null : reason;
-    const wasGuest = role === 'guest';
+    const wasFollower = role !== 'host';
     this.end();
     this.setSession({ ...SOLO, status: 'ended', problem });
-    if (wasGuest) app.machine.adopt();
+    if (wasFollower) app.machine.adopt();
   }
 
-  private peerChanged(present: boolean): void {
+  /** The host hears who's here: the headset guest, and how many screen viewers. */
+  private audienceChanged(guest: boolean, viewers: number): void {
     const s = session.peek();
-    this.patchSession({
-      peerPresent: present,
-      status: present ? 'connected' : s.role === 'host' ? 'waiting' : 'alone',
-    });
+    const arrived = (guest && !s.peerPresent) || viewers > s.viewers;
+    this.anyone = guest || viewers > 0;
+    this.patchSession({ peerPresent: guest, viewers, status: this.anyone ? 'connected' : 'waiting' });
+    if (!guest && s.peerPresent) {
+      // The guest left: put back whatever they were holding.
+      this.flushPulls(true);
+      this.grab.releaseRemote(true);
+    }
+    if (arrived) this.send({ t: 'hello', v: PROTOCOL_VERSION, role: 'host', deck: app.deck.id, mode: s.mode, epoch: this.epoch });
+  }
+
+  /** A guest or viewer hears whether the host is here. */
+  private hostChanged(present: boolean): void {
+    this.patchSession({ peerPresent: present, status: present ? 'connected' : 'alone' });
     if (!present) {
       this.flushPulls(true);
       this.grab.releaseRemote(true);
       return;
     }
-    if (this.role === 'guest') {
-      this.send({ t: 'hello', v: PROTOCOL_VERSION, role: 'guest', deck: app.deck.id });
-      this.tracker.markUnsynced();
-    } else {
-      this.send({ t: 'hello', v: PROTOCOL_VERSION, role: 'host', deck: app.deck.id, mode: s.mode, epoch: this.epoch });
-    }
+    const role = this.role === 'viewer' ? 'viewer' : 'guest';
+    this.send({ t: 'hello', v: PROTOCOL_VERSION, role, deck: app.deck.id, ...(role === 'guest' ? { wants: this.wants } : {}) });
+    this.tracker.markUnsynced();
   }
 
   private setSession(next: Session): void {
@@ -283,7 +313,9 @@ export class TogetherSystem extends createSystem({}) {
   /** Decrypt, check, and queue for the next frame, strictly in order. */
   private receive(frame: Uint8Array, generation: number): void {
     const room = this.room;
-    const from: PeerRole = this.role === 'host' ? 'guest' : 'host';
+    const from: readonly PeerRole[] = this.role === 'host' ? ['guest', 'viewer'] : ['host'];
+    // Who sent it, from the frame's header (checked as part of the encryption).
+    const sender: PeerRole = frame[1] === 2 ? 'viewer' : frame[1] === 1 ? 'guest' : 'host';
     if (!room) return;
     this.recvChain = this.recvChain
       .then(async () => {
@@ -297,19 +329,25 @@ export class TogetherSystem extends createSystem({}) {
           this.tracker.markUnsynced();
           return;
         }
-        this.inbox.push(msg);
+        this.inbox.push({ msg, from: sender });
       })
       .catch(() => {});
   }
 
-  private handle(msg: Msg): void {
-    if (this.role === 'host') this.handleAsHost(msg);
-    else if (this.role === 'guest') this.handleAsGuest(msg);
+  private handle({ msg, from }: { msg: Msg; from: PeerRole }): void {
+    if (this.role === 'host') this.handleAsHost(msg, from);
+    else if (this.role !== null) this.handleAsGuest(msg);
   }
 
-  private handleAsHost(msg: Msg): void {
+  private handleAsHost(msg: Msg, from: PeerRole): void {
+    // Screen viewers only ever ask to catch up.
+    if (from === 'viewer' && msg.t !== 'hello' && msg.t !== 'sync-req') return;
     switch (msg.t) {
       case 'hello':
+        // The headset guest's choice, made when joining, sets who shuffles.
+        if (from === 'guest' && msg.wants) this.setMode(msg.wants);
+        this.sendState();
+        break;
       case 'sync-req':
         this.sendState();
         break;
@@ -321,7 +359,7 @@ export class TogetherSystem extends createSystem({}) {
         break;
       }
       case 'bye':
-        this.peerChanged(false);
+        // The relay says who's still here; nothing to do.
         break;
       default:
         this.onMotion(msg);
@@ -331,10 +369,15 @@ export class TogetherSystem extends createSystem({}) {
   private handleAsGuest(msg: Msg): void {
     switch (msg.t) {
       case 'hello':
-        if (msg.mode) this.patchSession({ mode: msg.mode });
+        if (msg.mode) this.modeChanged(msg.mode);
+        break;
+      case 'mode':
+        this.modeChanged(msg.mode);
         break;
       case 'state': {
-        this.patchSession({ mode: msg.mode });
+        this.modeChanged(msg.mode);
+        // Already exactly here (the state was for someone else joining): nothing to redo.
+        if (this.tracker.status === 'synced' && msg.epoch === this.tracker.epoch && msg.seq === this.tracker.lastSeq) break;
         if (app.machine.state === 'PLACING') {
           // Catch up once this headset's mat is down.
           this.tracker.markUnsynced();
@@ -362,10 +405,20 @@ export class TogetherSystem extends createSystem({}) {
         }
         break;
       case 'bye':
-        this.peerChanged(false);
+        this.hostChanged(false);
         break;
       default:
         this.onMotion(msg);
+    }
+  }
+
+  /** A guest hears who shuffles now. Losing the shuffle means putting the deck down. */
+  private modeChanged(mode: Mode): void {
+    if (session.peek().mode === mode) return;
+    this.patchSession({ mode });
+    if (mode === 'watch' && this.role === 'guest') {
+      this.intent = null;
+      this.grab.letGoAll();
     }
   }
 
@@ -406,7 +459,7 @@ export class TogetherSystem extends createSystem({}) {
   private onReading(snapshot: ReadingSnapshot, event: ResolvedEvent, origin: Origin): void {
     // The table is being cleared or rebuilt: cards waiting for a hand are gone.
     if (event.type === 'RESTORE' || event.type === 'NEW_READING') this.flushPulls(false);
-    if (this.role === 'guest') {
+    if (this.role === 'guest' || this.role === 'viewer') {
       if (event.type === 'MAT_PLACED') this.tracker.markUnsynced();
       if (event.type === 'SHUFFLE' && origin === 'remote' && this.intent) this.intent = null;
       return;
@@ -415,24 +468,29 @@ export class TogetherSystem extends createSystem({}) {
     const wire = toWire(event, snapshot);
     if (!wire) return;
     this.seq++;
-    if (session.peek().peerPresent) this.send({ t: 'ev', seq: this.seq, ev: wire });
+    if (this.anyone) this.send({ t: 'ev', seq: this.seq, ev: wire });
   }
 
   // Motion: cards and the deck moving in someone's hand
+
+  /** Whether anyone will hear motion from this headset: the host's audience, or a guest's host. */
+  private listening(): boolean {
+    return this.role === 'host' ? this.anyone : session.peek().peerPresent;
+  }
 
   private holdStarted(obj: Obj, hid: number, object: Object3D): void {
     if (this.role === null) return;
     const rn = app.machine.current.readingNumber;
     const { position: p, quaternion: q } = object;
     this.outgoing.set(hid, { obj, hid, rn, object, sentAt: this.time, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] });
-    if (session.peek().peerPresent) this.send({ t: 'hold', rn, hid, obj, on: true, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] });
+    if (this.listening()) this.send({ t: 'hold', rn, hid, obj, on: true, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] });
   }
 
   private holdEnded(obj: Obj, hid: number, p: V3, q: Q4): void {
     const out = this.outgoing.get(hid);
     if (!out) return;
     this.outgoing.delete(hid);
-    if (session.peek().peerPresent) this.send({ t: 'hold', rn: out.rn, hid, obj, on: false, p, q });
+    if (this.listening()) this.send({ t: 'hold', rn: out.rn, hid, obj, on: false, p, q });
   }
 
   /** Send where held things are: about 20 times a second while they move, 4 while they're still. */

@@ -5,6 +5,7 @@ import {
   type Entity,
   type UIKitDocument,
 } from '@iwsdk/core';
+import { onScreen } from '../app/screen.js';
 import { app } from '../app/context.js';
 import { config } from '../config.js';
 import type { CardOrientation } from '../data/cards.schema.js';
@@ -218,6 +219,8 @@ export class MeaningSystem extends createSystem({
     panel.position.set(0, PANEL_HEIGHT_M * growth, bounds.minZ - 0.08);
     panel.rotation.set(-0.3, 0, 0);
     panel.scale.setScalar(config.ui.panelScale * growth);
+    // On a screen, meanings are in the card list beside the view instead.
+    if (onScreen.peek()) return;
     setPanelActive(this.panel, true);
     this.whenReady(this.panel, (doc) => this.fillMeaning(doc, slot));
   }

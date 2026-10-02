@@ -7,7 +7,8 @@
 
 import type { GateDecision, ReadingEvent } from '../state/readingMachine.js';
 
-export type SessionRole = 'solo' | 'host' | 'guest';
+/** `viewer`: watching on a phone or computer screen, never touching anything. */
+export type SessionRole = 'solo' | 'host' | 'guest' | 'viewer';
 export type Mode = 'watch' | 'shuffle';
 
 export interface PermissionContext {
@@ -23,6 +24,7 @@ export type Allowance = 'yes' | 'no' | 'forward';
 
 export function allowed(ctx: PermissionContext, action: Action): Allowance {
   if (ctx.role === 'solo' || (ctx.role === 'host' && !ctx.peerPresent)) return 'yes';
+  if (ctx.role === 'viewer') return 'no';
   if (ctx.role === 'host') {
     // In shuffle mode the deck is the guest's to shuffle.
     if (ctx.mode === 'shuffle' && (action === 'shuffle' || action === 'liftDeck')) return 'no';
@@ -44,7 +46,7 @@ export function gateFor(ctx: PermissionContext, event: ReadingEvent): GateDecisi
       return 'apply';
     case 'SHUFFLE_DONE':
       // The end of a riffle: only whoever owns the reading says it's done.
-      return ctx.role === 'guest' ? 'reject' : 'apply';
+      return ctx.role === 'guest' || ctx.role === 'viewer' ? 'reject' : 'apply';
     case 'RESTORE':
       return 'reject';
     case 'CHOOSE_SPREAD':

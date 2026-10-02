@@ -111,6 +111,10 @@
     <ArrowLeft class="mn-link-icon"></ArrowLeft>
     <div class="mn-link-text">Choose another reading</div>
   </div>
+  <div id="mn-mode" class="mn-link" style="display: none">
+    <Shuffle class="mn-link-icon"></Shuffle>
+    <div id="mn-mode-text" class="mn-link-text">Let your guest shuffle</div>
+  </div>
   <div id="mn-move" class="mn-link" style="display: none">
     <Move class="mn-link-icon"></Move>
     <div class="mn-link-text">Move the mat</div>

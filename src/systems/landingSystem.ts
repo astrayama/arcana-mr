@@ -12,6 +12,7 @@ import { app } from '../app/context.js';
 import { UiPanel } from '../components/ui.js';
 import landingTemplate from '../ui/landing.uikitml?raw';
 import { setText } from '../ui/panels.js';
+import { onScreen } from '../app/screen.js';
 import { themedPanelUrl } from '../ui/themedPanel.js';
 
 /** How long to wait for the headset view after tapping Begin before explaining. */
@@ -28,6 +29,7 @@ export class LandingSystem extends createSystem({
   panels: { required: [UiPanel, PanelDocument] },
 }) {
   private panel!: Entity;
+  private document: UIKitDocument | null = null;
 
   init(): void {
     this.panel = this.world.createTransformEntity(undefined, { persistent: true });
@@ -47,19 +49,26 @@ export class LandingSystem extends createSystem({
       this.queries.panels.subscribe('qualify', (entity) => {
         if (entity === this.panel) this.wire(entity);
       }),
-      this.world.visibilityState.subscribe((state) => {
-        // The landing card only belongs in the flat browser view; in the headset
-        // it is hidden and must not catch rays.
-        const flat = state === VisibilityState.NonImmersive;
-        this.panel.object3D!.visible = flat;
-        if (flat && !this.panel.hasComponent(RayInteractable)) this.panel.addComponent(RayInteractable);
-        if (!flat && this.panel.hasComponent(RayInteractable)) this.panel.removeComponent(RayInteractable);
-      }),
+      this.world.visibilityState.subscribe(() => this.refreshVisibility()),
+      onScreen.subscribe(() => this.refreshVisibility()),
     );
+  }
+
+  private refreshVisibility(): void {
+    // The landing card only belongs in the flat browser view, and not once
+    // someone is watching a reading there; otherwise it's hidden and must not catch rays.
+    const flat = this.world.visibilityState.peek() === VisibilityState.NonImmersive && !onScreen.peek();
+    this.panel.object3D!.visible = flat;
+    // Pinned to the screen, the card's content rides on the camera, apart from the panel itself.
+    if (this.document) this.document.visible = flat;
+    if (flat && !this.panel.hasComponent(RayInteractable)) this.panel.addComponent(RayInteractable);
+    if (!flat && this.panel.hasComponent(RayInteractable)) this.panel.removeComponent(RayInteractable);
   }
 
   private wire(entity: Entity): void {
     const document = entity.getValue(PanelDocument, 'document') as UIKitDocument;
+    this.document = document;
+    this.refreshVisibility();
     const enter = document.getElementById('landing-enter');
     if (!enter) return;
     const note = (text: string | null) => {
