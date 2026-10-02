@@ -1,7 +1,7 @@
 import { AssetType, defineAssets } from '@iwsdk/core';
 
 /**
- * Arcana MR loads its card art through the deck and theme registries (so art
+ * Carta Luna loads its card art through the deck and theme registries (so art
  * packs and themes are drop-in folders), and its panels are theme templates
  * in src/ui. The only manifest entries are the controller and hand models.
  *

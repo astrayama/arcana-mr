@@ -1,13 +1,15 @@
-# Arcana MR
+# Carta Luna
 
 A mixed-reality tarot reading for Meta Quest 3, built for the Quest Browser with
 WebXR and Meta's [Immersive Web SDK](https://iwsdk.dev).
+
+**Try it:** open <https://cartaluna-mr.vercel.app> in the Quest Browser.
 
 Put on the headset and a tarot deck appears on your real table. Pick a spread
 (or build your own, up to 12 cards), shuffle the deck in your hands, draw the
 cards yourself, turn them over, and read what each one reflects back to you.
 
-Arcana MR is a tool for self-reflection, not fortune telling. Every card comes
+Carta Luna is a tool for self-reflection, not fortune telling. Every card comes
 with a short read and a question to sit with. Nothing here predicts the future.
 
 ## Progress
@@ -51,7 +53,7 @@ session on your desktop.
    (for example `https://192.168.1.20:8081/`).
 3. Open that URL in the Quest Browser and accept the certificate warning. The
    dev server uses a self-signed local certificate.
-4. Tap **Begin**, then allow the spatial data prompt so Arcana can find your
+4. Tap **Begin**, then allow the spatial data prompt so Carta Luna can find your
    table. For the best fit, run Space Setup in the headset settings first.
 
 ### Testing switches
@@ -73,7 +75,7 @@ separate from rendering:
 
 `PLACING` → `IDLE` → `READY` → `SHUFFLING` → `DRAWING` → `AWAITING_FLIPS` → `REVEALED` → `IDLE`
 
-1. **Placing.** Arcana looks for your table: a Space Setup table first, then
+1. **Placing.** Carta Luna looks for your table: a Space Setup table first, then
    the nearest flat surface at table height that fits the mat, then a floating
    mat in front of you. Reach out and grab the mat to move it, point at it and
    hold the trigger (or pinch) to slide it, or use the panel's arrows. It
@@ -356,7 +358,7 @@ every push to `main` then deploys.
 
 ## Privacy
 
-Arcana MR collects nothing. It has no accounts, analytics, cookies, or
+Carta Luna collects nothing. It has no accounts, analytics, cookies, or
 tracking, and it loads only its own files; controller and hand models are
 served from this site rather than a public CDN. The only time it talks to
 anything else is when you choose to read together (below).

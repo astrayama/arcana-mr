@@ -2,7 +2,7 @@
   "name": "arcana-relay",
   "version": "0.1.0",
   "private": true,
-  "description": "Relay for Arcana shared readings: forwards encrypted frames between two headsets, stores nothing",
+  "description": "Relay for Carta Luna shared readings: forwards encrypted frames between two headsets, stores nothing",
   "license": "MIT",
   "type": "module",
   "scripts": {

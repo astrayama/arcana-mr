@@ -1,5 +1,5 @@
 /**
- * Tunable defaults for Arcana MR. Everything a designer might want to adjust
+ * Tunable defaults for Carta Luna. Everything a designer might want to adjust
  * without reading system code lives here.
  */
 

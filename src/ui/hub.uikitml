@@ -573,7 +573,7 @@
   <!-- Home -->
   <div id="hb-home" class="hb-page">
     <div class="hb-center">
-      <div class="hb-title">Arcana</div>
+      <div class="hb-title">Carta Luna</div>
       <div class="hb-tagline">A quiet place to reflect with the cards.</div>
       <div class="hb-begin-row">
         <div id="hb-begin" class="hb-begin">
@@ -671,7 +671,7 @@
       <div class="hb-note" style="margin-top: 3">Your own room shows through the headset's cameras. The others surround you in a quiet place of their own.</div>
     </div>
     <div id="hb-st-data-body" class="hb-page" style="display: none">
-      <div class="hb-note" style="margin-top: 2">Arcana keeps only your settings and the spreads you make, and only on this headset. Readings are never saved, and nothing is ever sent anywhere.</div>
+      <div class="hb-note" style="margin-top: 2">Carta Luna keeps only your settings and the spreads you make, and only on this headset. Readings are never saved, and nothing is ever sent anywhere.</div>
       <div class="hb-center">
         <div id="hb-clear" class="hb-danger">
           <Trash2 class="hb-danger-icon"></Trash2>
@@ -736,11 +736,11 @@
       </div>
       <div class="hb-credit">
         <div class="hb-credit-head">CARD MEANINGS</div>
-        <div class="hb-credit-text">Written for Arcana. Copyright Screen Sage Studios.</div>
+        <div class="hb-credit-text">Written for Carta Luna. Copyright Screen Sage Studios.</div>
       </div>
       <div class="hb-credit">
         <div class="hb-credit-head">CARD BACKS AND CLOTH</div>
-        <div class="hb-credit-text">Original designs made for Arcana.</div>
+        <div class="hb-credit-text">Original designs made for Carta Luna.</div>
       </div>
       <div class="hb-credit">
         <div class="hb-credit-head">TEXTURES</div>

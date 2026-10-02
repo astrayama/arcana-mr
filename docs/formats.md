@@ -1,6 +1,6 @@
-# Arcana pack formats
+# Carta Luna pack formats
 
-Arcana's decks, card backs, surroundings, and spreads are all plain folders
+Carta Luna's decks, card backs, surroundings, and spreads are all plain folders
 of files. The built-in ones live in `src/`; ones you add yourself will be
 kept on your headset only (in the browser's IndexedDB), never uploaded
 anywhere. Adding your own from inside the headset comes in a later update;

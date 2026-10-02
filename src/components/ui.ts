@@ -9,7 +9,7 @@ export const UiPanel = createComponent(
     /** For per-card panels, the spread slot they belong to. */
     slot: { type: Types.Int8, default: -1 },
   },
-  'An Arcana MR UI panel',
+  'A Carta Luna UI panel',
 );
 
 /**

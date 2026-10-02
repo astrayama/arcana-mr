@@ -1,7 +1,7 @@
 # Credits
 
-Arcana is made by Screen Sage Studios. The card meanings and reflection
-prompts in `src/data/cards.json` were written for Arcana (see [LICENSE](LICENSE)).
+Carta Luna is made by Screen Sage Studios. The card meanings and reflection
+prompts in `src/data/cards.json` were written for Carta Luna (see [LICENSE](LICENSE)).
 
 ## Theme: `src/themes/dark-gold`
 
@@ -16,7 +16,7 @@ prompts in `src/data/cards.json` were written for Arcana (see [LICENSE](LICENSE)
 ## Card backs: `src/backs`
 
 Celestial, Botanical, Sacred geometry, Minimal, Neon circuit, and Winter are
-original designs for Arcana, drawn in code by `scripts/make-backs.ts`.
+original designs for Carta Luna, drawn in code by `scripts/make-backs.ts`.
 Covered by this repository's code license. The deck's own back is credited
 with the deck below.
 

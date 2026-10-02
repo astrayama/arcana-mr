@@ -1,4 +1,4 @@
-# Relay for Arcana shared readings. Forwards encrypted frames between the two
+# Relay for Carta Luna shared readings. Forwards encrypted frames between the two
 # headsets in a room; never reads or stores them.
 name = "arcana-relay"
 main = "src/index.ts"

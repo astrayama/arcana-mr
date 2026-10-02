@@ -1,5 +1,5 @@
 /**
- * Arcana relay: one Durable Object per room, holding at most one host and
+ * Carta Luna relay: one Durable Object per room, holding at most one host and
  * one guest. It forwards each side's binary frames to the other, unchanged.
  * Frames are encrypted by the headsets; the relay never sees the room code,
  * never reads a frame, and never stores anything.
