@@ -91,7 +91,8 @@ export class ScreenWatchSystem extends createSystem({}) {
     if (!onScreen.peek()) return;
     // Circle the mat, looking at its middle.
     this.table.mat.object3D!.getWorldPosition(this.target);
-    this.target.y += 0.02;
+    // With the card list over the bottom of a phone screen, aim lower so the table sits above it.
+    this.target.y += this.view?.coversView ? 0.02 - this.distance * 0.3 : 0.02;
     const flat = Math.cos(this.pitch) * this.distance;
     this.eye.set(Math.sin(this.yaw) * flat, Math.sin(this.pitch) * this.distance, Math.cos(this.yaw) * flat).add(this.target);
     const camera = this.world.camera;

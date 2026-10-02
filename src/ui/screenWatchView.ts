@@ -131,6 +131,11 @@ export class ScreenWatchView {
     if (part === 'join') setTimeout(() => this.input.focus(), 0);
   }
 
+  /** Whether the card list is covering the lower part of the view (a phone, list open). */
+  get coversView(): boolean {
+    return !this.list.hidden && !this.list.classList.contains('sw-folded') && window.matchMedia('(max-width: 720px)').matches;
+  }
+
   onEntry(handler: () => void): void {
     this.entry.addEventListener('click', handler);
   }
