@@ -1,0 +1,20 @@
+{
+  "name": "arcana-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Relay for Arcana shared readings: forwards encrypted frames between two headsets, stores nothing",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node test/smoke.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261002.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.146.0",
+    "ws": "^8.22.0"
+  }
+}
