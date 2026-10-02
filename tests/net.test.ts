@@ -223,3 +223,41 @@ test('the relay client connects by room id, relays frames, pings, and backs off 
     mock.timers.reset();
   }
 });
+
+test('a guest turned away for want of a host hears it at once, but a dropped guest keeps trying', () => {
+  mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  try {
+    const closes: string[] = [];
+    const client = new RelayClient({
+      url: 'wss://relay.example',
+      roomId: 'cd'.repeat(16),
+      role: 'guest',
+      WebSocketImpl: FakeSocket as unknown as typeof WebSocket,
+      random: () => 0.5,
+      handlers: {
+        onOpen: () => {},
+        onFrame: () => {},
+        onControl: () => {},
+        onClose: (reason, final) => closes.push(`${reason}:${final}`),
+      },
+    });
+    // The relay opens the socket, then closes it straight away with "no host".
+    client.connect();
+    FakeSocket.last!.open();
+    FakeSocket.last!.close(4001);
+    assert.deepEqual(closes, ['no-host:true']);
+
+    // Once in the room, losing the host is worth waiting out.
+    client.connect();
+    FakeSocket.last!.open();
+    FakeSocket.last!.onmessage?.({ data: '{"r":"welcome","peer":true}' });
+    FakeSocket.last!.close(1006);
+    mock.timers.tick(500);
+    FakeSocket.last!.open();
+    FakeSocket.last!.close(4001);
+    assert.deepEqual(closes, ['no-host:true', 'lost:false', 'no-host:false']);
+    client.close();
+  } finally {
+    mock.timers.reset();
+  }
+});

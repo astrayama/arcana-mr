@@ -1,6 +1,6 @@
 <!--
   The main menu between readings: Home, the spread picker, the spread
-  builder, Settings, How it works, and Credits. One document with a fixed
+  builder, Read together, Settings, How it works, and Credits. One document with a fixed
   size; HubSystem shows one page at a time. Repeated items (spread tiles,
   card backs, surroundings) are generated into the slot tokens.
   Theme template: double-brace tokens are filled from the active theme.
@@ -45,12 +45,17 @@
     font-size: 1.5;
     color: {{colors.panelMuted}};
   }
+  .hb-begin-row {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1.2;
+    margin-top: 2.4;
+  }
   .hb-begin {
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 1;
-    margin-top: 2.4;
     width: 26;
     padding-top: 1.5;
     padding-bottom: 1.5;
@@ -71,6 +76,31 @@
     font-size: 2;
     font-weight: semi-bold;
     color: {{colors.accentText}};
+  }
+  .hb-together-go {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7;
+    width: 14.6;
+    border-radius: 1.6;
+    border-width: 0.14;
+    border-color: {{colors.accent}};
+    cursor: pointer;
+  }
+  .hb-together-go:hover {
+    background-color: {{colors.panelBorder}};
+  }
+  .hb-together-icon {
+    width: 2;
+    height: 2;
+    color: {{colors.accent}};
+  }
+  .hb-together-text {
+    {{headingFont}}
+    font-size: 1.55;
+    font-weight: semi-bold;
+    color: {{colors.accent}};
   }
   .hb-newhere {
     {{bodyFont}}
@@ -529,6 +559,7 @@
     color: {{colors.panelText}};
   }
   {{slot:builderStyles}}
+  {{slot:togetherStyles}}
 
   .hb-motto {
     {{headingFont}}
@@ -544,9 +575,15 @@
     <div class="hb-center">
       <div class="hb-title">Arcana</div>
       <div class="hb-tagline">A quiet place to reflect with the cards.</div>
-      <div id="hb-begin" class="hb-begin">
-        <Sparkles class="hb-begin-icon"></Sparkles>
-        <div class="hb-begin-text">Begin a reading</div>
+      <div class="hb-begin-row">
+        <div id="hb-begin" class="hb-begin">
+          <Sparkles class="hb-begin-icon"></Sparkles>
+          <div class="hb-begin-text">Begin a reading</div>
+        </div>
+        <div id="hb-together-go" class="hb-together-go" style="display: none">
+          <Users class="hb-together-icon"></Users>
+          <div id="hb-together-text" class="hb-together-text">Read together</div>
+        </div>
       </div>
       <div id="hb-newhere" class="hb-newhere" style="display: none">New here? Start with how it works</div>
       <div class="hb-tiles">
@@ -604,6 +641,8 @@
   </div>
 
   {{slot:builder}}
+
+  {{slot:together}}
 
   <!-- Settings -->
   <div id="hb-settings" class="hb-page" style="display: none">

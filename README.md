@@ -153,6 +153,24 @@ the spread as you build it. Up to 8 spreads are saved on the headset, under
 Adding your own decks, backs, and surroundings from the headset comes in a
 later update; the formats are ready in [docs/formats.md](docs/formats.md).
 
+### Reading together
+
+Two people, each in their own Quest, anywhere, can share one reading. Each
+sets the mat on their own table; the cards, and the deck or a card while
+someone holds it, move on both.
+
+1. The reader opens **Read together > Open a room** and picks how to read:
+   - **I'll read, you watch:** the reader does everything, the guest watches.
+   - **You shuffle, I'll lay out:** the guest lifts the deck and shakes it to
+     shuffle; the reader draws and turns the cards.
+2. The reader tells the guest the six-digit code.
+3. The guest opens **Read together > Join a reading** and taps it in.
+
+Either can join or rejoin at any point and catches up straight away. If the
+guest leaves, the reading on their table stays and becomes theirs. Reading
+together needs the relay address set at build time (`VITE_RELAY_URL`); without
+it the button is hidden. How it's kept private is under [Privacy](#privacy).
+
 ## Project structure
 
 ```
@@ -297,7 +315,8 @@ Every push to `main` then deploys. WebXR needs HTTPS, which Vercel provides.
 
 Arcana MR collects nothing. It has no accounts, analytics, cookies, or
 tracking, and it loads only its own files; controller and hand models are
-served from this site rather than a public CDN.
+served from this site rather than a public CDN. The only time it talks to
+anything else is when you choose to read together (below).
 
 A few things stay on the headset, and only there:
 
@@ -313,6 +332,29 @@ A few things stay on the headset, and only there:
 
 Readings themselves are never saved. **Settings > Your data > Clear saved
 data** removes the settings and your spreads.
+
+### Reading together
+
+When two people read together, their headsets exchange messages through a
+small relay (a Cloudflare Worker in [`relay/`](relay/)). The relay passes
+messages from one headset to the other and stores nothing: no logs of what
+was sent, no database.
+
+- **The room code never leaves the headset.** Each headset turns the six-digit
+  code into an encryption key and a separate room ID (PBKDF2, SHA-256). Only
+  the room ID is sent to the relay.
+- **Messages are encrypted** with AES-GCM before they leave the headset. They
+  carry the reading (spread, cards, which are face up) and where a held card
+  or the deck is on the mat, which follows the hand holding it. Nothing else
+  about your room, your voice, or your hands is sent.
+- **What the relay can see:** the derived room ID, the two headsets' IP
+  addresses, when messages are sent and how big they are, and the encrypted
+  bytes.
+- **The limit of a six-digit code.** A code has a million possibilities, so the
+  encryption keeps readings out of the relay's sight, but someone who
+  recorded the encrypted traffic could try every code offline and read it.
+  Treat a shared reading like a phone call, not a vault. A room exists only
+  while the host has it open, and a room takes only one guest.
 
 ## License
 

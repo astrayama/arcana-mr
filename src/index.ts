@@ -27,6 +27,7 @@ import { ReadingFlowSystem } from './systems/readingFlowSystem.js';
 import { ReadingStatusSystem } from './systems/readingStatusSystem.js';
 import { SessionSystem } from './systems/sessionSystem.js';
 import { TableGrabSystem } from './systems/tableGrabSystem.js';
+import { TogetherPanelSystem } from './systems/togetherPanelSystem.js';
 import { TogetherSystem } from './systems/togetherSystem.js';
 import { TableSystem } from './systems/tableSystem.js';
 import { ThemeLightingSystem } from './systems/themeLightingSystem.js';
@@ -63,7 +64,8 @@ World.create(
     .registerSystem(CardInteractionSystem)
     .registerSystem(LandingSystem)
     // Last, so it hears each reading event after every other system has acted on it.
-    .registerSystem(TogetherSystem);
+    .registerSystem(TogetherSystem)
+    .registerSystem(TogetherPanelSystem);
 
   // Decks, backs, and surroundings the reader added on this headset (none yet:
   // adding your own comes in a later update, and the store is empty until then).
@@ -91,6 +93,7 @@ World.create(
       hub: world.getSystem(HubSystem),
       builder: world.getSystem(BuilderSystem),
       together: world.getSystem(TogetherSystem),
+      togetherPanel: world.getSystem(TogetherPanelSystem),
       session,
       meaning: world.getSystem(MeaningSystem),
       table: world.getSystem(TableSystem),

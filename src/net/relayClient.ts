@@ -93,9 +93,6 @@ export class RelayClient {
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
     ws.onopen = () => {
-      this.attempt = 0;
-      this.wasOpen = true;
-      this.lostAt = 0;
       this.missed = 0;
       this.startPing();
       this.options.handlers.onOpen();
@@ -109,6 +106,12 @@ export class RelayClient {
         }
         try {
           const control = JSON.parse(data) as RelayControl;
+          if (control?.r === 'welcome') {
+            // In the room. (The relay also opens, then at once closes, a socket it turns away.)
+            this.attempt = 0;
+            this.wasOpen = true;
+            this.lostAt = 0;
+          }
           if (control && (control.r === 'welcome' || control.r === 'peer')) this.options.handlers.onControl(control);
         } catch {
           // Not something the relay sends; ignore.

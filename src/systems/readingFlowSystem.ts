@@ -3,13 +3,16 @@ import { app } from '../app/context.js';
 import { config } from '../config.js';
 import { UiPanel } from '../components/ui.js';
 import { ease, lerp } from '../lib/tween.js';
+import { session } from '../net/session.js';
 import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.js';
 import hudTemplate from '../ui/hud.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
+import { guestReadingStatus, hostShuffleModeStatus, sessionLine } from '../ui/togetherCopy.js';
 import type { CardVisual } from '../visuals/tableVisuals.js';
 import { HubSystem } from './hubSystem.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
 import { TableSystem } from './tableSystem.js';
+import { TogetherSystem } from './togetherSystem.js';
 
 const GATHER_SECONDS = 0.35;
 
@@ -69,6 +72,7 @@ export class ReadingFlowSystem extends createSystem({
       }),
       // The panel stays just beyond the mat's left edge as the mat grows.
       this.table.onLayout(() => this.placeMenu()),
+      session.subscribe(() => this.refreshMenu(app.machine.current)),
     );
     this.refreshMenu(app.machine.current);
   }
@@ -81,6 +85,7 @@ export class ReadingFlowSystem extends createSystem({
         'mn-another': () => {
           if (app.machine.send({ type: 'NEW_READING' })) this.world.getSystem(HubSystem)?.openSpreads();
         },
+        'mn-leave': () => this.world.getSystem(TogetherSystem)?.leave(),
       }),
     );
     this.refreshMenu(app.machine.current);
@@ -102,11 +107,25 @@ export class ReadingFlowSystem extends createSystem({
     this.placeMenu();
     const document = panelDocument(this.menu);
     if (!document) return;
-    setText(document, 'mn-status', STATUS[state](snapshot, app.machine.drawnCount));
+    const s = session.peek();
+    const guest = s.role === 'guest';
+    const drawn = app.machine.drawnCount;
+    const status = guest
+      ? guestReadingStatus(state, s.mode)
+      : s.role === 'host' && s.mode === 'shuffle' && s.peerPresent
+        ? (hostShuffleModeStatus(state, snapshot, drawn) ?? STATUS[state](snapshot, drawn))
+        : STATUS[state](snapshot, drawn);
+    setText(document, 'mn-status', status);
+    const line = sessionLine(s);
+    if (line) setText(document, 'mn-session', line);
+    setText(document, 'mn-leave-text', guest ? 'Leave the reading' : 'Close the room');
     const show = (id: string, visible: boolean) =>
       document.getElementById(id)?.setProperties({ display: visible ? 'flex' : 'none' });
-    show('mn-new', state !== 'SHUFFLING');
-    show('mn-another', state === 'READY');
+    // The reader decides when a reading starts over; a guest can only leave.
+    show('mn-new', !guest && state !== 'SHUFFLING');
+    show('mn-another', !guest && state === 'READY');
+    show('mn-session', line !== null);
+    show('mn-leave', s.role !== 'solo');
   }
 
   /**

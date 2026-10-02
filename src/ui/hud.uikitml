@@ -1,6 +1,7 @@
 <!--
   The small panel beside the mat during a reading: what to do next, New
-  reading, and Choose another (before the first shuffle).
+  reading, and Choose another (before the first shuffle). Reading together,
+  it also shows the room, and a guest gets Leave instead of New reading.
   Theme template: double-brace tokens are filled from the active theme.
 -->
 <style>
@@ -27,6 +28,15 @@
     line-height: 1.35;
     text-align: center;
     color: {{colors.panelText}};
+  }
+
+  .mn-session {
+    {{bodyFont}}
+    width: 26;
+    margin-top: 0.8;
+    font-size: 1.1;
+    text-align: center;
+    color: {{colors.panelMuted}};
   }
 
   .mn-primary {
@@ -91,6 +101,7 @@
 </style>
 <div id="menu" class="mn-root">
   <div id="mn-status" class="mn-status">Shuffle the deck.</div>
+  <div id="mn-session" class="mn-session" style="display: none">Reading together</div>
   <div id="mn-new" class="mn-primary">
     <RotateCcw class="mn-primary-icon"></RotateCcw>
     <div class="mn-primary-text">New reading</div>
@@ -98,5 +109,9 @@
   <div id="mn-another" class="mn-link" style="display: none">
     <ArrowLeft class="mn-link-icon"></ArrowLeft>
     <div class="mn-link-text">Choose another reading</div>
+  </div>
+  <div id="mn-leave" class="mn-link" style="display: none">
+    <LogOut class="mn-link-icon"></LogOut>
+    <div id="mn-leave-text" class="mn-link-text">Leave</div>
   </div>
 </div>

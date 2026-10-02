@@ -9,12 +9,13 @@ import { DECK_BACK } from '../settings/settings.js';
 import { builtinSpreads, customSpreads } from '../spreads/catalog.js';
 import type { SpreadDef } from '../spreads/spread.schema.js';
 import { BUILDER_STYLES, builderMarkup } from '../ui/builderMarkup.js';
+import { TOGETHER_STYLES, togetherMarkup } from '../ui/togetherMarkup.js';
 import hubTemplate from '../ui/hub.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
 import { TableSystem } from './tableSystem.js';
 
-export type HubPage = 'home' | 'spreads' | 'builder' | 'settings' | 'how' | 'credits';
-const PAGES: readonly HubPage[] = ['home', 'spreads', 'builder', 'settings', 'how', 'credits'];
+export type HubPage = 'home' | 'spreads' | 'builder' | 'together' | 'settings' | 'how' | 'credits';
+const PAGES: readonly HubPage[] = ['home', 'spreads', 'builder', 'together', 'settings', 'how', 'credits'];
 type SpreadTab = 'classic' | 'yours';
 type SettingsTab = 'cards' | 'around' | 'data';
 
@@ -102,6 +103,8 @@ function hubSlots(): Record<string, string> {
     envChips: envs,
     builder: builderMarkup(),
     builderStyles: BUILDER_STYLES,
+    together: togetherMarkup(),
+    togetherStyles: TOGETHER_STYLES,
   };
 }
 

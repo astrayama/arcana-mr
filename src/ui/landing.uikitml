@@ -70,6 +70,7 @@
 
   .landing-privacy {
     {{bodyFont}}
+    width: 34;
     margin-top: 1.8;
     font-size: 1.2;
     line-height: 1.35;
@@ -135,6 +136,6 @@
   </div>
   <div id="landing-enter" class="landing-btn"><div class="landing-btn-label">Begin</div></div>
   <div id="landing-note" class="landing-note" style="display: none">Note</div>
-  <div class="landing-privacy">Nothing you do here is recorded or sent anywhere.</div>
+  <div class="landing-privacy">Nothing you do here is recorded. Reading together sends encrypted messages through our relay, which never stores them.</div>
   <div class="landing-maker">Made by Screen Sage Studios</div>
 </div>
