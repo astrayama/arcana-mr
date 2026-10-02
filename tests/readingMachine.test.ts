@@ -178,14 +178,53 @@ test('a new reading clears the table from any settled state, but not mid-shuffle
   assert.equal(m.send({ type: 'NEW_READING' }), false);
 });
 
-test('the mat can only be moved between readings', () => {
+test('the mat can be moved between readings', () => {
   const m = make();
   m.send({ type: 'MAT_PLACED' });
   m.send({ type: 'REPLACE_MAT' });
   assert.equal(m.state, 'PLACING');
   m.send({ type: 'MAT_PLACED' });
-  m.send({ type: 'CHOOSE_SPREAD', spread: SPREADS.single });
+  assert.equal(m.state, 'IDLE');
+  assert.equal(m.current.spread, null);
+});
+
+test('moving the mat mid-reading keeps the reading and the deck, but waits out a riffle', () => {
+  const m = drawing();
+  m.send({ type: 'DRAW' });
+  m.send({ type: 'TURN', slot: 0, faceUp: true });
+  const before = m.exportShared();
+  const next = m.upcoming(2).map((c) => c.cardId);
+  const events: string[] = [];
+  m.subscribe((snapshot, event) => events.push(`${event.type}:${snapshot.state}`));
+
+  assert.equal(m.send({ type: 'REPLACE_MAT' }), true);
+  assert.equal(m.state, 'PLACING');
+  assert.deepEqual(m.exportShared(), before, 'a guest asking mid-move still gets the reading');
+  assert.equal(m.send({ type: 'DRAW' }), false, 'nothing happens to the reading while placing');
+  m.send({ type: 'MAT_PLACED' });
+  assert.deepEqual(events, ['REPLACE_MAT:PLACING', 'MAT_PLACED:DRAWING', 'RESTORE:DRAWING']);
+  assert.deepEqual(m.exportShared(), before);
+  assert.deepEqual(m.upcoming(2).map((c) => c.cardId), next, 'the deck is in the same order');
+  m.send({ type: 'DRAW' });
+  assert.equal(m.current.slots[1].cardId, next[0]);
+
+  m.send({ type: 'SHUFFLE' });
+  assert.equal(m.state, 'SHUFFLING');
   assert.equal(m.send({ type: 'REPLACE_MAT' }), false);
+});
+
+test('a guest who leaves while moving the mat carries on with the reading', () => {
+  const host = drawing();
+  host.send({ type: 'DRAW' });
+  const guest = make();
+  guest.send({ type: 'MAT_PLACED' });
+  guest.restore(host.exportShared());
+  guest.send({ type: 'REPLACE_MAT' });
+  guest.adopt();
+  guest.send({ type: 'MAT_PLACED' });
+  assert.equal(guest.state, 'DRAWING');
+  assert.equal(guest.send({ type: 'DRAW' }), true, 'the deck was refilled for the rest of the spread');
+  assert.notEqual(guest.current.slots[1].cardId, guest.current.slots[0].cardId);
 });
 
 test('each reading gets a new reading number and a fresh shuffle count', () => {

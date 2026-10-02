@@ -86,6 +86,8 @@ export class ReadingFlowSystem extends createSystem({
           if (app.machine.send({ type: 'NEW_READING' })) this.world.getSystem(HubSystem)?.openSpreads();
         },
         'mn-leave': () => this.world.getSystem(TogetherSystem)?.leave(),
+        // The reading waits while the mat moves, and carries on once it's down.
+        'mn-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
       }),
     );
     this.refreshMenu(app.machine.current);
@@ -125,6 +127,7 @@ export class ReadingFlowSystem extends createSystem({
     show('mn-new', !guest && state !== 'SHUFFLING');
     show('mn-another', !guest && state === 'READY');
     show('mn-session', line !== null);
+    show('mn-move', state !== 'SHUFFLING');
     show('mn-leave', s.role !== 'solo');
   }
 

@@ -1,6 +1,7 @@
 <!--
   The small panel beside the mat during a reading: what to do next, New
-  reading, and Choose another (before the first shuffle). Reading together,
+  reading, Choose another (before the first shuffle), and Move the mat (any
+  time but mid-shuffle, keeping the reading). Reading together,
   it also shows the room, and a guest gets Leave instead of New reading.
   Theme template: double-brace tokens are filled from the active theme.
 -->
@@ -109,6 +110,10 @@
   <div id="mn-another" class="mn-link" style="display: none">
     <ArrowLeft class="mn-link-icon"></ArrowLeft>
     <div class="mn-link-text">Choose another reading</div>
+  </div>
+  <div id="mn-move" class="mn-link" style="display: none">
+    <Move class="mn-link-icon"></Move>
+    <div class="mn-link-text">Move the mat</div>
   </div>
   <div id="mn-leave" class="mn-link" style="display: none">
     <LogOut class="mn-link-icon"></LogOut>

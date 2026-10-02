@@ -87,6 +87,11 @@ export const TOGETHER_STYLES = `
     gap: 1.4;
     margin-top: 1.8;
   }
+  .hb-tg-links {
+    flex-direction: row;
+    justify-content: center;
+    margin-top: 0.8;
+  }
   .hb-tg-code {
     {{headingFont}}
     margin-top: 0.4;
@@ -274,6 +279,12 @@ export function togetherMarkup(): string {
           <div class="hb-button-text">Close the room</div>
         </div>
       </div>
+      <div class="hb-tg-links">
+        <div id="hb-tg-room-move" class="hb-link">
+          <Move class="hb-link-icon"></Move>
+          <div class="hb-link-text">Move the mat</div>
+        </div>
+      </div>
     </div>
 
     <div id="hb-tg-join" class="hb-center" style="display: none">
@@ -296,6 +307,12 @@ export function togetherMarkup(): string {
         <div id="hb-tg-leave" class="hb-button">
           <LogOut class="hb-button-icon"></LogOut>
           <div class="hb-button-text">Leave</div>
+        </div>
+      </div>
+      <div class="hb-tg-links">
+        <div id="hb-tg-joined-move" class="hb-link">
+          <Move class="hb-link-icon"></Move>
+          <div class="hb-link-text">Move the mat</div>
         </div>
       </div>
     </div>

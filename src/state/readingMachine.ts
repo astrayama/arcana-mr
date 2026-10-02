@@ -6,6 +6,8 @@
  *   PLACING ─MAT_PLACED─▶ IDLE ─CHOOSE_SPREAD─▶ READY ─SHUFFLE─▶ SHUFFLING ─SHUFFLE_DONE─▶ DRAWING
  *      ▲                   │                                        ▲                          │  │
  *      └───REPLACE_MAT─────┘                                        └─SHUFFLE (a spot is open)─┘  │
+ *   (REPLACE_MAT also works mid-reading, except while shuffling: the reading
+ *   is set aside while the mat moves and picked up again once it's down.)
  *                                                                                    DRAW (last) ▼
  *   IDLE ◀──NEW_READING── READY / DRAWING / AWAITING_FLIPS / REVEALED    AWAITING_FLIPS ◀─TURN─▶ REVEALED
  *
@@ -60,6 +62,9 @@ export type Gate = (event: ReadingEvent, machine: ReadingMachine) => GateDecisio
 
 /** Events about this headset's own table, never shared or gated. */
 const DEVICE_EVENTS: ReadonlySet<ReadingEvent['type']> = new Set(['MAT_PLACED', 'REPLACE_MAT']);
+
+/** States the mat can be moved from. A riffle in progress has to finish first. */
+const MOVABLE: ReadonlySet<ReadingStateName> = new Set(['IDLE', 'READY', 'DRAWING', 'AWAITING_FLIPS', 'REVEALED']);
 
 /** A reading as shared between headsets: everything except where the mat is. */
 export interface SharedReading {
@@ -120,6 +125,8 @@ export class ReadingMachine {
   private readonly draw: typeof drawCards;
   private cardIds: readonly string[];
   private gate: Gate | null = null;
+  /** A reading set aside while the mat is moved, with the deck as it was. */
+  private parked: { snapshot: ReadingSnapshot; pending: DrawnCard[] } | null = null;
 
   constructor(private readonly options: ReadingMachineOptions) {
     this.draw = options.draw ?? drawCards;
@@ -131,7 +138,7 @@ export class ReadingMachine {
    * readings, so a reading never mixes decks. Returns false if not allowed now.
    */
   setCardIds(cardIds: readonly string[]): boolean {
-    if (this.snapshot.state !== 'IDLE' && this.snapshot.state !== 'PLACING') return false;
+    if (this.parked || (this.snapshot.state !== 'IDLE' && this.snapshot.state !== 'PLACING')) return false;
     this.cardIds = cardIds;
     return true;
   }
@@ -188,6 +195,18 @@ export class ReadingMachine {
     }
     const result = this.next(event, origin);
     if (result === null) return false;
+    if (event.type === 'REPLACE_MAT' && this.snapshot.state !== 'IDLE') {
+      this.parked = { snapshot: this.snapshot, pending: this.pending };
+    }
+    if (event.type === 'MAT_PLACED' && this.parked) {
+      // Back to the reading that was set aside, with the deck as it was, and
+      // everything on the table rebuilt for it.
+      const { pending } = this.parked;
+      this.parked = null;
+      this.emit(result.snapshot, result.event, origin, pending);
+      this.emit(result.snapshot, { type: 'RESTORE' }, origin);
+      return true;
+    }
     this.emit(result.snapshot, result.event, origin, result.pending);
     return true;
   }
@@ -220,9 +239,9 @@ export class ReadingMachine {
     return true;
   }
 
-  /** The reading as shared with a guest. */
+  /** The reading as shared with a guest (the one set aside, while the mat is being moved). */
   exportShared(): SharedReading {
-    const s = this.snapshot;
+    const s = this.parked?.snapshot ?? this.snapshot;
     return {
       phase: s.state === 'PLACING' ? 'IDLE' : s.state,
       spread: s.spread,
@@ -238,12 +257,15 @@ export class ReadingMachine {
    * that was waiting on the host. Clear the gate first.
    */
   adopt(): void {
-    const s = this.snapshot;
+    const s = this.parked?.snapshot ?? this.snapshot;
     if (!s.spread) return;
     const drawn = new Set(s.slots.map((slot) => slot.cardId).filter((id) => id !== null));
     const open = s.slots.filter((slot) => slot.cardId === null).length;
     const remaining = this.cardIds.filter((id) => !drawn.has(id));
-    this.pending = open > 0 && remaining.length >= open ? this.draw(remaining, open, this.options.reversalChance) : [];
+    const pending = open > 0 && remaining.length >= open ? this.draw(remaining, open, this.options.reversalChance) : [];
+    // Mid-move, the reading set aside is the one to carry on.
+    if (this.parked) this.parked.pending = pending;
+    else this.pending = pending;
     if (s.state === 'SHUFFLING') this.send({ type: 'SHUFFLE_DONE' });
   }
 
@@ -265,12 +287,14 @@ export class ReadingMachine {
       return allowed ? { snapshot: this.cleared(), event, pending: [] } : null;
     }
 
+    if (event.type === 'REPLACE_MAT') return MOVABLE.has(s.state) ? same({ ...s, state: 'PLACING' }) : null;
+
     switch (s.state) {
       case 'PLACING':
-        return event.type === 'MAT_PLACED' ? same({ ...s, state: 'IDLE' }) : null;
+        if (event.type !== 'MAT_PLACED') return null;
+        return same(this.parked ? this.parked.snapshot : { ...s, state: 'IDLE' });
 
       case 'IDLE':
-        if (event.type === 'REPLACE_MAT') return same({ ...s, state: 'PLACING' });
         if (event.type === 'CHOOSE_SPREAD') {
           const spread = event.spread;
           const count = spread.positions.length;

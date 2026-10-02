@@ -48,6 +48,9 @@ export class TogetherPanelSystem extends createSystem({}) {
         'hb-tg-close': () => this.leave(),
         'hb-tg-key-join': () => this.join(),
         'hb-tg-settings': () => this.hub.show('settings'),
+        // The room stays open while the mat moves; the page comes back once it's down.
+        'hb-tg-room-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
+        'hb-tg-joined-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
         'hb-tg-leave': () => this.leave(),
       };
       for (const key of KEYS) handlers[`hb-tg-key-${key}`] = () => this.press(key);

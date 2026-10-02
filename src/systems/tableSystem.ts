@@ -140,8 +140,9 @@ export class TableSystem extends createSystem({}) {
       }),
       app.machine.subscribe((snapshot, event) => {
         if (event.type === 'CHOOSE_SPREAD') this.setLayout(this.fit(snapshot.spread), 'reading');
-        // Placing always uses the everyday mat, which is what placement fits to the table.
-        if (event.type === 'REPLACE_MAT') this.setLayout(this.fit(null), 'base', false);
+        // Placing between readings uses the everyday mat, which is what placement
+        // fits to the table. Mid-reading, the spread and its cards ride along.
+        if (event.type === 'REPLACE_MAT' && !snapshot.spread) this.setLayout(this.fit(null), 'base', false);
         // A shared reading caught up at once: clear the table and lay out its spread.
         if (event.type === 'RESTORE') {
           this.removeAllCards();
