@@ -6,7 +6,8 @@ import { HANDS, HandGestures, type Hand, type HandGesture } from '../interaction
 import { ease } from '../lib/tween.js';
 import type { ReadingStateName } from '../state/readingMachine.js';
 import { allowed } from '../net/permissions.js';
-import type { HoldState } from '../net/protocol.js';
+import { PoseBuffer, type Pose } from '../net/poseBuffer.js';
+import type { HoldState, Obj, Q4, V3 } from '../net/protocol.js';
 import { permissionContext } from '../net/session.js';
 import { isGrabTap } from '../visuals/layout.js';
 import { deckStackHeight } from '../visuals/tableVisuals.js';
@@ -19,6 +20,10 @@ type HoldKind = 'deck' | 'card' | 'deckTop';
 
 interface Hold {
   kind: HoldKind;
+  /** Names this hold in a shared reading. */
+  readonly hid: number;
+  /** What's held, as a shared reading names it: the deck or a card's spot. Null for a pinch that pulled nothing. */
+  readonly obj: Obj | null;
   card: TableCard | null;
   /** What moves with the hand; null for a pinch on the deck that pulled nothing. */
   object: Object3D | null;
@@ -46,9 +51,31 @@ export interface CardGrabHandlers {
   onRelease(card: TableCard, tap: boolean, fromDeck: boolean): void;
 }
 
+/** Hears this headset pick things up and let go, for sharing the motion. */
+export interface HoldListener {
+  onHoldStart(obj: Obj, hid: number, object: Object3D): void;
+  /** After the release handlers have run (so a turn is told first), with the pose it was let go at. */
+  onHoldEnd(obj: Obj, hid: number, p: V3, q: Q4): void;
+}
+
+/** Something the other person in a shared reading is holding, moved by their hand's poses. */
+export interface RemoteHold {
+  obj: Obj;
+  hid: number;
+  rn: number;
+  object: Object3D;
+  card: TableCard | null;
+  readonly buffer: PoseBuffer;
+  /** Local time (seconds) anything last arrived for this hold. */
+  lastAt: number;
+}
+
 interface MultiPointerInternals {
   pointerStates: Map<string, string>;
 }
+
+/** Seconds on the clock poses are stamped and played back with. */
+export const motionNow = (): number => performance.now() / 1000;
 
 /** Reading states where the deck and cards can be handled. */
 const LIVE: ReadonlySet<ReadingStateName> = new Set(['READY', 'SHUFFLING', 'DRAWING', 'AWAITING_FLIPS', 'REVEALED']);
@@ -68,6 +95,9 @@ export class TableGrabSystem extends createSystem({}) {
   cardHandlers: CardGrabHandlers | null = null;
   /** Draws the next card off the deck into the hand, if drawing is allowed now. */
   pull: (() => TableCard | null) | null = null;
+  holdListener: HoldListener | null = null;
+  /** Told when someone else's hold ends without them letting go (they left, or the reading moved on). */
+  onRemoteDropped: ((hold: RemoteHold, putBack: boolean) => void) | null = null;
 
   private gestures!: HandGestures;
   private table!: TableSystem;
@@ -75,7 +105,8 @@ export class TableGrabSystem extends createSystem({}) {
   private deck!: Object3D;
   private readonly holds: Record<Hand, Hold | null> = { left: null, right: null };
   /** Objects someone else is holding in a shared reading: the deck, or a card by its spot. */
-  readonly remoteHolds = new Map<'deck' | number, { hid: number; object: Object3D; card: TableCard | null }>();
+  readonly remoteHolds = new Map<Obj, RemoteHold>();
+  private nextHid = 1;
   private readonly nearMode: Record<Hand, boolean> = { left: false, right: false };
   private readonly rayOn: Record<Hand, boolean> = { left: true, right: true };
 
@@ -88,6 +119,7 @@ export class TableGrabSystem extends createSystem({}) {
   private readonly holdQuat = new Quaternion();
   private readonly holdPos = new Vector3();
   private foundCard: TableCard | null = null;
+  private readonly remotePose: Pose = { p: [0, 0, 0], q: [0, 0, 0, 1] };
 
   private readonly cardHalf = new Vector3();
   private readonly deckHalf = new Vector3();
@@ -128,23 +160,84 @@ export class TableGrabSystem extends createSystem({}) {
     return null;
   }
 
-  /** Let go of everything without telling anyone (the caller is clearing up). */
+  /** Let go of everything without the release handlers (the caller is clearing up). */
   releaseAll(): void {
     for (const hand of HANDS) this.release(hand, false);
-    this.releaseRemote();
+    this.releaseRemote(false);
   }
 
-  /** Forget what the other person in a shared reading was holding. */
-  releaseRemote(): void {
-    for (const hold of this.remoteHolds.values()) {
-      if (hold.card) hold.card.heldBy = null;
-    }
+  /**
+   * Forget what the other person in a shared reading was holding. With
+   * `putBack`, it goes back where it belongs (they left mid-hold); otherwise
+   * the caller is clearing the table anyway.
+   */
+  releaseRemote(putBack: boolean): void {
+    const holds = [...this.remoteHolds.values()];
     this.remoteHolds.clear();
+    for (const hold of holds) {
+      if (hold.card) hold.card.heldBy = null;
+      this.onRemoteDropped?.(hold, putBack);
+    }
   }
 
-  /** What this headset is holding right now, for a guest catching up. Filled in with live motion. */
+  /** What this headset is holding right now, for a guest catching up. */
   localHoldStates(): HoldState[] {
-    return [];
+    const states: HoldState[] = [];
+    for (const hand of HANDS) {
+      const hold = this.holds[hand];
+      if (!hold?.object || hold.obj === null) continue;
+      const { position: p, quaternion: q } = hold.object;
+      states.push({ obj: hold.obj, hid: hold.hid, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] });
+    }
+    return states;
+  }
+
+  isRemoteHeld(obj: Obj): boolean {
+    return this.remoteHolds.has(obj);
+  }
+
+  /**
+   * The other person picked something up. If this headset is holding it too,
+   * `localWins` decides: the host keeps it, a guest lets go. Returns the new
+   * hold, or null if there's nothing to take (or it isn't theirs to take).
+   */
+  takeRemote(obj: Obj, hid: number, rn: number, localWins: boolean): RemoteHold | null {
+    if (!LIVE.has(app.machine.state)) return null;
+    const card = obj === 'deck' ? null : (this.table.cards.find((c) => c.slot === obj && c.phase !== 'gathering') ?? null);
+    const object = obj === 'deck' ? this.deck : card?.visual.root;
+    if (!object) return null;
+    const local = this.holderOf(object);
+    if (local) {
+      if (localWins) return null;
+      this.release(local, false);
+    }
+    if (card) {
+      card.motion?.cancel();
+      card.motion = null;
+      card.heldBy = 'remote';
+      card.phase = 'held';
+    }
+    const hold: RemoteHold = { obj, hid, rn, object, card, buffer: new PoseBuffer(), lastAt: motionNow() };
+    this.remoteHolds.set(obj, hold);
+    return hold;
+  }
+
+  /** A pose of the other person's hold, in mat space. */
+  pushRemotePose(obj: Obj, hid: number, p: V3, q: Q4, sentAt: number): void {
+    const hold = this.remoteHolds.get(obj);
+    if (!hold || hold.hid !== hid) return;
+    const now = motionNow();
+    hold.lastAt = now;
+    hold.buffer.push({ p, q }, sentAt, now);
+  }
+
+  /** The other person let go. Returns their hold so the caller can put the object down. */
+  endRemote(obj: Obj, hid: number): RemoteHold | null {
+    const hold = this.remoteHolds.get(obj);
+    if (!hold || hold.hid !== hid) return null;
+    this.remoteHolds.delete(obj);
+    if (hold.card) hold.card.heldBy = null;
+    return hold;
   }
 
   /** A short buzz on a controller, where supported. */
@@ -197,6 +290,17 @@ export class TableGrabSystem extends createSystem({}) {
       this.nearMode[hand] = near;
       this.focus.setNear(hand, owner);
       this.setRay(hand, !near);
+    }
+
+    // The other person's hands, played back smoothly.
+    if (this.remoteHolds.size > 0) {
+      const now = motionNow();
+      const pose = this.remotePose;
+      for (const hold of this.remoteHolds.values()) {
+        if (!hold.buffer.sample(now, pose)) continue;
+        hold.object.position.set(pose.p[0], pose.p[1], pose.p[2]);
+        hold.object.quaternion.set(pose.q[0], pose.q[1], pose.q[2], pose.q[3]);
+      }
     }
   }
 
@@ -264,8 +368,11 @@ export class TableGrabSystem extends createSystem({}) {
     half: Vector3,
     fromDeck: boolean,
   ): void {
+    const obj: Obj | null = kind === 'deck' ? 'deck' : card ? card.slot : null;
     const hold: Hold = {
       kind,
+      hid: this.nextHid++,
+      obj,
       card,
       object,
       offset: new Matrix4(),
@@ -288,6 +395,7 @@ export class TableGrabSystem extends createSystem({}) {
       hold.settle.applyQuaternion(this.holdQuat.invert());
     }
     this.holds[hand] = hold;
+    if (object && obj !== null) this.holdListener?.onHoldStart(obj, hold.hid, object);
   }
 
   /** Put the held object where the hand says, in its parent's (the mat's) space. */
@@ -313,15 +421,25 @@ export class TableGrabSystem extends createSystem({}) {
     if (!hold) return;
     this.holds[hand] = null;
     if (hold.card) hold.card.heldBy = null;
-    if (!notify) return;
-    const g = this.gestures.get(hand);
-    // Measured at the grip: closing a pinch moves the fingertips a few
-    // centimeters even when the hand itself holds still.
-    const moved = this.holdPos.setFromMatrixPosition(g.hold).distanceTo(hold.startGrip);
-    const tap = g.connected && isGrabTap(this.table.now - hold.startedAt, moved);
-    if (hold.kind === 'deck') this.deckHandlers?.onRelease(hand, tap);
-    else if (hold.kind === 'card' && hold.card) this.cardHandlers?.onRelease(hold.card, tap, hold.fromDeck);
-    else if (hold.kind === 'deckTop' && tap) this.deckHandlers?.onTopTap(hand);
+    // Where it was let go, before the handlers start moving it home.
+    let p: V3 | null = null;
+    let q: Q4 | null = null;
+    if (hold.object) {
+      const { position, quaternion } = hold.object;
+      p = [position.x, position.y, position.z];
+      q = [quaternion.x, quaternion.y, quaternion.z, quaternion.w];
+    }
+    if (notify) {
+      const g = this.gestures.get(hand);
+      // Measured at the grip: closing a pinch moves the fingertips a few
+      // centimeters even when the hand itself holds still.
+      const moved = this.holdPos.setFromMatrixPosition(g.hold).distanceTo(hold.startGrip);
+      const tap = g.connected && isGrabTap(this.table.now - hold.startedAt, moved);
+      if (hold.kind === 'deck') this.deckHandlers?.onRelease(hand, tap);
+      else if (hold.kind === 'card' && hold.card) this.cardHandlers?.onRelease(hold.card, tap, hold.fromDeck);
+      else if (hold.kind === 'deckTop' && tap) this.deckHandlers?.onTopTap(hand);
+    }
+    if (p && q && hold.obj !== null) this.holdListener?.onHoldEnd(hold.obj, hold.hid, p, q);
   }
 
   /**

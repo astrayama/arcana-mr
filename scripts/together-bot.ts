@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import WebSocket from 'ws';
 import type { Mode } from '../src/net/permissions.ts';
 import { fromWire, parseMessage, PROTOCOL_VERSION, toWire, type Msg, type Obj, type Q4, type V3 } from '../src/net/protocol.ts';
+import { slerp } from '../src/net/poseBuffer.ts';
 import { RelayClient } from '../src/net/relayClient.ts';
 import { newRoomCode } from '../src/net/roomCode.ts';
 import { deriveRoom, open, seal, type PeerRole } from '../src/net/secure.ts';
@@ -115,12 +116,18 @@ const relay = new RelayClient({
 relay.connect();
 
 function sendState() {
-  void send({ t: 'state', epoch, seq, mode, reading: machine.exportShared(), holds: [] });
+  const holds = openHold ? [{ obj: openHold.obj, hid: openHold.id, p: openHold.p, q: openHold.q }] : [];
+  void send({ t: 'state', epoch, seq, mode, reading: machine.exportShared(), holds });
 }
 
+let poses = 0;
 function handle(msg: Msg) {
-  if (msg.t === 'pose') return; // noisy
-  log('got', msg.t, msg.t === 'ev' ? `${msg.ev.type} seq=${msg.seq}` : msg.t === 'hold' ? `${msg.obj} on=${msg.on}` : '');
+  if (msg.t === 'pose') {
+    poses++; // too many to log one by one
+    return;
+  }
+  log('got', msg.t, msg.t === 'ev' ? `${msg.ev.type} seq=${msg.seq}` : msg.t === 'hold' ? `${msg.obj} on=${msg.on}${msg.on ? '' : ` after ${poses} poses`}` : '');
+  if (msg.t === 'hold') poses = 0;
   if (role === 'host') {
     if (msg.t === 'hello' || msg.t === 'sync-req') sendState();
     if (msg.t === 'intent') {
@@ -154,21 +161,30 @@ async function waitFor(check: () => boolean, ms = 30_000) {
   }
 }
 
-/** Stream a hold on `obj` from `p0` to `p1` over `ms`, wiggling if asked. */
-async function stream(obj: Obj, p0: V3, p1: V3, ms: number, shake = 0) {
+const IDENTITY: Q4 = [0, 0, 0, 1];
+/** Turned over end to end about the card's long side, the way a hand turns a card. */
+const TURNED: Q4 = [0, 0, 1, 0];
+let lastHold: { obj: Obj; id: number; rn: number } | null = null;
+/** A hold still in progress (the "grab" step), with its latest pose, for a guest who joins mid-hold. */
+let openHold: { obj: Obj; id: number; rn: number; p: V3; q: Q4 } | null = null;
+
+/** Stream a hold on `obj` from `p0` to `p1` over `ms`, turning to `q1` and wiggling if asked. */
+async function stream(obj: Obj, p0: V3, p1: V3, ms: number, shake = 0, q1: Q4 = IDENTITY) {
   const id = hid++;
   const rn = machine.current.readingNumber;
+  lastHold = { obj, id, rn };
   const q: Q4 = [0, 0, 0, 1];
-  await send({ t: 'hold', rn, hid: id, obj, on: true, p: p0, q });
+  await send({ t: 'hold', rn, hid: id, obj, on: true, p: p0, q: IDENTITY });
   const start = Date.now();
   while (Date.now() - start < ms) {
     const k = (Date.now() - start) / ms;
     const wiggle = shake ? Math.sin(k * Math.PI * 2 * shake) * 0.06 : 0;
     const p: V3 = [p0[0] + (p1[0] - p0[0]) * k + wiggle, p0[1] + (p1[1] - p0[1]) * k, p0[2] + (p1[2] - p0[2]) * k];
-    await send({ t: 'pose', rn, hid: id, obj, p, q, ts: Date.now() / 1000 });
+    slerp(IDENTITY, q1, Math.min(1, k * 1.25), q);
+    await send({ t: 'pose', rn, hid: id, obj, p, q: [...q], ts: Date.now() / 1000 });
     await sleep(50);
   }
-  return { id, rn, q };
+  return { id, rn, q: [...q1] as Q4 };
 }
 
 for (const step of steps) {
@@ -211,15 +227,49 @@ for (const step of steps) {
       seq += 2;
       break;
     case 'hold-card': {
-      // hold-card <slot> <x> <z>: pick the card up, move it over 1 s, turn it, let go.
+      // hold-card <slot> <x> <z> [up]: pick the card up, carry it for 1 s
+      // (turning it over in the hand if "up"), and let go.
       const slot = Number(a[0]);
       const p0: V3 = [Number(a[1]), 0.12, Number(a[2])];
-      const { id, rn } = await stream(slot, p0, [p0[0], 0.2, p0[2] + 0.05], 1000);
-      const flipped: Q4 = [0, 0, 1, 0];
-      if (a[3] === 'up') machine.send({ type: 'TURN', slot, faceUp: true });
-      await send({ t: 'hold', rn, hid: id, obj: slot, on: false, p: [p0[0], 0.2, p0[2] + 0.05], q: flipped });
+      const p1: V3 = [p0[0], 0.2, p0[2] + 0.05];
+      const turn = a[3] === 'up';
+      const { id, rn, q } = await stream(slot, p0, p1, 1000, 0, turn ? TURNED : IDENTITY);
+      if (turn) machine.send({ type: 'TURN', slot, faceUp: true });
+      await send({ t: 'hold', rn, hid: id, obj: slot, on: false, p: p1, q });
       break;
     }
+    case 'tap-card': {
+      // tap-card <slot> <x> <z>: a quick pinch on a face-down card, which turns it over.
+      const slot = Number(a[0]);
+      const p: V3 = [Number(a[1]), 0.01, Number(a[2])];
+      const { id, rn } = await stream(slot, p, p, 120);
+      machine.send({ type: 'TURN', slot, faceUp: true });
+      await send({ t: 'hold', rn, hid: id, obj: slot, on: false, p, q: IDENTITY });
+      break;
+    }
+    case 'grab': {
+      // grab <obj> <x> <z> <ms>: pick something up and keep holding it (no letting go).
+      const obj: Obj = a[0] === 'deck' ? 'deck' : Number(a[0]);
+      const p0: V3 = [Number(a[1]), 0.15, Number(a[2])];
+      const p1: V3 = [p0[0] + 0.1, 0.25, p0[2]];
+      const { id, rn } = await stream(obj, p0, p1, Number(a[3] ?? 1000));
+      openHold = { obj, id, rn, p: p1, q: IDENTITY };
+      break;
+    }
+    case 'keep': {
+      // keep <ms>: go on holding, still, sending the occasional pose so it stays alive.
+      const until = Date.now() + Number(a[0]);
+      while (openHold && Date.now() < until) {
+        await send({ t: 'pose', rn: openHold.rn, hid: openHold.id, obj: openHold.obj, p: openHold.p, q: openHold.q, ts: Date.now() / 1000 });
+        await sleep(250);
+      }
+      break;
+    }
+    case 'let-go':
+      // Let go of the open hold where it is.
+      if (openHold) await send({ t: 'hold', rn: openHold.rn, hid: openHold.id, obj: openHold.obj, on: false, p: openHold.p, q: openHold.q });
+      openHold = null;
+      break;
     case 'shake-deck': {
       // shake-deck <x> <z>: lift the deck, shake it for 1.5 s, ask to shuffle, put it down.
       const p0: V3 = [Number(a[0]), 0.15, Number(a[1])];
@@ -230,8 +280,13 @@ for (const step of steps) {
       break;
     }
     case 'stale-pose':
-      // A pose from an earlier reading, which must be ignored.
-      await send({ t: 'pose', rn: 0, hid: 999, obj: 'deck', p: [0, 0.3, 0], q: [0, 0, 0, 1], ts: Date.now() / 1000 });
+      // More poses for the last hold, after the reading moved on: they must be ignored.
+      if (lastHold) {
+        for (let i = 0; i < 5; i++) {
+          await send({ t: 'pose', rn: lastHold.rn, hid: lastHold.id, obj: lastHold.obj, p: [0, 0.4, 0], q: TURNED, ts: Date.now() / 1000 });
+          await sleep(50);
+        }
+      }
       break;
     case 'print':
       log(JSON.stringify(machine.exportShared()));

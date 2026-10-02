@@ -1,4 +1,4 @@
-import { createSystem } from '@iwsdk/core';
+import { createSystem, type Object3D } from '@iwsdk/core';
 import { app } from '../app/context.js';
 import { allowed, gateFor, type Mode } from '../net/permissions.js';
 import {
@@ -6,8 +6,12 @@ import {
   parseMessage,
   PROTOCOL_VERSION,
   toWire,
+  type HoldState,
   type Msg,
+  type Obj,
   type ParseContext,
+  type Q4,
+  type V3,
 } from '../net/protocol.js';
 import { RelayClient, type CloseReason } from '../net/relayClient.js';
 import { newRoomCode } from '../net/roomCode.js';
@@ -15,8 +19,11 @@ import { deriveRoom, open, seal, type PeerRole, type Room } from '../net/secure.
 import { permissionContext, session, SOLO, type Session, type SessionProblem } from '../net/session.js';
 import { SyncTracker } from '../net/sync.js';
 import type { ReadingEvent, ReadingSnapshot, ResolvedEvent, Origin } from '../state/readingMachine.js';
+import { CardInteractionSystem } from './cardInteractionSystem.js';
 import { DeckSystem } from './deckSystem.js';
-import { TableGrabSystem } from './tableGrabSystem.js';
+import { DrawSystem } from './drawSystem.js';
+import { motionNow, TableGrabSystem, type RemoteHold } from './tableGrabSystem.js';
+import type { TableCard } from './tableSystem.js';
 
 /** The relay's address for this build, or empty when reading together isn't available. */
 export const RELAY_URL = (import.meta.env.VITE_RELAY_URL ?? '').trim();
@@ -29,6 +36,28 @@ const INTENT_TIMEOUT_S = 1.5;
 const STATE_INTERVAL_S = 0.5;
 /** Tries at a fresh room code when the one we picked is in use. */
 const CODE_TRIES = 4;
+/** Fewest seconds between poses of something moving in the hand (about 20 a second). */
+const POSE_INTERVAL_S = 0.05;
+/** A pose at least this often while the hand holds still, so the other side knows it's still held. */
+const POSE_KEEPALIVE_S = 0.25;
+/** Smallest move worth sending, in meters, and turn, as 1 - |q1·q2| (about half a degree). */
+const POSE_MOVED_M = 0.001;
+const POSE_TURNED = 1e-5;
+/** Something the other person holds is put back if nothing is heard about it for this long. */
+const REMOTE_STALE_S = 2;
+/** How long a card pulled into the other person's hand waits for their hand before flying to its spot. */
+const PULL_WAIT_S = 1;
+
+/** Something this headset holds, as last sent. */
+interface Outgoing {
+  obj: Obj;
+  hid: number;
+  rn: number;
+  object: Object3D;
+  sentAt: number;
+  readonly p: V3;
+  readonly q: Q4;
+}
 
 const randomHex = (bytes: number) => Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, '0')).join('');
 
@@ -59,6 +88,11 @@ export class TogetherSystem extends createSystem({}) {
   private time = 0;
   private deck!: DeckSystem;
   private grab!: TableGrabSystem;
+  private cards!: CardInteractionSystem;
+  /** What this headset holds, by hold id. */
+  private readonly outgoing = new Map<number, Outgoing>();
+  /** Cards the other person pulled off the deck, waiting for their hand, by spot. */
+  private readonly pendingPulls = new Map<number, { card: TableCard; fly: () => void; at: number }>();
   private readonly parseContext: ParseContext = { isCardId: (id) => app.cards.has(id) };
 
   get available(): boolean {
@@ -68,6 +102,13 @@ export class TogetherSystem extends createSystem({}) {
   init(): void {
     this.deck = this.world.getSystem(DeckSystem)!;
     this.grab = this.world.getSystem(TableGrabSystem)!;
+    this.cards = this.world.getSystem(CardInteractionSystem)!;
+    this.grab.holdListener = {
+      onHoldStart: (obj, hid, object) => this.holdStarted(obj, hid, object),
+      onHoldEnd: (obj, hid, p, q) => this.holdEnded(obj, hid, p, q),
+    };
+    this.grab.onRemoteDropped = (hold, putBack) => this.remoteDropped(hold, putBack);
+    this.world.getSystem(DrawSystem)!.onRemotePull = (card, fly) => this.remotePulled(card, fly);
     app.machine.setGate((event) => this.gate(event));
     this.cleanupFuncs.push(
       app.machine.subscribe((snapshot, event, origin) => this.onReading(snapshot, event, origin)),
@@ -110,6 +151,9 @@ export class TogetherSystem extends createSystem({}) {
       this.intent = null;
       this.deck.intentEnded();
     }
+    if (this.outgoing.size > 0 && s.peerPresent) this.streamPoses();
+    if (this.grab.remoteHolds.size > 0) this.dropStaleHolds();
+    if (this.pendingPulls.size > 0) this.flyUnclaimedPulls();
   }
 
   // Session lifecycle
@@ -167,7 +211,9 @@ export class TogetherSystem extends createSystem({}) {
     this.intent = null;
     this.stateOwed = false;
     this.tracker.reset();
-    this.grab.releaseRemote();
+    this.outgoing.clear();
+    this.flushPulls(true);
+    this.grab.releaseRemote(true);
     this.setSession(SOLO);
   }
 
@@ -175,7 +221,8 @@ export class TogetherSystem extends createSystem({}) {
     if (!final) {
       this.patchSession({ status: 'reconnecting', peerPresent: false });
       this.tracker.markUnsynced();
-      this.grab.releaseRemote();
+      this.flushPulls(true);
+      this.grab.releaseRemote(true);
       return;
     }
     // The code we picked is someone else's room: pick another.
@@ -197,7 +244,8 @@ export class TogetherSystem extends createSystem({}) {
       status: present ? 'connected' : s.role === 'host' ? 'waiting' : 'alone',
     });
     if (!present) {
-      this.grab.releaseRemote();
+      this.flushPulls(true);
+      this.grab.releaseRemote(true);
       return;
     }
     if (this.role === 'guest') {
@@ -356,6 +404,8 @@ export class TogetherSystem extends createSystem({}) {
 
   /** The host shares everything it applies; a guest notices when it needs to catch up. */
   private onReading(snapshot: ReadingSnapshot, event: ResolvedEvent, origin: Origin): void {
+    // The table is being cleared or rebuilt: cards waiting for a hand are gone.
+    if (event.type === 'RESTORE' || event.type === 'NEW_READING') this.flushPulls(false);
     if (this.role === 'guest') {
       if (event.type === 'MAT_PLACED') this.tracker.markUnsynced();
       if (event.type === 'SHUFFLE' && origin === 'remote' && this.intent) this.intent = null;
@@ -368,14 +418,129 @@ export class TogetherSystem extends createSystem({}) {
     if (session.peek().peerPresent) this.send({ t: 'ev', seq: this.seq, ev: wire });
   }
 
-  // Motion (cards and the deck moving in someone's hand) is added next.
+  // Motion: cards and the deck moving in someone's hand
 
-  private onMotion(_msg: Msg): void {}
+  private holdStarted(obj: Obj, hid: number, object: Object3D): void {
+    if (this.role === null) return;
+    const rn = app.machine.current.readingNumber;
+    const { position: p, quaternion: q } = object;
+    this.outgoing.set(hid, { obj, hid, rn, object, sentAt: this.time, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] });
+    if (session.peek().peerPresent) this.send({ t: 'hold', rn, hid, obj, on: true, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w] });
+  }
 
-  private onMotionState(_holds: unknown, _rn: number): void {}
+  private holdEnded(obj: Obj, hid: number, p: V3, q: Q4): void {
+    const out = this.outgoing.get(hid);
+    if (!out) return;
+    this.outgoing.delete(hid);
+    if (session.peek().peerPresent) this.send({ t: 'hold', rn: out.rn, hid, obj, on: false, p, q });
+  }
+
+  /** Send where held things are: about 20 times a second while they move, 4 while they're still. */
+  private streamPoses(): void {
+    for (const out of this.outgoing.values()) {
+      const since = this.time - out.sentAt;
+      if (since < POSE_INTERVAL_S) continue;
+      const { position: p, quaternion: q } = out.object;
+      const moved =
+        Math.abs(p.x - out.p[0]) + Math.abs(p.y - out.p[1]) + Math.abs(p.z - out.p[2]) > POSE_MOVED_M ||
+        1 - Math.abs(q.x * out.q[0] + q.y * out.q[1] + q.z * out.q[2] + q.w * out.q[3]) > POSE_TURNED;
+      if (!moved && since < POSE_KEEPALIVE_S) continue;
+      out.p[0] = p.x;
+      out.p[1] = p.y;
+      out.p[2] = p.z;
+      out.q[0] = q.x;
+      out.q[1] = q.y;
+      out.q[2] = q.z;
+      out.q[3] = q.w;
+      out.sentAt = this.time;
+      this.send({ t: 'pose', rn: out.rn, hid: out.hid, obj: out.obj, p: [p.x, p.y, p.z], q: [q.x, q.y, q.z, q.w], ts: motionNow() });
+    }
+  }
+
+  private onMotion(msg: Msg): void {
+    if (msg.t !== 'hold' && msg.t !== 'pose') return;
+    // From an earlier reading: the table has moved on.
+    if (msg.rn !== app.machine.current.readingNumber) return;
+    if (msg.t === 'pose') this.grab.pushRemotePose(msg.obj, msg.hid, msg.p, msg.q, msg.ts);
+    else if (msg.on) this.remoteHoldOn(msg.obj, msg.hid, msg.rn, msg.p, msg.q, false);
+    else this.remoteHoldOff(msg.obj, msg.hid, msg.p, msg.q);
+  }
+
+  /** A guest catching up: pick up whatever the host is holding right now. */
+  private onMotionState(holds: HoldState[], rn: number): void {
+    for (const hold of holds) this.remoteHoldOn(hold.obj, hold.hid, rn, hold.p, hold.q, true);
+  }
+
+  private remoteHoldOn(obj: Obj, hid: number, rn: number, p: V3, q: Q4, jump: boolean): void {
+    // A guest may only ever lift the deck, and only when it's theirs to shuffle.
+    if (this.role === 'host') {
+      const guest = { role: 'guest', mode: session.peek().mode, peerPresent: true } as const;
+      if (obj !== 'deck' || allowed(guest, 'liftDeck') !== 'yes') return;
+    }
+    // Both reached for it at once: the host keeps it.
+    const hold = this.grab.takeRemote(obj, hid, rn, this.role === 'host');
+    if (!hold) return;
+    if (obj !== 'deck') this.pendingPulls.delete(obj);
+    if (jump) setPose(hold.object, p, q);
+    if (obj === 'deck') this.deck.remoteHeld(true);
+  }
+
+  private remoteHoldOff(obj: Obj, hid: number, p: V3, q: Q4): void {
+    const hold = this.grab.endRemote(obj, hid);
+    if (!hold) return;
+    if (hold.buffer.empty) setPose(hold.object, p, q);
+    if (hold.card) this.cards.settleRemote(hold.card);
+    else this.deck.remoteHeld(false);
+  }
+
+  /** The other person's hold ended without them letting go. */
+  private remoteDropped(hold: RemoteHold, putBack: boolean): void {
+    if (!hold.card) this.deck.remoteHeld(false);
+    else if (putBack) this.cards.settle(hold.card);
+  }
+
+  /** Put back anything the other person seems to have stopped holding (their headset went quiet). */
+  private dropStaleHolds(): void {
+    const now = motionNow();
+    for (const hold of this.grab.remoteHolds.values()) {
+      if (now - hold.lastAt < REMOTE_STALE_S) continue;
+      if (this.grab.endRemote(hold.obj, hold.hid)) this.remoteDropped(hold, true);
+    }
+  }
+
+  /** The other person pinched a card off the deck: it waits on top of the deck for their hand. */
+  private remotePulled(card: TableCard, fly: () => void): void {
+    card.phase = 'held';
+    card.heldBy = 'remote';
+    this.pendingPulls.set(card.slot, { card, fly, at: this.time });
+  }
+
+  private flyUnclaimedPulls(): void {
+    for (const [slot, pull] of this.pendingPulls) {
+      if (this.time - pull.at < PULL_WAIT_S) continue;
+      this.pendingPulls.delete(slot);
+      pull.card.heldBy = null;
+      pull.fly();
+    }
+  }
+
+  /** Forget cards waiting for the other person's hand, sending them to their spots if `fly`. */
+  private flushPulls(fly: boolean): void {
+    const pulls = [...this.pendingPulls.values()];
+    this.pendingPulls.clear();
+    for (const pull of pulls) {
+      pull.card.heldBy = null;
+      if (fly) pull.fly();
+    }
+  }
 
   /** Whether this headset may currently lift the deck (used by the hub and HUD copy). */
   canLiftDeck(): boolean {
     return allowed(permissionContext(), 'liftDeck') === 'yes';
   }
+}
+
+function setPose(object: Object3D, p: V3, q: Q4): void {
+  object.position.set(p[0], p[1], p[2]);
+  object.quaternion.set(q[0], q[1], q[2], q[3]);
 }

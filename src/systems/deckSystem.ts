@@ -156,6 +156,17 @@ export class DeckSystem extends createSystem({
     return this.shuffling;
   }
 
+  /** The other person in a shared reading lifted the deck, or put it down. */
+  remoteHeld(on: boolean): void {
+    this.table.deckHeld = on;
+    if (on) {
+      this.homing?.cancel();
+      this.homing = null;
+    } else {
+      this.goHome();
+    }
+  }
+
   /** The deck's ray target stays on all the time; the glow says when a tap would do something. */
   private refresh(): void {
     if (!this.table.deck.hasComponent(RayInteractable)) this.table.deck.addComponent(RayInteractable);
@@ -169,7 +180,7 @@ export class DeckSystem extends createSystem({
   private goHome(): void {
     this.homing?.cancel();
     this.homing = null;
-    if (this.grab.holderOf(this.deck)) return;
+    if (this.grab.holderOf(this.deck) || this.grab.isRemoteHeld('deck')) return;
     const from = this.deck.position.clone();
     const fromQuat = this.deck.quaternion.clone();
     if (from.distanceTo(this.homePosition) < 0.0005 && fromQuat.angleTo(this.homeQuaternion) < 0.001) {

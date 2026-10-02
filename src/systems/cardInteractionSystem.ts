@@ -134,6 +134,24 @@ export class CardInteractionSystem extends createSystem({
     this.flips.set(card, handle);
   }
 
+  /**
+   * The other person let go of a card. A turn they made with their hand is
+   * already showing, so it just glides home; one made with a quick tap
+   * (the card never turned over in their hand) flips on the way down.
+   */
+  settleRemote(card: TableCard): void {
+    card.visual.face.getWorldDirection(this.normal);
+    const looksUp = faceUpFromNormalY(this.normal.y);
+    if (looksUp === card.faceUp) {
+      this.settle(card);
+      return;
+    }
+    const faceUp = card.faceUp;
+    card.faceUp = looksUp;
+    this.settle(card);
+    this.showTurn(card, faceUp, true);
+  }
+
   /** Jump a flip in progress to its end, so a card picked up mid-flip is already turned. */
   private finishFlip(card: TableCard): void {
     const flip = this.flips.get(card);
