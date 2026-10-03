@@ -200,10 +200,19 @@ export class ScreenWatchSystem extends createSystem({}) {
     this.cleanupFuncs.push(() => window.removeEventListener('devicemotion', onMotion));
   }
 
-  /** A few sharp jolts in quick succession is a shake: ask to shuffle. */
+  /**
+   * A few sharp jolts in quick succession is a shake: ask to shuffle. Shaking
+   * only counts while a shuffle could be asked for, so a shake during the
+   * reader's riffle doesn't use up the next one.
+   */
   private felt(e: DeviceMotionEvent): void {
+    const now = performance.now();
+    if (!this.canShuffle() || now - this.askedAt < ASK_MS) {
+      this.shook.reset();
+      return;
+    }
     const strength = motionStrength(e);
-    if (strength !== null && this.shook(strength, performance.now()) && this.canShuffle()) this.shuffle();
+    if (strength !== null && this.shook(strength, now)) this.shuffle();
   }
 
   private refreshStatus(): void {

@@ -16,7 +16,10 @@ export interface ShakeOptions {
   restMs: number;
 }
 
-export const PHONE_SHAKE: ShakeOptions = { jolt: 13, jolts: 3, windowMs: 1200, gapMs: 120, restMs: 2500 };
+export const PHONE_SHAKE: ShakeOptions = { jolt: 13, jolts: 3, windowMs: 1200, gapMs: 120, restMs: 1500 };
+
+/** Answers true on the reading that completes a shake; `reset` forgets any jolts and rest so far. */
+export type PhoneShake = ((strength: number, now: number) => boolean) & { reset(): void };
 
 interface Vec {
   x: number | null;
@@ -34,11 +37,11 @@ export function motionStrength(e: { acceleration?: Vec | null; accelerationInclu
 }
 
 /** Feed it motion strengths with times; it answers true on the reading that completes a shake. */
-export function createPhoneShake(options: ShakeOptions = PHONE_SHAKE): (strength: number, now: number) => boolean {
+export function createPhoneShake(options: ShakeOptions = PHONE_SHAKE): PhoneShake {
   const jolts: number[] = [];
   let lastJolt = -Infinity;
   let lastShake = -Infinity;
-  return (strength, now) => {
+  const feel = (strength: number, now: number) => {
     if (strength < options.jolt || now - lastJolt < options.gapMs) return false;
     lastJolt = now;
     if (now - lastShake < options.restMs) return false;
@@ -49,4 +52,11 @@ export function createPhoneShake(options: ShakeOptions = PHONE_SHAKE): (strength
     lastShake = now;
     return true;
   };
+  return Object.assign(feel, {
+    reset() {
+      jolts.length = 0;
+      lastJolt = -Infinity;
+      lastShake = -Infinity;
+    },
+  });
 }

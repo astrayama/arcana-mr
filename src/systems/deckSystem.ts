@@ -71,8 +71,8 @@ export class DeckSystem extends createSystem({
       },
       onRelease: (_hand, tap) => {
         this.table.deckHeld = false;
-        // A quick squeeze on the deck before the first shuffle shuffles it.
-        if (tap && app.machine.state === 'READY') this.requestShuffle();
+        // A quick squeeze on the deck shuffles it, when a tap would.
+        if (tap && this.tapShuffles()) this.requestShuffle();
         this.goHome();
       },
       onTopTap: () => this.tap(),
@@ -127,11 +127,22 @@ export class DeckSystem extends createSystem({
     }
   }
 
-  /** A tap on the deck: shuffle before the first shuffle, then draw the next card. */
+  /**
+   * A tap on the deck: shuffle before the first shuffle, then draw the next
+   * card. Someone who shuffles but doesn't draw (a guest, when guests shuffle)
+   * shuffles what's left instead, as often as they like.
+   */
   private tap(): void {
+    if (this.tapShuffles()) this.requestShuffle();
+    else if (app.machine.state === 'DRAWING') app.machine.send({ type: 'DRAW' });
+  }
+
+  /** Whether a tap on the deck shuffles it right now (rather than drawing, or nothing). */
+  private tapShuffles(): boolean {
     const state = app.machine.state;
-    if (state === 'READY') this.requestShuffle();
-    else if (state === 'DRAWING') app.machine.send({ type: 'DRAW' });
+    const ctx = permissionContext();
+    if (state === 'READY') return allowed(ctx, 'shuffle') !== 'no';
+    return state === 'DRAWING' && allowed(ctx, 'draw') !== 'yes' && allowed(ctx, 'shuffle') !== 'no';
   }
 
   /**
@@ -172,7 +183,7 @@ export class DeckSystem extends createSystem({
     if (!this.table.deck.hasComponent(RayInteractable)) this.table.deck.addComponent(RayInteractable);
     const state = app.machine.state;
     const ctx = permissionContext();
-    const tapDoes = state === 'READY' ? allowed(ctx, 'shuffle') !== 'no' : state === 'DRAWING' && allowed(ctx, 'draw') === 'yes';
+    const tapDoes = this.tapShuffles() || (state === 'DRAWING' && allowed(ctx, 'draw') === 'yes');
     this.table.deckInteractive = !this.shuffling && tapDoes;
   }
 

@@ -98,12 +98,12 @@ type ReadingState = Exclude<ReadingStateName, 'PLACING' | 'IDLE'>;
 export function guestReadingStatus(state: ReadingState, mode: Mode): string {
   switch (state) {
     case 'READY':
-      return mode === 'shuffle' ? 'Lift the deck and give it a shake to shuffle for your reader.' : 'Your reader is about to shuffle.';
+      return mode === 'shuffle' ? 'Tap the deck, or lift it and give it a shake, to shuffle for your reader.' : 'Your reader is about to shuffle.';
     case 'SHUFFLING':
       return 'Shuffling...';
     case 'DRAWING':
       return mode === 'shuffle'
-        ? "Your reader is drawing. Lift the deck and shake it to shuffle what's left."
+        ? "Your reader is drawing. Tap the deck, or lift it and shake it, to shuffle what's left."
         : 'Your reader is drawing the cards.';
     case 'AWAITING_FLIPS':
       return 'Your reader is turning the cards over.';

@@ -32,3 +32,14 @@ test('motion strength leaves gravity out, whichever reading the phone gives', ()
   assert.ok(Math.abs(motionStrength({ acceleration: null, accelerationIncludingGravity: { x: 0, y: 9.81, z: 0 } })!) < 1e-9);
   assert.equal(motionStrength({ acceleration: { x: null, y: null, z: null }, accelerationIncludingGravity: null }), null);
 });
+
+test('a reset forgets jolts and the rest, so the next deliberate shake counts at once', () => {
+  const felt = createPhoneShake();
+  assert.equal(felt(20, 0), false);
+  assert.equal(felt(20, 200), false);
+  assert.equal(felt(20, 400), true);
+  felt.reset();
+  assert.equal(felt(20, 600), false, 'counting again from the first jolt');
+  assert.equal(felt(20, 800), false);
+  assert.equal(felt(20, 1000), true, 'no rest after a reset');
+});
