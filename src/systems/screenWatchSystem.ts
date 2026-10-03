@@ -2,12 +2,14 @@ import { createSystem, VisibilityState, Vector3 } from '@iwsdk/core';
 import { app } from '../app/context.js';
 import { onScreen } from '../app/screen.js';
 import { config } from '../config.js';
+import { getBack } from '../backs/catalog.js';
 import { getDeck } from '../decks/registry.js';
 import { createPhoneShake, motionStrength } from '../lib/phoneShake.js';
 import { allowed } from '../net/permissions.js';
 import { formatCode, isRoomCode } from '../net/roomCode.js';
 import { permissionContext, session } from '../net/session.js';
 import { problemText } from '../ui/togetherCopy.js';
+import { DECK_BACK } from '../settings/settings.js';
 import { ScreenWatchView } from '../ui/screenWatchView.js';
 import { PlacementSystem } from './placementSystem.js';
 import { TableSystem } from './tableSystem.js';
@@ -98,12 +100,16 @@ export class ScreenWatchSystem extends createSystem({}) {
       }),
       session.subscribe(() => {
         this.refreshStatus();
-        if (onScreen.peek()) view.renderCards(app.machine.current, app.cards, faceUrl, !session.peek().synced);
+        if (onScreen.peek()) view.renderCards(app.machine.current, app.cards, faceUrl, !session.peek().synced, backUrl());
       }),
       app.machine.subscribe((snapshot) => {
         if (!onScreen.peek()) return;
-        view.renderCards(snapshot, app.cards, faceUrl, !session.peek().synced);
+        view.renderCards(snapshot, app.cards, faceUrl, !session.peek().synced, backUrl());
         this.refreshStatus();
+      }),
+      // The host's card back can change (or arrive) mid-reading; the list follows it.
+      app.back.subscribe(() => {
+        if (onScreen.peek()) view.renderCards(app.machine.current, app.cards, faceUrl, !session.peek().synced, backUrl());
       }),
       () => view.root.remove(),
     );
@@ -139,7 +145,7 @@ export class ScreenWatchSystem extends createSystem({}) {
     this.placement.placeAt(SCREEN_MAT);
     this.listen();
     this.watching = true;
-    this.view?.renderCards(app.machine.current, app.cards, faceUrl, true);
+    this.view?.renderCards(app.machine.current, app.cards, faceUrl, true, backUrl());
     this.view?.show('watching');
     // Where motion needs no asking (Android), a shake works from the start.
     if (!(window.DeviceMotionEvent as unknown as MotionPermission | undefined)?.requestPermission) void this.enableMotion();
@@ -291,6 +297,12 @@ export class ScreenWatchSystem extends createSystem({}) {
   private zoom(factor: number): void {
     this.distance = clamp(this.distance * factor, ORBIT.minDistance, ORBIT.maxDistance);
   }
+}
+
+/** The card back showing on the table: a back design, or the deck's own. */
+function backUrl(): string | null {
+  const id = app.back.peek();
+  return (id === DECK_BACK ? null : getBack(id)?.url) ?? app.deck.backUrl;
 }
 
 /** A card's face picture: the deck in use, or the default deck if this one lacks it. */

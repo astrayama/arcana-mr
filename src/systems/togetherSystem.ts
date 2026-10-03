@@ -1,5 +1,10 @@
 import { createSystem, type Object3D } from '@iwsdk/core';
 import { app } from '../app/context.js';
+import { getBack } from '../backs/catalog.js';
+import { config } from '../config.js';
+import { getDeck } from '../decks/registry.js';
+import { getEnvironment } from '../environments/catalog.js';
+import { DECK_BACK } from '../settings/settings.js';
 import { allowed, gateFor, type Mode } from '../net/permissions.js';
 import {
   fromWire,
@@ -79,6 +84,10 @@ export class TogetherSystem extends createSystem({}) {
   private anyone = false;
   /** Guest: what they chose when joining. */
   private wants: Mode = 'watch';
+  /** Follower: the host's look has replaced this device's own (put back on leaving). */
+  private lookApplied = false;
+  /** Follower: the host's deck, waiting for a moment between readings to switch to. */
+  private pendingDeck: string | null = null;
   private sendChain: Promise<void> = Promise.resolve();
   private recvChain: Promise<void> = Promise.resolve();
   private readonly tracker = new SyncTracker();
@@ -123,6 +132,11 @@ export class TogetherSystem extends createSystem({}) {
     };
     document.addEventListener('visibilitychange', woke);
     this.cleanupFuncs.push(() => document.removeEventListener('visibilitychange', woke));
+    // The host's table look goes out whenever it changes, so everyone sees the same cards.
+    const lookChanged = () => {
+      if (this.role === 'host' && this.anyone) this.sendLook();
+    };
+    this.cleanupFuncs.push(app.back.subscribe(lookChanged), app.surroundings.subscribe(lookChanged), app.deckId.subscribe(lookChanged));
     this.cleanupFuncs.push(
       app.machine.subscribe((snapshot, event, origin) => this.onReading(snapshot, event, origin)),
       () => this.end(),
@@ -249,6 +263,7 @@ export class TogetherSystem extends createSystem({}) {
     this.outgoing.clear();
     this.flushPulls(true);
     this.grab.releaseRemote(true);
+    this.restoreOwnLook();
     this.setSession(SOLO);
   }
 
@@ -284,7 +299,43 @@ export class TogetherSystem extends createSystem({}) {
       this.flushPulls(true);
       this.grab.releaseRemote(true);
     }
-    if (arrived) this.send({ t: 'hello', v: PROTOCOL_VERSION, role: 'host', deck: app.deck.id, mode: s.mode, epoch: this.epoch });
+    if (arrived) {
+      this.send({ t: 'hello', v: PROTOCOL_VERSION, role: 'host', deck: app.deck.id, mode: s.mode, epoch: this.epoch });
+      this.sendLook();
+    }
+  }
+
+  /** How the host's table looks right now. */
+  private sendLook(): void {
+    this.send({ t: 'look', deck: app.deck.id, back: app.back.peek(), around: app.surroundings.peek() });
+  }
+
+  /**
+   * A follower takes on the host's look: the same deck and card back, so the
+   * cards match; and someone watching on a screen also gets the host's
+   * surroundings (a room in passthrough can't be shown, so the default ones).
+   * A headset guest keeps their own surroundings. Nothing here is saved.
+   */
+  private applyLook(look: { deck: string; back: string; around: string }): void {
+    this.lookApplied = true;
+    this.pendingDeck = null;
+    if (look.deck !== app.deck.id && getDeck(look.deck) && !app.setDeck(look.deck)) this.pendingDeck = look.deck;
+    if (look.back === DECK_BACK || getBack(look.back)) app.back.value = look.back;
+    if (this.role === 'viewer') {
+      const around = look.around !== 'room' && getEnvironment(look.around) ? look.around : config.defaults.surroundings;
+      if (getEnvironment(around)) app.surroundings.value = around;
+    }
+  }
+
+  /** Leaving: back to this device's own saved look. */
+  private restoreOwnLook(): void {
+    if (!this.lookApplied) return;
+    this.lookApplied = false;
+    this.pendingDeck = null;
+    const own = app.settings.peek();
+    app.back.value = own.back;
+    app.surroundings.value = own.surroundings;
+    if (own.deck !== app.deck.id) app.setDeck(own.deck);
   }
 
   /** A guest or viewer hears whether the host is here. */
@@ -393,6 +444,9 @@ export class TogetherSystem extends createSystem({}) {
       case 'mode':
         this.modeChanged(msg.mode);
         break;
+      case 'look':
+        this.applyLook(msg);
+        break;
       case 'state': {
         this.modeChanged(msg.mode);
         // Already exactly here (the state was for someone else joining): nothing to redo.
@@ -487,6 +541,8 @@ export class TogetherSystem extends createSystem({}) {
     if (event.type === 'RESTORE' || event.type === 'NEW_READING') this.flushPulls(false);
     if (this.role === 'guest' || this.role === 'viewer') {
       if (event.type === 'MAT_PLACED') this.tracker.markUnsynced();
+      // Between readings, catch up on a deck change that came mid-reading.
+      if (this.pendingDeck && snapshot.state === 'IDLE' && app.setDeck(this.pendingDeck)) this.pendingDeck = null;
       if (event.type === 'SHUFFLE' && origin === 'remote' && this.intent) this.intent = null;
       return;
     }

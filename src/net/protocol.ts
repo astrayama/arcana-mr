@@ -39,6 +39,8 @@ export type Msg =
   | { t: 'hello'; v: number; role: PeerRole; deck: string; mode?: Mode; epoch?: string; wants?: Mode }
   /** The host changed who shuffles. */
   | { t: 'mode'; mode: Mode }
+  /** How the host's table looks: the deck, the card back, and the surroundings ("room" for passthrough). */
+  | { t: 'look'; deck: string; back: string; around: string }
   | { t: 'sync-req'; why: SyncReason }
   | { t: 'state'; epoch: string; seq: number; mode: Mode; reading: SharedReading; holds: HoldState[] }
   | { t: 'ev'; seq: number; ev: WireEvent }
@@ -74,6 +76,8 @@ function isQ4(v: unknown): v is Q4 {
 
 const isObjRef = (v: unknown): v is Obj => v === 'deck' || isInt(v, 0, MAX_SPREAD_CARDS - 1);
 const isMode = (v: unknown): v is Mode => v === 'watch' || v === 'shuffle';
+/** A deck, back, or surroundings id: kebab-case, maybe "device:"-prefixed. */
+const isLookId = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9][a-z0-9:-]{0,63}$/.test(v);
 const isRole = (v: unknown): v is PeerRole => v === 'host' || v === 'guest' || v === 'viewer';
 
 function isSpread(v: unknown): v is SpreadDef {
@@ -142,6 +146,10 @@ export function parseMessage(v: unknown, ctx: ParseContext): Msg | null {
         : null;
     case 'mode':
       return onlyKeys(v, ['t', 'mode']) && isMode(v.mode) ? (v as Msg) : null;
+    case 'look':
+      return onlyKeys(v, ['t', 'deck', 'back', 'around']) && isLookId(v.deck) && isLookId(v.back) && isLookId(v.around)
+        ? (v as Msg)
+        : null;
     case 'sync-req':
       return onlyKeys(v, ['t', 'why']) && SYNC_REASONS.includes(v.why as SyncReason) ? (v as Msg) : null;
     case 'state': {

@@ -303,3 +303,12 @@ test('the host opens frames from the guest and from viewers, and can tell them a
   assert.equal(await open(room, fromViewer, 'guest'), null, 'a viewer frame is not a guest frame');
   assert.equal(await open(room, fromViewer, 'host'), null);
 });
+
+test("the host's look is checked: plain ids only", () => {
+  const ctx = { isCardId: () => true };
+  assert.ok(parseMessage({ t: 'look', deck: 'rws-1909', back: 'celestial', around: 'fairy-circle' }, ctx));
+  assert.ok(parseMessage({ t: 'look', deck: 'device:my-deck', back: 'deck', around: 'room' }, ctx));
+  assert.equal(parseMessage({ t: 'look', deck: 'rws-1909', back: '<img src=x>', around: 'room' }, ctx), null);
+  assert.equal(parseMessage({ t: 'look', deck: 'rws-1909', back: 'celestial' }, ctx), null);
+  assert.equal(parseMessage({ t: 'look', deck: 'x'.repeat(80), back: 'deck', around: 'room' }, ctx), null);
+});

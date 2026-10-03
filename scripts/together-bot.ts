@@ -53,6 +53,8 @@ let mode: Mode = roleArg === 'host' && arg === 'shuffle' ? 'shuffle' : 'watch';
 const code = role === 'host' ? (option('code') ?? newRoomCode()) : arg;
 const out = option('out');
 const wants: Mode = option('wants') === 'shuffle' ? 'shuffle' : 'watch';
+/** As host: the table look to share (--back celestial --around fairy-circle). */
+const look = { t: 'look' as const, deck: 'rws-1909', back: option('back') ?? 'deck', around: option('around') ?? 'room' };
 /** --proto 1 pretends to be an older copy of the app. */
 const proto = Number(option('proto') ?? PROTOCOL_VERSION);
 const steps = (option('steps') ?? '').split(';').map((s) => s.trim()).filter(Boolean);
@@ -105,7 +107,10 @@ const relay = new RelayClient({
         void send({ t: 'sync-req', why: 'join' });
         tracker.requested(0);
       }
-      if (peer && role === 'host') void send({ t: 'hello', v: proto, role, deck: 'rws-1909', mode, epoch });
+      if (peer && role === 'host') {
+        void send({ t: 'hello', v: proto, role, deck: 'rws-1909', mode, epoch });
+        void send(look);
+      }
     },
     onFrame: async (frame) => {
       const raw = await open(room, frame, from);
@@ -130,7 +135,17 @@ function handle(msg: Msg) {
     poses++; // too many to log one by one
     return;
   }
-  log('got', msg.t, msg.t === 'ev' ? `${msg.ev.type} seq=${msg.seq}` : msg.t === 'hold' ? `${msg.obj} on=${msg.on}${msg.on ? '' : ` after ${poses} poses`}` : '');
+  log(
+    'got',
+    msg.t,
+    msg.t === 'ev'
+      ? `${msg.ev.type} seq=${msg.seq}`
+      : msg.t === 'hold'
+        ? `${msg.obj} on=${msg.on}${msg.on ? '' : ` after ${poses} poses`}`
+        : msg.t === 'look'
+          ? `deck=${msg.deck} back=${msg.back} around=${msg.around}`
+          : '',
+  );
   if (msg.t === 'hold') poses = 0;
   if (role === 'host') {
     if (msg.t === 'hello' && msg.role === 'guest' && msg.wants && msg.wants !== mode) {

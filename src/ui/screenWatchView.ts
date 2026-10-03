@@ -49,6 +49,7 @@ const styles = (c: ViewColors) => `
 .sw-row { display: flex; gap: 12px; padding: 10px 4px; border-top: 1px solid ${c.panelBorder}; }
 .sw-row img, .sw-row .sw-back { width: 54px; height: 93px; flex: none; border-radius: 5px; object-fit: cover; background: ${c.panelBorder}; }
 .sw-row img.sw-flip { transform: rotate(180deg); }
+.sw-row .sw-empty { background: transparent; border: 1px dashed ${c.panelBorder}; box-sizing: border-box; }
 .sw-pos { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: ${c.panelMuted}; }
 .sw-name { font: 600 17px/1.3 Georgia, serif; color: ${c.panelText}; }
 .sw-name .sw-rev { font: 12px system-ui, sans-serif; color: ${c.reversed}; margin-left: 6px; }
@@ -198,6 +199,7 @@ export class ScreenWatchView {
     cards: ReadonlyMap<string, CardData>,
     faceUrl: (id: string) => string | null,
     catchingUp = false,
+    backUrl: string | null = null,
   ): void {
     this.title.textContent = catchingUp ? 'Catching up...' : (snapshot.spread?.name ?? 'Waiting for a spread');
     const rows = snapshot.slots.map((slot) => {
@@ -209,8 +211,14 @@ export class ScreenWatchView {
         img.src = url;
         img.alt = card!.name;
         row.append(img);
+      } else if (slot.cardId && backUrl) {
+        // Drawn but face down: the same back as on the table.
+        const img = el('img');
+        img.src = backUrl;
+        img.alt = 'Card back';
+        row.append(img);
       } else {
-        row.append(el('div', 'sw-back'));
+        row.append(el('div', slot.cardId ? 'sw-back' : 'sw-back sw-empty'));
       }
       const text = el('div');
       text.append(el('div', 'sw-pos', slot.label));
