@@ -1,6 +1,6 @@
 import { createSystem, VisibilityState, Vector3 } from '@iwsdk/core';
 import { app } from '../app/context.js';
-import { onScreen } from '../app/screen.js';
+import { onScreen, screenPage } from '../app/screen.js';
 import { config } from '../config.js';
 import { getBack } from '../backs/catalog.js';
 import { getDeck } from '../decks/registry.js';
@@ -75,8 +75,8 @@ export class ScreenWatchSystem extends createSystem({}) {
       reversed: c.reversed,
     });
     this.view = view;
-    view.onEntry(() => view.show('join'));
-    view.onCancel(() => view.show(this.watching ? 'watching' : onScreen.peek() ? 'join' : 'entry'));
+    // Cancel: back to watching if a reading is on, otherwise to the welcome page.
+    view.onCancel(() => (screenPage.value = this.watching ? 'watching' : 'welcome'));
     view.onSubmit((digits) => {
       if (!isRoomCode(digits)) view.setError('Six digits, like 472 913.');
       else this.start(digits);
@@ -94,15 +94,13 @@ export class ScreenWatchSystem extends createSystem({}) {
       this.together.leave();
       this.watching = false;
       view.setError('');
-      view.show('join');
+      screenPage.value = 'join';
     });
 
     this.cleanupFuncs.push(
       // In the headset the page around the view isn't seen; take it away.
-      this.world.visibilityState.subscribe((state) => {
-        if (state !== VisibilityState.NonImmersive) view.show('none');
-        else view.show(this.watching ? 'watching' : onScreen.peek() ? 'join' : 'entry');
-      }),
+      this.world.visibilityState.subscribe(() => this.showPage()),
+      screenPage.subscribe(() => this.showPage()),
       session.subscribe(() => {
         this.refreshStatus();
         if (onScreen.peek()) view.renderCards(app.machine.current, app.cards, faceUrl, !session.peek().synced, backUrl());
@@ -143,6 +141,13 @@ export class ScreenWatchSystem extends createSystem({}) {
     camera.lookAt(this.target);
   }
 
+  /** The code form or the watched reading, in the flat view; nothing while the welcome page is up. */
+  private showPage(): void {
+    const page = screenPage.peek();
+    const flat = this.world.visibilityState.peek() === VisibilityState.NonImmersive;
+    this.view?.show(flat && page !== 'welcome' ? page : 'none');
+  }
+
   /** Join a room as a viewer, with the mat set out in front of the camera. */
   private start(code: string): void {
     this.view?.setError('');
@@ -151,7 +156,7 @@ export class ScreenWatchSystem extends createSystem({}) {
     this.listen();
     this.watching = true;
     this.view?.renderCards(app.machine.current, app.cards, faceUrl, true, backUrl());
-    this.view?.show('watching');
+    screenPage.value = 'watching';
     // Where motion needs no asking (Android), a shake works from the start.
     if (!(window.DeviceMotionEvent as unknown as MotionPermission | undefined)?.requestPermission) void this.enableMotion();
     void this.together.watch(code);
@@ -260,7 +265,7 @@ export class ScreenWatchSystem extends createSystem({}) {
       // Couldn't join, or the room closed: back to the form, saying why.
       this.watching = false;
       view.setError(problemText(s.problem));
-      view.show('join');
+      screenPage.value = 'join';
       return;
     }
     const room = s.code ? `room ${formatCode(s.code)}` : 'the room';

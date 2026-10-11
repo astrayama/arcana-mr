@@ -24,7 +24,6 @@ const styles = (c: ViewColors) => `
 .sw [hidden] { display: none !important; }
 .sw button { font: inherit; cursor: pointer; border-radius: 999px; padding: 10px 18px; border: 1px solid ${c.accent}; background: transparent; color: ${c.accent}; }
 .sw button.sw-primary { background: ${c.accent}; color: ${c.accentText}; font-weight: 600; }
-.sw-entry { position: absolute; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); pointer-events: auto; background: ${c.panelBackground}e6 !important; max-width: calc(100% - 32px); white-space: nowrap; }
 .sw-card { pointer-events: auto; background: ${c.panelBackground}f2; border: 1px solid ${c.panelBorder}; border-radius: 18px; box-shadow: 0 10px 40px #0008; }
 .sw-join { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(360px, calc(100% - 32px)); padding: 24px; box-sizing: border-box; text-align: center; }
 .sw-join h2, .sw-list h2 { font-family: Georgia, "Times New Roman", serif; color: ${c.accent}; font-weight: 600; margin: 0 0 6px; }
@@ -79,7 +78,6 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text?
 
 export class ScreenWatchView {
   readonly root = el('div', 'sw');
-  readonly entry = el('button', 'sw-entry', 'No headset? Watch a reading on this screen');
   private readonly join = el('form', 'sw-card sw-join');
   private readonly input = el('input');
   private readonly error = el('p', 'sw-error');
@@ -149,14 +147,13 @@ export class ScreenWatchView {
       this.fold.textContent = folded ? 'Show' : 'Hide';
     });
 
-    this.root.append(this.entry, this.join, this.bar, this.tip, this.list, this.hint);
+    this.root.append(this.join, this.bar, this.tip, this.list, this.hint);
     document.body.append(this.root);
-    this.show('entry');
+    this.show('none');
   }
 
-  /** Which part shows: the start button, the code form, or the reading being watched. */
-  show(part: 'none' | 'entry' | 'join' | 'watching'): void {
-    this.entry.hidden = part !== 'entry';
+  /** Which part shows: nothing (the welcome page is up), the code form, or the reading being watched. */
+  show(part: 'none' | 'join' | 'watching'): void {
     this.join.hidden = part !== 'join';
     for (const node of [this.bar, this.list, this.hint]) node.hidden = part !== 'watching';
     if (part !== 'watching') this.tip.hidden = true;
@@ -166,10 +163,6 @@ export class ScreenWatchView {
   /** Whether the card list is covering the lower part of the view (a phone, list open). */
   get coversView(): boolean {
     return !this.list.hidden && !this.list.classList.contains('sw-folded') && window.matchMedia('(max-width: 720px)').matches;
-  }
-
-  onEntry(handler: () => void): void {
-    this.entry.addEventListener('click', handler);
   }
 
   /** The code typed in, as digits, when the form is sent. */

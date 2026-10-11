@@ -7,3 +7,9 @@
 import { signal } from '@iwsdk/core';
 
 export const onScreen = signal(false);
+
+/**
+ * Which page a flat screen shows: the welcome page (start in a headset, or
+ * watch a friend's reading), the room-code form, or the reading being watched.
+ */
+export const screenPage = signal<'welcome' | 'join' | 'watching'>('welcome');

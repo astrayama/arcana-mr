@@ -3,7 +3,8 @@
 A mixed-reality tarot reading for Meta Quest 3, built for the Quest Browser with
 WebXR and Meta's [Immersive Web SDK](https://iwsdk.dev).
 
-**Try it:** open <https://cartaluna-mr.vercel.app> in the Quest Browser.
+**Try it:** open <https://cartaluna-mr.vercel.app> in the Quest Browser, or on a
+phone or computer to watch a friend's reading.
 
 Put on the headset and a tarot deck appears on your real table. Pick a spread
 (or build your own, up to 12 cards), shuffle the deck in your hands, draw the
@@ -177,7 +178,7 @@ move for everyone.
      The reader can still do everything by hand; Next carries on from
      wherever the reading is.
 3. Up to six more people can watch on a phone or computer: they open the
-   site there, tap **Watch a reading on this screen**, and type the code.
+   site there, tap **Watch a reading** on the welcome page, and type the code.
    They see the table in 3D (drag to look around, scroll or pinch to zoom)
    and a list of the cards; a tap on a turned card opens its meaning. When the reader lets guests
    shuffle, they can too: a Shuffle button, or a shake of the phone (an

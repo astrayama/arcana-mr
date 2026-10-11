@@ -11,7 +11,7 @@
   .hb-root {
     flex-direction: column;
     width: 40;
-    height: 38;
+    height: 46;
     padding-top: 2;
     padding-bottom: 2;
     padding-left: 2.2;
@@ -32,9 +32,44 @@
     align-items: center;
     flex-grow: 1;
   }
+  .hb-ornament {
+    flex-direction: row;
+    align-items: center;
+    gap: 1.2;
+  }
+  .hb-orn-line {
+    width: 7;
+    height: 0.1;
+    background-color: {{colors.accent}};
+  }
+  .hb-orn-icon {
+    width: 2.4;
+    height: 2.4;
+    color: {{colors.accent}};
+  }
+  .hb-cards {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1.1;
+    margin-top: 1.6;
+  }
+  .hb-card {
+    border-radius: 0.4;
+    border-width: 0.1;
+    border-color: {{colors.accent}};
+  }
+  .hb-card-side {
+    width: 3;
+    height: 5.2;
+  }
+  .hb-card-mid {
+    width: 3.6;
+    height: 6.2;
+  }
   .hb-title {
     {{headingFont}}
-    margin-top: 0.6;
+    margin-top: 0.4;
     font-size: 4.6;
     font-weight: semi-bold;
     color: {{colors.accent}};
@@ -49,7 +84,7 @@
     flex-direction: row;
     justify-content: center;
     gap: 1.2;
-    margin-top: 2.4;
+    margin-top: 2;
   }
   .hb-begin {
     flex-direction: row;
@@ -573,8 +608,14 @@
   <!-- Home -->
   <div id="hb-home" class="hb-page">
     <div class="hb-center">
+      <div class="hb-ornament">
+        <div class="hb-orn-line"></div>
+        <MoonStar class="hb-orn-icon"></MoonStar>
+        <div class="hb-orn-line"></div>
+      </div>
       <div class="hb-title">Carta Luna</div>
       <div class="hb-tagline">A quiet place to reflect with the cards.</div>
+      <div class="hb-cards">{{slot:homeCards}}</div>
       <div class="hb-begin-row">
         <div id="hb-begin" class="hb-begin">
           <Sparkles class="hb-begin-icon"></Sparkles>

@@ -4,32 +4,186 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
     />
     <meta name="description" content="A mixed-reality tarot reading for self-reflection on Meta Quest." />
-    <meta name="theme-color" content="#15100c" />
+    <meta name="theme-color" content="#0f0d0b" />
     <meta name="referrer" content="no-referrer" />
     <link rel="icon" href="data:," />
     <title>Carta Luna</title>
     <style>
-      /* Shown from the first moment, until the app's welcome card is ready. */
-      #loading { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; background: #0f0d0b; color: #bba985; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center; transition: opacity 0.5s; }
+      /*
+        The night sky behind the loading screen and the welcome page: a deep
+        gradient with a dusky glow low down, and two layers of stars that
+        twinkle slowly. All CSS, nothing to download.
+      */
+      .night-sky {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(130% 60% at 50% 112%, #2b2140 0%, #1a1426 38%, transparent 70%),
+          radial-gradient(90% 45% at 50% -8%, #17121f 0%, transparent 70%),
+          #0f0d0b;
+      }
+      .night-sky::before,
+      .night-sky::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        animation: sky-twinkle 7s ease-in-out infinite alternate;
+      }
+      .night-sky::before {
+        background-size: 311px 311px;
+        background-image:
+          radial-gradient(1.4px 1.4px at 12% 18%, #fff6e0cc 50%, transparent 52%),
+          radial-gradient(1px 1px at 37% 64%, #fff6e099 50%, transparent 52%),
+          radial-gradient(1.6px 1.6px at 71% 22%, #ffe9b8dd 50%, transparent 52%),
+          radial-gradient(1px 1px at 88% 77%, #fff6e088 50%, transparent 52%),
+          radial-gradient(1.2px 1.2px at 54% 41%, #fff6e0aa 50%, transparent 52%),
+          radial-gradient(0.9px 0.9px at 23% 87%, #fff6e077 50%, transparent 52%);
+      }
+      .night-sky::after {
+        background-size: 457px 457px;
+        animation-duration: 9s;
+        animation-delay: -4s;
+        background-image:
+          radial-gradient(1.1px 1.1px at 8% 52%, #fff6e0aa 50%, transparent 52%),
+          radial-gradient(1.5px 1.5px at 46% 9%, #ffe9b8cc 50%, transparent 52%),
+          radial-gradient(1px 1px at 63% 83%, #fff6e088 50%, transparent 52%),
+          radial-gradient(1.3px 1.3px at 92% 35%, #fff6e0bb 50%, transparent 52%),
+          radial-gradient(0.9px 0.9px at 31% 30%, #fff6e077 50%, transparent 52%);
+      }
+      @keyframes sky-twinkle {
+        from { opacity: 0.55; }
+        to { opacity: 1; }
+      }
+
+      /* The loading screen, shown from the first moment until the welcome page is ready. */
+      #loading {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 24px;
+        color: #bba985;
+        font: 15px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        text-align: center;
+        transition: opacity 0.6s;
+      }
       #loading.done { opacity: 0; pointer-events: none; }
-      #loading .loading-title { font: 600 34px/1.2 Georgia, "Times New Roman", serif; color: #d4af37; }
-      #loading .loading-bar { width: 140px; height: 2px; border-radius: 1px; background: #3a2e1e; overflow: hidden; }
-      #loading .loading-bar span { display: block; width: 40%; height: 100%; background: #d4af37; animation: loading-slide 1.6s ease-in-out infinite; }
-      #loading .loading-slow { max-width: 300px; font-size: 13px; opacity: 0; animation: loading-show 0.6s 15s forwards; }
-      #loading.failed .loading-bar, #loading.failed .loading-slow { display: none; }
-      @keyframes loading-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+      #loading > :not(.night-sky) { position: relative; }
+      .loading-stage { width: 170px; height: 150px; margin-bottom: 6px; }
+      .loading-halo {
+        position: absolute;
+        right: 6px;
+        top: -8px;
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ffd98a40 0%, #ffd98a14 45%, transparent 70%);
+        animation: loading-breathe 4.5s ease-in-out infinite;
+      }
+      .loading-moon { position: absolute; right: 26px; top: 12px; width: 70px; height: 70px; }
+      .loading-turn { position: absolute; left: 34px; top: 34px; width: 60px; height: 102px; perspective: 700px; }
+      .loading-card {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        animation: loading-turn 6.5s ease-in-out infinite, loading-float 4s ease-in-out infinite;
+      }
+      .loading-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 7px;
+        backface-visibility: hidden;
+        box-shadow: 0 6px 22px #0009;
+      }
+      .loading-back {
+        background:
+          radial-gradient(circle at 50% 50%, #d4af3733 0 13px, transparent 14px),
+          repeating-linear-gradient(45deg, #d4af3722 0 1.5px, transparent 1.5px 7px),
+          #15100c;
+        border: 1.5px solid #d4af37;
+        outline: 1px solid #d4af3755;
+        outline-offset: -6px;
+      }
+      .loading-front {
+        transform: rotateY(180deg);
+        background: linear-gradient(160deg, #f6eedb, #e8dcc0);
+        border: 1.5px solid #d4af37;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .loading-front svg { width: 30px; height: 30px; }
+      .loading-title { font: 600 34px/1.2 Georgia, 'Times New Roman', serif; color: #d4af37; letter-spacing: 0.01em; }
+      .loading-text { color: #f3e9d2; opacity: 0.85; }
+      .loading-slow { max-width: 300px; font-size: 13px; opacity: 0; animation: loading-show 0.6s 15s forwards; }
+      #loading.failed .loading-slow { display: none; }
+      #loading.failed .loading-card { animation: none; }
+      @keyframes loading-turn {
+        0%, 28% { transform: rotateY(0deg); }
+        46%, 78% { transform: rotateY(180deg); }
+        96%, 100% { transform: rotateY(360deg); }
+      }
+      @keyframes loading-float {
+        0%, 100% { translate: 0 0; }
+        50% { translate: 0 -6px; }
+      }
+      @keyframes loading-breathe {
+        0%, 100% { opacity: 0.55; transform: scale(0.96); }
+        50% { opacity: 1; transform: scale(1.04); }
+      }
       @keyframes loading-show { to { opacity: 1; } }
-      @media (prefers-reduced-motion: reduce) { #loading .loading-bar span { animation: none; width: 100%; opacity: 0.5; } }
+
+      @media (prefers-reduced-motion: reduce) {
+        .night-sky::before, .night-sky::after, .loading-halo { animation: none; }
+        .loading-card { animation: none; transform: rotateY(180deg); }
+        .loading-slow { animation: none; opacity: 1; }
+      }
     </style>
   </head>
   <body style="margin: 0; background: #0f0d0b">
     <div id="loading" role="status" aria-live="polite">
+      <div class="night-sky"></div>
+      <div class="loading-stage" aria-hidden="true">
+        <div class="loading-halo"></div>
+        <svg class="loading-moon" viewBox="0 0 100 100">
+          <defs>
+            <radialGradient id="loading-moon-light" cx="38%" cy="38%" r="70%">
+              <stop offset="0" stop-color="#fff4cf" />
+              <stop offset="1" stop-color="#d4af37" />
+            </radialGradient>
+            <mask id="loading-moon-cut">
+              <rect width="100" height="100" fill="#fff" />
+              <circle cx="64" cy="38" r="36" fill="#000" />
+            </mask>
+          </defs>
+          <circle cx="48" cy="52" r="38" fill="url(#loading-moon-light)" mask="url(#loading-moon-cut)" />
+        </svg>
+        <div class="loading-turn">
+          <div class="loading-card">
+            <div class="loading-face loading-back"></div>
+            <div class="loading-face loading-front">
+              <svg viewBox="0 0 100 100">
+                <mask id="loading-emblem-cut">
+                  <rect width="100" height="100" fill="#fff" />
+                  <circle cx="62" cy="40" r="32" fill="#000" />
+                </mask>
+                <circle cx="48" cy="52" r="34" fill="#b8902c" mask="url(#loading-emblem-cut)" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="loading-title">Carta Luna</div>
       <div class="loading-text">Setting the table...</div>
-      <div class="loading-bar"><span></span></div>
       <div class="loading-slow">Still loading. On a slow connection this can take a minute.</div>
     </div>
     <div id="scene-container"></div>

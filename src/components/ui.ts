@@ -4,7 +4,7 @@ import { createComponent, Types } from '@iwsdk/core';
 export const UiPanel = createComponent(
   'UiPanel',
   {
-    /** Which panel this is, e.g. "landing", "menu", "meaning". */
+    /** Which panel this is, e.g. "hub", "menu", "meaning". */
     kind: { type: Types.String, default: '' },
     /** For per-card panels, the spread slot they belong to. */
     slot: { type: Types.Int8, default: -1 },

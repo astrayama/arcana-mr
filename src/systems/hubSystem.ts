@@ -52,6 +52,21 @@ function environmentChoices(): (Choice & { icon: 'House' | (typeof ENVIRONMENT_I
 
 const escape = (text: string) => text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
+/** The picture of the card back in use: a back design, or the deck's own. */
+function currentBackUrl(): string | null {
+  const id = app.back.peek();
+  return backChoices().find((b) => b.id === id)?.url ?? app.deck.backUrl;
+}
+
+/** Three small face-down cards on Home, in the card back in use. */
+function homeCards(): string {
+  const url = currentBackUrl();
+  const src = url ? ` src="${escape(url)}"` : '';
+  return [0, 1, 2]
+    .map((i) => `<img id="hb-card-${i}" class="hb-card ${i === 1 ? 'hb-card-mid' : 'hb-card-side'}"${src}></img>`)
+    .join('');
+}
+
 /** Markup for the repeated parts of the hub. */
 function hubSlots(): Record<string, string> {
   const tiles = Array.from(
@@ -102,6 +117,7 @@ function hubSlots(): Record<string, string> {
     envChips: envs,
     builder: builderMarkup(),
     builderStyles: BUILDER_STYLES,
+    homeCards: homeCards(),
     together: togetherMarkup(),
     togetherStyles: TOGETHER_STYLES,
   };
@@ -147,7 +163,10 @@ export class HubSystem extends createSystem({
       customSpreads.subscribe(() => this.refreshSpreads()),
       app.settings.subscribe(() => this.refreshSettings()),
       app.surroundings.subscribe(() => this.refreshSettings()),
-      app.back.subscribe(() => this.refreshSettings()),
+      app.back.subscribe(() => {
+        this.refreshSettings();
+        this.refreshHomeCards();
+      }),
       // Decks and backs added on the headset appear in Settings right away.
       deckRegistry.onChange(() => this.rebuild()),
       backRegistry.onChange(() => this.rebuild()),
@@ -278,6 +297,14 @@ export class HubSystem extends createSystem({
     const cleanups = [bindClicks(doc, handlers), ...[...this.wireListeners].map((wire) => wire(doc))];
     this.wiredCleanup = () => cleanups.forEach((cleanup) => cleanup());
     this.show(this.page);
+  }
+
+  /** Home's three cards follow the card back chosen in Settings (or shared by a reader). */
+  private refreshHomeCards(): void {
+    const doc = this.document;
+    const url = currentBackUrl();
+    if (!doc || !url) return;
+    for (let i = 0; i < 3; i++) doc.getElementById(`hb-card-${i}`)?.setProperties({ src: url });
   }
 
   private finishIntro(): void {
