@@ -11,7 +11,7 @@ import type { Mode } from './permissions.js';
 import type { PeerRole } from './secure.js';
 
 /** Bumped when messages change in a way older copies of the app can't follow. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export type Obj = 'deck' | number;
 export type V3 = [number, number, number];
@@ -44,7 +44,10 @@ export type Msg =
   | { t: 'sync-req'; why: SyncReason }
   | { t: 'state'; epoch: string; seq: number; mode: Mode; reading: SharedReading; holds: HoldState[] }
   | { t: 'ev'; seq: number; ev: WireEvent }
-  | { t: 'intent'; id: number; ev: { type: 'SHUFFLE' } }
+  /** A guest or viewer asks the host to shuffle, or (in a Press Next room) to take the next step. */
+  | { t: 'intent'; id: number; ev: { type: 'SHUFFLE' } | { type: 'NEXT' } }
+  /** The host took a Next step: everyone's Next waits this long. */
+  | { t: 'paced'; ms: number }
   | { t: 'nack'; id: number; why: 'not-allowed' | 'not-now' }
   | { t: 'hold'; rn: number; hid: number; obj: Obj; on: boolean; p: V3; q: Q4 }
   | { t: 'pose'; rn: number; hid: number; obj: Obj; p: V3; q: Q4; ts: number }
@@ -75,7 +78,7 @@ function isQ4(v: unknown): v is Q4 {
 }
 
 const isObjRef = (v: unknown): v is Obj => v === 'deck' || isInt(v, 0, MAX_SPREAD_CARDS - 1);
-const isMode = (v: unknown): v is Mode => v === 'watch' || v === 'shuffle';
+const isMode = (v: unknown): v is Mode => v === 'watch' || v === 'shuffle' || v === 'step';
 /** A deck, back, or surroundings id: kebab-case, maybe "device:"-prefixed. */
 const isLookId = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9][a-z0-9:-]{0,63}$/.test(v);
 const isRole = (v: unknown): v is PeerRole => v === 'host' || v === 'guest' || v === 'viewer';
@@ -168,9 +171,15 @@ export function parseMessage(v: unknown, ctx: ParseContext): Msg | null {
       return parseWireEvent(v.ev, ctx) ? (v as Msg) : null;
     }
     case 'intent':
-      return onlyKeys(v, ['t', 'id', 'ev']) && isInt(v.id) && isObj(v.ev) && v.ev.type === 'SHUFFLE' && onlyKeys(v.ev, ['type'])
+      return onlyKeys(v, ['t', 'id', 'ev']) &&
+        isInt(v.id) &&
+        isObj(v.ev) &&
+        (v.ev.type === 'SHUFFLE' || v.ev.type === 'NEXT') &&
+        onlyKeys(v.ev, ['type'])
         ? (v as Msg)
         : null;
+    case 'paced':
+      return onlyKeys(v, ['t', 'ms']) && isInt(v.ms, 0, 10_000) ? (v as Msg) : null;
     case 'nack':
       return onlyKeys(v, ['t', 'id', 'why']) && isInt(v.id) && (v.why === 'not-allowed' || v.why === 'not-now')
         ? (v as Msg)

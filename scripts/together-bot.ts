@@ -20,6 +20,7 @@ import { RelayClient } from '../src/net/relayClient.ts';
 import { newRoomCode } from '../src/net/roomCode.ts';
 import { deriveRoom, open, seal, type PeerRole } from '../src/net/secure.ts';
 import { SyncTracker } from '../src/net/sync.ts';
+import { nextStep } from '../src/state/nextStep.ts';
 import { ReadingMachine } from '../src/state/readingMachine.ts';
 import type { SpreadDef } from '../src/spreads/spread.schema.ts';
 
@@ -49,10 +50,13 @@ const option = (name: string) => {
   return i >= 0 ? rest[i + 1] : undefined;
 };
 const role: PeerRole = roleArg === 'join' ? 'guest' : roleArg === 'watch' ? 'viewer' : 'host';
-let mode: Mode = roleArg === 'host' && arg === 'shuffle' ? 'shuffle' : 'watch';
+let mode: Mode = roleArg === 'host' && (arg === 'shuffle' || arg === 'step') ? arg : 'watch';
 const code = role === 'host' ? (option('code') ?? newRoomCode()) : arg;
 const out = option('out');
-const wants: Mode = option('wants') === 'shuffle' ? 'shuffle' : 'watch';
+const wantsArg = option('wants');
+const wants: Mode = wantsArg === 'shuffle' || wantsArg === 'step' ? wantsArg : 'watch';
+/** As host in a Press Next room: when the last Next step was taken. */
+let lastNextAt = -Infinity;
 /** As host: the table look to share (--back celestial --around fairy-circle). */
 const look = { t: 'look' as const, deck: 'rws-1909', back: option('back') ?? 'deck', around: option('around') ?? 'room' };
 /** --proto 1 pretends to be an older copy of the app. */
@@ -154,6 +158,27 @@ function handle(msg: Msg) {
       log('mode now', mode);
     }
     if (msg.t === 'hello' || msg.t === 'sync-req') sendState();
+    if (msg.t === 'intent' && msg.ev.type === 'NEXT') {
+      // The same steps as the app's host: shuffle, then each card down and then up, every 3 s at most.
+      const step = nextStep(machine.current);
+      const ready = mode === 'step' && Date.now() - lastNextAt >= 3000 && step !== null;
+      const done =
+        ready &&
+        (step.type === 'SHUFFLE'
+          ? machine.send({ type: 'SHUFFLE', passes: 2 }, 'intent')
+          : step.type === 'DRAW'
+            ? machine.send({ type: 'DRAW' }, 'intent')
+            : machine.send({ type: 'TURN', slot: step.slot, faceUp: true }, 'intent'));
+      if (!done) {
+        void send({ t: 'nack', id: msg.id, why: mode === 'step' ? 'not-now' : 'not-allowed' });
+        return;
+      }
+      lastNextAt = Date.now();
+      if (step?.type === 'SHUFFLE') setTimeout(() => machine.send({ type: 'SHUFFLE_DONE' }), 800);
+      log('next step', JSON.stringify(step));
+      void send({ t: 'paced', ms: 3000 });
+      return;
+    }
     if (msg.t === 'intent') {
       if (mode === 'shuffle' && machine.send({ type: 'SHUFFLE', passes: 1 }, 'intent')) {
         setTimeout(() => machine.send({ type: 'SHUFFLE_DONE' }), 800);
@@ -251,6 +276,10 @@ for (const step of steps) {
       break;
     case 'intent':
       await send({ t: 'intent', id: hid++, ev: { type: 'SHUFFLE' } });
+      break;
+    case 'next':
+      // Press Next (a Press Next room).
+      await send({ t: 'intent', id: hid++, ev: { type: 'NEXT' } });
       break;
     case 'gap':
       // Forge a skipped sequence number, to check the guest asks to catch up.

@@ -39,6 +39,8 @@ export interface Session {
   viewers: number;
   /** Guest or viewer: in step with the host's reading (false while catching up). */
   synced: boolean;
+  /** In a Press Next room: when (performance.now(), ms) Next can be pressed again. */
+  nextWaitUntil: number;
   problem: SessionProblem;
 }
 
@@ -50,6 +52,7 @@ export const SOLO: Session = {
   peerPresent: false,
   viewers: 0,
   synced: false,
+  nextWaitUntil: 0,
   problem: null,
 };
 

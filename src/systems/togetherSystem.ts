@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { getDeck } from '../decks/registry.js';
 import { getEnvironment } from '../environments/catalog.js';
 import { DECK_BACK } from '../settings/settings.js';
+import { nextStep, type NextStep } from '../state/nextStep.js';
 import { allowed, gateFor, type Mode } from '../net/permissions.js';
 import {
   fromWire,
@@ -39,6 +40,8 @@ const INBOX_LIMIT = 200;
 const INTENT_TIMEOUT_S = 1.5;
 /** Fewest seconds between full states the host sends. */
 const STATE_INTERVAL_S = 0.5;
+/** In a Press Next room, the fewest seconds between steps, for the whole room. */
+export const NEXT_PACE_S = 3;
 /** Tries at a fresh room code when the one we picked is in use. */
 const CODE_TRIES = 4;
 /** Fewest seconds between poses of something moving in the hand (about 20 a second). */
@@ -99,6 +102,10 @@ export class TogetherSystem extends createSystem({}) {
   private intent: { id: number; at: number } | null = null;
   /** Starts somewhere random, so two people asking at once don't share ids. */
   private nextIntentId = 1 + Math.floor(Math.random() * 1_000_000);
+  /** Host: when (this.time) the last Next step was taken. */
+  private lastNextAt = -Infinity;
+  /** Follower: until when (performance.now()) the host said the room's Next waits. */
+  private pacedUntil = 0;
   private time = 0;
   private deck!: DeckSystem;
   private grab!: TableGrabSystem;
@@ -165,7 +172,43 @@ export class TogetherSystem extends createSystem({}) {
     this.patchSession({ mode });
     this.send({ t: 'mode', mode });
     // The deck isn't the guest's to hold any more: put it back.
-    if (mode === 'watch') this.grab.releaseRemote(true);
+    if (mode !== 'shuffle') this.grab.releaseRemote(true);
+  }
+
+  /**
+   * A guest or viewer in a Press Next room asks for the next step. One ask at
+   * a time, and not until the room's pause since the last step is over.
+   */
+  requestNext(): boolean {
+    const s = session.peek();
+    if (this.role !== 'guest' && this.role !== 'viewer') return false;
+    if (s.status !== 'connected' || !s.synced || this.intent) return false;
+    if (allowed(permissionContext(s), 'next') !== 'forward' || performance.now() < s.nextWaitUntil) return false;
+    if (!nextStep(app.machine.current)) return false;
+    const id = this.nextIntentId++;
+    this.intent = { id, at: this.time };
+    this.send({ t: 'intent', id, ev: { type: 'NEXT' } });
+    this.patchSession({ nextWaitUntil: performance.now() + NEXT_PACE_S * 1000 });
+    return true;
+  }
+
+  /** Host: take the next step for a guest's Next, if it's time; otherwise say not now. */
+  private takeNextStep(id: number): void {
+    const step = nextStep(app.machine.current);
+    const ready = session.peek().mode === 'step' && this.time - this.lastNextAt >= NEXT_PACE_S && !this.deck.busy;
+    if (!ready || !step || !this.applyStep(step)) {
+      this.send({ t: 'nack', id, why: session.peek().mode === 'step' ? 'not-now' : 'not-allowed' });
+      return;
+    }
+    this.lastNextAt = this.time;
+    this.send({ t: 'paced', ms: NEXT_PACE_S * 1000 });
+  }
+
+  /** One Next step, done as the host's own move so everyone sees it. */
+  private applyStep(step: NextStep): boolean {
+    if (step.type === 'SHUFFLE') return this.deck.requestShuffle('intent', 2);
+    if (step.type === 'DRAW') return app.machine.send({ type: 'DRAW' }, 'intent');
+    return this.cards.reveal(step.slot);
   }
 
   /** Leave the shared reading and carry on alone. */
@@ -214,7 +257,7 @@ export class TogetherSystem extends createSystem({}) {
     this.end();
     const generation = ++this.generation;
     this.role = role;
-    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, viewers: 0, synced: false, problem: null });
+    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, viewers: 0, synced: false, nextWaitUntil: 0, problem: null });
     const room = await deriveRoom(code);
     if (generation !== this.generation) return;
     this.room = room;
@@ -417,6 +460,10 @@ export class TogetherSystem extends createSystem({}) {
         this.sendState();
         break;
       case 'intent': {
+        if (msg.ev.type === 'NEXT') {
+          this.takeNextStep(msg.id);
+          break;
+        }
         const ctx = permissionContext();
         const ok =
           ctx.mode === 'shuffle' && !this.deck.busy && app.machine.can({ type: 'SHUFFLE' }) && this.deck.requestShuffle('intent');
@@ -475,7 +522,15 @@ export class TogetherSystem extends createSystem({}) {
         if (this.intent?.id === msg.id) {
           this.intent = null;
           this.deck.intentEnded();
+          // Turned down: Next is free again once the room's own pause is over.
+          this.patchSession({ nextWaitUntil: this.pacedUntil });
         }
+        break;
+      case 'paced':
+        // A Next step was taken (anyone's): everyone waits together.
+        this.intent = null;
+        this.pacedUntil = performance.now() + msg.ms;
+        this.patchSession({ nextWaitUntil: this.pacedUntil });
         break;
       case 'bye':
         this.hostChanged(false);
@@ -496,7 +551,7 @@ export class TogetherSystem extends createSystem({}) {
   private modeChanged(mode: Mode): void {
     if (session.peek().mode === mode) return;
     this.patchSession({ mode });
-    if (mode === 'watch' && this.role === 'guest') {
+    if (mode !== 'shuffle' && this.role === 'guest') {
       this.intent = null;
       this.grab.letGoAll();
     }

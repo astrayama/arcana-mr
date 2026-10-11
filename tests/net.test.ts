@@ -312,3 +312,31 @@ test("the host's look is checked: plain ids only", () => {
   assert.equal(parseMessage({ t: 'look', deck: 'rws-1909', back: 'celestial' }, ctx), null);
   assert.equal(parseMessage({ t: 'look', deck: 'x'.repeat(80), back: 'deck', around: 'room' }, ctx), null);
 });
+
+test('in a Press Next room, guests and viewers can only ask for the next step; the reader keeps everything', () => {
+  for (const role of ['guest', 'viewer'] as const) {
+    const ctx: PermissionContext = { role, mode: 'step', peerPresent: true };
+    assert.equal(allowed(ctx, 'next'), 'forward', role);
+    for (const action of ['shuffle', 'liftDeck', 'draw', 'turn', 'grabCard', 'chooseSpread'] as const) {
+      assert.equal(allowed(ctx, action), 'no', `${role} ${action}`);
+    }
+    assert.equal(gateFor(ctx, { type: 'SHUFFLE' }), 'reject');
+  }
+  const host: PermissionContext = { role: 'host', mode: 'step', peerPresent: true };
+  for (const action of ['shuffle', 'liftDeck', 'draw', 'turn', 'grabCard', 'chooseSpread'] as const) {
+    assert.equal(allowed(host, action), 'yes', action);
+  }
+  assert.equal(allowed({ role: 'guest', mode: 'watch', peerPresent: true }, 'next'), 'no', 'Next only in a Press Next room');
+});
+
+test('Next requests, the shared pause, and the Press Next mode are checked', async () => {
+  const { PROTOCOL_VERSION } = await import('../src/net/protocol.ts');
+  const ctx = { isCardId: () => true };
+  assert.equal(PROTOCOL_VERSION, 3);
+  assert.ok(parseMessage({ t: 'intent', id: 7, ev: { type: 'NEXT' } }, ctx));
+  assert.equal(parseMessage({ t: 'intent', id: 7, ev: { type: 'DRAW' } }, ctx), null);
+  assert.ok(parseMessage({ t: 'mode', mode: 'step' }, ctx));
+  assert.ok(parseMessage({ t: 'paced', ms: 3000 }, ctx));
+  assert.equal(parseMessage({ t: 'paced', ms: 60_000 }, ctx), null);
+  assert.equal(parseMessage({ t: 'paced', ms: -1 }, ctx), null);
+});

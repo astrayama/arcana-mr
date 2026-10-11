@@ -44,8 +44,10 @@ export class TogetherPanelSystem extends createSystem({}) {
         },
         'hb-tg-wants-watch': () => this.pickWants('watch'),
         'hb-tg-wants-shuffle': () => this.pickWants('shuffle'),
+        'hb-tg-wants-step': () => this.pickWants('step'),
         'hb-tg-room-watch': () => this.together.setMode('watch'),
         'hb-tg-room-shuffle': () => this.together.setMode('shuffle'),
+        'hb-tg-room-step': () => this.together.setMode('step'),
         'hb-tg-begin': () => this.hub.openSpreads('classic'),
         'hb-tg-close': () => this.leave(),
         'hb-tg-key-join': () => this.join(),
@@ -170,6 +172,7 @@ export class TogetherPanelSystem extends createSystem({}) {
       setText(doc, 'hb-tg-room-status', hostStatus(s));
       chip('hb-tg-room-watch', s.mode === 'watch');
       chip('hb-tg-room-shuffle', s.mode === 'shuffle');
+      chip('hb-tg-room-step', s.mode === 'step');
       setText(doc, 'hb-tg-room-mode', roomModeNote(s));
       show('hb-tg-room-viewers', s.viewers > 0);
       if (s.viewers > 0) setText(doc, 'hb-tg-room-viewers', viewersLine(s.viewers));
@@ -177,6 +180,7 @@ export class TogetherPanelSystem extends createSystem({}) {
     if (view === 'join') {
       chip('hb-tg-wants-watch', this.wants === 'watch');
       chip('hb-tg-wants-shuffle', this.wants === 'shuffle');
+      chip('hb-tg-wants-step', this.wants === 'step');
       for (let i = 0; i < CODE_LENGTH; i++) {
         setText(doc, `hb-tg-digit-${i}`, this.entry[i] ?? '');
         doc.getElementById(`hb-tg-box-${i}`)?.setProperties({

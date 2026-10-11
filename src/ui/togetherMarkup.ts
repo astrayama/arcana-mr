@@ -48,9 +48,15 @@ export const TOGETHER_STYLES = `
   }
   .hb-tg-choice {
     flex-direction: row;
+    align-items: center;
     justify-content: center;
     gap: 1;
     margin-top: 1;
+  }
+  .hb-tg-label {
+    {{bodyFont}}
+    font-size: 1.2;
+    color: {{colors.panelMuted}};
   }
   .hb-tg-links {
     flex-direction: row;
@@ -211,14 +217,10 @@ export function togetherMarkup(): string {
       <div class="hb-note" style="width: 34">Tell your guest this code. They tap it in under Read together on their headset.</div>
       <div id="hb-tg-room-status" class="hb-tg-status">Opening the room...</div>
       <div class="hb-tg-choice">
-        <div id="hb-tg-room-watch" class="hb-chip">
-          <Eye class="hb-chip-icon"></Eye>
-          <div class="hb-chip-text">Guests watch</div>
-        </div>
-        <div id="hb-tg-room-shuffle" class="hb-chip">
-          <Shuffle class="hb-chip-icon"></Shuffle>
-          <div class="hb-chip-text">Guests shuffle</div>
-        </div>
+        <div class="hb-tg-label">Guests:</div>
+        <div id="hb-tg-room-watch" class="hb-chip"><div class="hb-chip-text">Watch</div></div>
+        <div id="hb-tg-room-shuffle" class="hb-chip"><div class="hb-chip-text">Shuffle</div></div>
+        <div id="hb-tg-room-step" class="hb-chip"><div class="hb-chip-text">Press Next</div></div>
       </div>
       <div id="hb-tg-room-mode" class="hb-tg-modeline">Your guest picks when they join; you can change it here any time.</div>
       <div id="hb-tg-room-viewers" class="hb-tg-modeline" style="display: none">Watching on a screen</div>
@@ -242,14 +244,9 @@ export function togetherMarkup(): string {
 
     <div id="hb-tg-join" class="hb-center" style="display: none">
       <div class="hb-tg-choice">
-        <div id="hb-tg-wants-watch" class="hb-chip">
-          <Eye class="hb-chip-icon"></Eye>
-          <div class="hb-chip-text">I'll watch</div>
-        </div>
-        <div id="hb-tg-wants-shuffle" class="hb-chip">
-          <Shuffle class="hb-chip-icon"></Shuffle>
-          <div class="hb-chip-text">I'll shuffle for them</div>
-        </div>
+        <div id="hb-tg-wants-watch" class="hb-chip"><div class="hb-chip-text">I'll watch</div></div>
+        <div id="hb-tg-wants-shuffle" class="hb-chip"><div class="hb-chip-text">I'll shuffle</div></div>
+        <div id="hb-tg-wants-step" class="hb-chip"><div class="hb-chip-text">I'll press Next</div></div>
       </div>
       <div class="hb-section">YOUR READER'S CODE</div>
       <div class="hb-tg-boxes">${boxes}</div>

@@ -12,7 +12,20 @@ import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.
 export const GUEST_MODE_NOTE: Record<Mode, string> = {
   watch: 'Your reader shuffles, draws, and turns the cards. You see every move on your own mat.',
   shuffle: 'When the spread is chosen, lift the deck and give it a shake to shuffle. Your reader draws and turns the cards.',
+  step: 'Press Next to move the reading along, one step at a time: shuffle, lay a card down, turn it over.',
 };
+
+/** What guests do in each mode, in a word or two (the host's switch beside the mat). */
+export const GUESTS_DO: Record<Mode, string> = {
+  watch: 'Guests watch',
+  shuffle: 'Guests shuffle',
+  step: 'Guests press Next',
+};
+
+/** The mode after this one, for the host's one-button switch. */
+export function nextMode(mode: Mode): Mode {
+  return mode === 'watch' ? 'shuffle' : mode === 'shuffle' ? 'step' : 'watch';
+}
 
 export function problemText(problem: SessionProblem): string {
   switch (problem) {
@@ -74,6 +87,9 @@ export function viewersLine(viewers: number): string {
 /** Under the host's watch/shuffle choice. */
 export function roomModeNote(s: Session): string {
   if (!s.peerPresent && s.viewers === 0) return 'Your guest picks when they join; you can change it here any time.';
+  if (s.mode === 'step') {
+    return 'Your guests press Next to move the reading along, one step every few seconds. You can still do everything yourself.';
+  }
   return s.mode === 'shuffle'
     ? 'Your guests shuffle: in a headset by shaking the deck, on a phone with a button or a shake. Change it any time.'
     : 'Your guests watch while you shuffle. Change it any time.';
@@ -96,6 +112,7 @@ type ReadingState = Exclude<ReadingStateName, 'PLACING' | 'IDLE'>;
 
 /** What the guest sees beside the mat. */
 export function guestReadingStatus(state: ReadingState, mode: Mode): string {
+  if (mode === 'step' && state !== 'SHUFFLING' && state !== 'REVEALED') return 'Press Next to move the reading along.';
   switch (state) {
     case 'READY':
       return mode === 'shuffle' ? 'Tap the deck, or lift it and give it a shake, to shuffle for your reader.' : 'Your reader is about to shuffle.';

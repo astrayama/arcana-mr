@@ -107,6 +107,18 @@ export class CardInteractionSystem extends createSystem({
   }
 
   /**
+   * Turn a spot's face-down card face up for a guest's Next press: the same
+   * flip as a tap, told to the reading as the host's own move (so it's shared).
+   */
+  reveal(slot: number): boolean {
+    const card = this.table.cards.find((c) => c.slot === slot && c.phase !== 'gathering');
+    if (card?.faceUp || card?.heldBy) return false;
+    if (!app.machine.send({ type: 'TURN', slot, faceUp: true }, 'intent')) return false;
+    if (card) this.showTurn(card, true, true);
+    return true;
+  }
+
+  /**
    * Show a card turning to `faceUp`. Animated for a card on the table; for a
    * card in someone else's hand only the face is recorded, and settling it
    * later turns it the right way.

@@ -11,7 +11,8 @@ import type { GateDecision, ReadingEvent } from '../state/readingMachine.js';
 
 /** `viewer`: watching on a phone or computer screen, never touching anything. */
 export type SessionRole = 'solo' | 'host' | 'guest' | 'viewer';
-export type Mode = 'watch' | 'shuffle';
+/** `step`: guests press Next to move the reading along, one step every few seconds ("Press Next" in the app). */
+export type Mode = 'watch' | 'shuffle' | 'step';
 
 export interface PermissionContext {
   role: SessionRole;
@@ -19,13 +20,16 @@ export interface PermissionContext {
   peerPresent: boolean;
 }
 
-export type Action = 'chooseSpread' | 'newReading' | 'shuffle' | 'draw' | 'turn' | 'liftDeck' | 'grabCard';
+/** `next`: ask the host to take the reading one step on (see src/state/nextStep.ts). */
+export type Action = 'chooseSpread' | 'newReading' | 'shuffle' | 'draw' | 'turn' | 'liftDeck' | 'grabCard' | 'next';
 
 /** "forward" means: ask the host, who decides. */
 export type Allowance = 'yes' | 'no' | 'forward';
 
 export function allowed(ctx: PermissionContext, action: Action): Allowance {
   if (ctx.role === 'solo' || (ctx.role === 'host' && !ctx.peerPresent)) return 'yes';
+  // In a Press Next room, guests and viewers can only ask for the next step.
+  if (ctx.role !== 'host' && ctx.mode === 'step') return action === 'next' ? 'forward' : 'no';
   // Someone watching on a screen can only ask to shuffle, when guests shuffle.
   if (ctx.role === 'viewer') return ctx.mode === 'shuffle' && action === 'shuffle' ? 'forward' : 'no';
   if (ctx.role === 'host') {

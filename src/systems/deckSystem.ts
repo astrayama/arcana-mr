@@ -150,11 +150,11 @@ export class DeckSystem extends createSystem({
    * guest's shake). In a shared reading a guest's request goes to the host,
    * and this returns true once it's on its way.
    */
-  requestShuffle(origin: Origin = 'local'): boolean {
+  requestShuffle(origin: Origin = 'local', passes?: 1 | 2): boolean {
     if (this.shuffling) return false;
-    // One quick riffle when shaken in the hand, a fuller one when tapped.
-    const passes: 1 | 2 = origin === 'intent' || this.grab.holderOf(this.deck) ? 1 : 2;
-    return app.machine.send({ type: 'SHUFFLE', passes }, origin);
+    // One quick riffle when shaken in the hand, a fuller one when tapped (or asked for with Next).
+    const riffles = passes ?? (origin === 'intent' || this.grab.holderOf(this.deck) ? 1 : 2);
+    return app.machine.send({ type: 'SHUFFLE', passes: riffles }, origin);
   }
 
   /** A guest's shuffle request was turned down or went unanswered: listen for the next shake. */

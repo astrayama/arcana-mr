@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { getBack } from '../backs/catalog.js';
 import { getDeck } from '../decks/registry.js';
 import { createPhoneShake, motionStrength } from '../lib/phoneShake.js';
+import { describeNextStep, nextStep } from '../state/nextStep.js';
 import { allowed } from '../net/permissions.js';
 import { formatCode, isRoomCode } from '../net/roomCode.js';
 import { permissionContext, session } from '../net/session.js';
@@ -79,6 +80,10 @@ export class ScreenWatchSystem extends createSystem({}) {
     view.onSubmit((digits) => {
       if (!isRoomCode(digits)) view.setError('Six digits, like 472 913.');
       else this.start(digits);
+    });
+    view.onNext(() => {
+      if (this.together.requestNext()) navigator.vibrate?.(30);
+      this.refreshShuffle(performance.now());
     });
     view.onShuffle(() => {
       // The tap is the moment an iPhone can be asked about motion.
@@ -168,6 +173,12 @@ export class ScreenWatchSystem extends createSystem({}) {
   private refreshShuffle(now: number): void {
     const view = this.view;
     if (!view || !this.watching) return;
+    if (session.peek().mode === 'step') {
+      view.setShuffle('hidden');
+      this.refreshNext(now);
+      return;
+    }
+    view.setNext(null, false);
     const mine = session.peek().mode === 'shuffle' && session.peek().synced;
     if (mine && app.machine.state === 'SHUFFLING') view.setShuffle('shuffling');
     else if (this.canShuffle()) view.setShuffle(now - this.askedAt < ASK_MS ? 'asking' : 'ready');
@@ -178,6 +189,25 @@ export class ScreenWatchSystem extends createSystem({}) {
     else if (touch && this.motion === 'off') view.setTip('Tap Shuffle. After that, a shake works too.');
     // A computer, or a phone that said no to motion: the button only.
     else view.setTip('Your reader lets you shuffle: tap Shuffle.');
+  }
+
+  /**
+   * In a Press Next room: the Next button, counting down the room's pause,
+   * and a hint saying what Next will do.
+   */
+  private refreshNext(now: number): void {
+    const view = this.view!;
+    const s = session.peek();
+    const snapshot = app.machine.current;
+    if (!s.synced || snapshot.state === 'IDLE' || snapshot.state === 'REVEALED') {
+      view.setNext(null, false);
+      view.setTip(s.synced ? describeNextStep(snapshot) : null);
+      return;
+    }
+    const wait = Math.ceil((s.nextWaitUntil - now) / 1000);
+    const ready = wait <= 0 && nextStep(snapshot) !== null && allowed(permissionContext(s), 'next') === 'forward';
+    view.setNext(wait > 0 ? `Next in ${wait}` : 'Next', ready);
+    view.setTip(describeNextStep(snapshot));
   }
 
   /** Listen for the phone being shaken, asking first where the phone requires it. */

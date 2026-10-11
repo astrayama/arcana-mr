@@ -47,7 +47,11 @@ const styles = (c: ViewColors) => `
 .sw-list header button { padding: 4px 12px; font-size: 13px; }
 .sw-list ol { list-style: none; margin: 0; padding: 0 12px 12px; overflow-y: auto; }
 .sw-row { display: flex; gap: 12px; padding: 10px 4px; border-top: 1px solid ${c.panelBorder}; }
-.sw-row img, .sw-row .sw-back { width: 54px; height: 93px; flex: none; border-radius: 5px; object-fit: cover; background: ${c.panelBorder}; }
+.sw-row img, .sw-row .sw-back { width: 40px; height: 69px; flex: none; border-radius: 4px; object-fit: cover; background: ${c.panelBorder}; }
+.sw-row.sw-open img { width: 54px; height: 93px; border-radius: 5px; }
+.sw-row[data-key] { cursor: pointer; border-radius: 8px; }
+.sw-row[data-key]:hover, .sw-row[data-key]:focus-visible { background: #ffffff0d; outline: none; }
+.sw-more { font-size: 12.5px; color: ${c.accent}; margin-top: 4px; }
 .sw-row img.sw-flip { transform: rotate(180deg); }
 .sw-row .sw-empty { background: transparent; border: 1px dashed ${c.panelBorder}; box-sizing: border-box; }
 .sw-pos { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: ${c.panelMuted}; }
@@ -84,6 +88,10 @@ export class ScreenWatchView {
   private readonly status = el('div', 'sw-status');
   private readonly leave = el('button', '', 'Leave');
   private readonly shuffle = el('button', 'sw-primary sw-shuffle', 'Shuffle');
+  private readonly next = el('button', 'sw-primary sw-shuffle', 'Next');
+  /** Cards whose meaning is open, by reading number and spot. */
+  private readonly open = new Set<string>();
+  private last: Parameters<ScreenWatchView['renderCards']> | null = null;
   private readonly tip = el('div', 'sw-tip');
   private readonly list = el('section', 'sw-card sw-list');
   private readonly title = el('h2');
@@ -115,8 +123,23 @@ export class ScreenWatchView {
       el('p', 'sw-fine', 'Nothing is recorded. The reading reaches this screen encrypted, through a relay that stores nothing.'),
     );
 
-    this.bar.append(this.status, this.shuffle, this.leave);
+    this.bar.append(this.status, this.shuffle, this.next, this.leave);
     this.shuffle.hidden = true;
+    this.next.hidden = true;
+    // Tap (or Enter / Space on) a turned card to open or close its meaning.
+    const toggle = (target: EventTarget | null) => {
+      const row = (target as HTMLElement | null)?.closest<HTMLElement>('.sw-row[data-key]');
+      if (!row?.dataset.key) return;
+      if (!this.open.delete(row.dataset.key)) this.open.add(row.dataset.key);
+      if (this.last) this.renderCards(...this.last);
+      this.rows.querySelector<HTMLElement>(`[data-key="${row.dataset.key}"]`)?.focus();
+    };
+    this.rows.addEventListener('click', (e) => toggle(e.target));
+    this.rows.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      toggle(e.target);
+    });
     this.tip.hidden = true;
     const header = el('header');
     header.append(this.title, this.fold);
@@ -172,6 +195,18 @@ export class ScreenWatchView {
     this.shuffle.textContent = state === 'asking' ? 'Asking...' : state === 'shuffling' ? 'Shuffling...' : 'Shuffle';
   }
 
+  onNext(handler: () => void): void {
+    this.next.addEventListener('click', handler);
+  }
+
+  /** The Next button (a Press Next room): hidden, or shown with its words, pressable or not. */
+  setNext(label: string | null, ready: boolean): void {
+    this.next.hidden = label === null;
+    if (label === null) return;
+    this.next.textContent = label;
+    this.next.disabled = !ready;
+  }
+
   /** A short hint under the bar, or none. */
   setTip(text: string | null): void {
     this.tip.hidden = !text || this.bar.hidden;
@@ -201,7 +236,11 @@ export class ScreenWatchView {
     catchingUp = false,
     backUrl: string | null = null,
   ): void {
+    this.last = [snapshot, cards, faceUrl, catchingUp, backUrl];
     this.title.textContent = catchingUp ? 'Catching up...' : (snapshot.spread?.name ?? 'Waiting for a spread');
+    // Forget open meanings from earlier readings.
+    const prefix = `${snapshot.readingNumber}:`;
+    for (const key of this.open) if (!key.startsWith(prefix)) this.open.delete(key);
     const rows = snapshot.slots.map((slot) => {
       const row = el('li', 'sw-row');
       const card = slot.cardId ? cards.get(slot.cardId) : undefined;
@@ -230,12 +269,17 @@ export class ScreenWatchView {
         const side = slot.reversed ? card.reversed : card.upright;
         const name = el('div', 'sw-name', card.name);
         if (slot.reversed) name.append(el('span', 'sw-rev', 'Reversed'));
-        text.append(
-          name,
-          el('div', 'sw-words', side.keywords.join(' · ')),
-          el('p', 'sw-read', side.read),
-          el('p', 'sw-prompt', side.prompt),
-        );
+        // The meaning stays folded away until the card is tapped.
+        const key = `${prefix}${slot.slot}`;
+        const isOpen = this.open.has(key);
+        row.dataset.key = key;
+        row.tabIndex = 0;
+        row.setAttribute('role', 'button');
+        row.setAttribute('aria-expanded', String(isOpen));
+        row.classList.toggle('sw-open', isOpen);
+        text.append(name, el('div', 'sw-words', side.keywords.join(' · ')));
+        if (isOpen) text.append(el('p', 'sw-read', side.read), el('p', 'sw-prompt', side.prompt));
+        text.append(el('div', 'sw-more', isOpen ? 'Hide the meaning' : 'Tap to read the meaning'));
       }
       row.append(text);
       return row;

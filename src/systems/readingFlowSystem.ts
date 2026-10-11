@@ -8,7 +8,8 @@ import { session } from '../net/session.js';
 import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.js';
 import hudTemplate from '../ui/hud.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
-import { guestReadingStatus, hostShuffleModeStatus, sessionLine } from '../ui/togetherCopy.js';
+import { describeNextStep, nextStep } from '../state/nextStep.js';
+import { GUESTS_DO, guestReadingStatus, hostShuffleModeStatus, nextMode, sessionLine } from '../ui/togetherCopy.js';
 import type { CardVisual } from '../visuals/tableVisuals.js';
 import { HubSystem } from './hubSystem.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
@@ -43,6 +44,9 @@ export class ReadingFlowSystem extends createSystem({
 }) {
   private table!: TableSystem;
   private menu!: Entity;
+  /** The Next button's words as last shown, and when to look again (a guest in a Press Next room). */
+  private nextLabel = '';
+  private nextCheck = 0;
 
   /** Placed cards by slot, for dev tooling and tests. */
   get dealt(): { slot: number; cardId: string | null; reversed: boolean; entity: Entity; visual: CardVisual }[] {
@@ -90,10 +94,12 @@ export class ReadingFlowSystem extends createSystem({
         'mn-leave': () => this.world.getSystem(TogetherSystem)?.leave(),
         // The reading waits while the mat moves, and carries on once it's down.
         'mn-move': () => app.machine.send({ type: 'REPLACE_MAT' }),
-        // The host hands the shuffle to the guest, or takes it back.
-        'mn-mode': () => {
-          const together = this.world.getSystem(TogetherSystem);
-          together?.setMode(session.peek().mode === 'watch' ? 'shuffle' : 'watch');
+        // The host changes what guests do: watch, shuffle, or press Next.
+        'mn-mode': () => this.world.getSystem(TogetherSystem)?.setMode(nextMode(session.peek().mode)),
+        // A guest in a Press Next room moves the reading one step.
+        'mn-next': () => {
+          this.world.getSystem(TogetherSystem)?.requestNext();
+          this.refreshNext();
         },
       }),
     );
@@ -106,6 +112,30 @@ export class ReadingFlowSystem extends createSystem({
     const bounds = this.table.layout.bounds;
     menu.position.set(bounds.minX - 0.1, 0.1, bounds.maxZ - 0.26);
     menu.rotation.set(-0.3, 0.6, 0, 'YXZ');
+  }
+
+  update(delta: number): void {
+    // The Next button counts down the room's pause, a few times a second.
+    this.nextCheck -= delta;
+    if (this.nextCheck > 0) return;
+    this.nextCheck = 0.25;
+    this.refreshNext();
+  }
+
+  /** A guest's Next button: ready, counting down, or waiting on the reader. */
+  private refreshNext(): void {
+    const s = session.peek();
+    if (s.role !== 'guest' || s.mode !== 'step') return;
+    const document = panelDocument(this.menu);
+    if (!document) return;
+    const wait = Math.ceil((s.nextWaitUntil - performance.now()) / 1000);
+    const ready = s.synced && wait <= 0 && nextStep(app.machine.current) !== null;
+    const label = !s.synced ? 'Catching up...' : wait > 0 ? `Next in ${wait}` : ready ? 'Next' : 'Waiting...';
+    if (label === this.nextLabel) return;
+    this.nextLabel = label;
+    setText(document, 'mn-next-text', label);
+    const { colors } = app.theme.theme;
+    document.getElementById('mn-next')?.setProperties({ backgroundColor: ready ? colors.accent : colors.panelBorder });
   }
 
   private refreshMenu(snapshot: ReadingSnapshot): void {
@@ -136,7 +166,11 @@ export class ReadingFlowSystem extends createSystem({
     show('mn-session', line !== null);
     show('mn-move', state !== 'SHUFFLING');
     show('mn-mode', s.role === 'host' && (s.peerPresent || s.viewers > 0) && state !== 'SHUFFLING');
-    setText(document, 'mn-mode-text', s.mode === 'watch' ? 'Let your guests shuffle' : 'Shuffle it yourself');
+    setText(document, 'mn-mode-text', `${GUESTS_DO[s.mode]} (change)`);
+    show('mn-next', guest && s.mode === 'step' && state !== 'REVEALED');
+    if (guest && s.mode === 'step' && state !== 'SHUFFLING') setText(document, 'mn-status', describeNextStep(snapshot));
+    this.nextLabel = '';
+    this.refreshNext();
     show('mn-leave', s.role !== 'solo');
   }
 

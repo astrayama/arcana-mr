@@ -1,8 +1,9 @@
 <!--
   The small panel beside the mat during a reading: what to do next, New
   reading, Choose another (before the first shuffle), and Move the mat (any
-  time but mid-shuffle, keeping the reading). Reading together,
-  it also shows the room, and a guest gets Leave instead of New reading.
+  time but mid-shuffle, keeping the reading). Reading together, it also
+  shows the room; the host can change what guests do; and a guest gets
+  Leave instead of New reading, plus Next in a Press Next room.
   Theme template: double-brace tokens are filled from the active theme.
 -->
 <style>
@@ -103,6 +104,10 @@
 <div id="menu" class="mn-root">
   <div id="mn-status" class="mn-status">Shuffle the deck.</div>
   <div id="mn-session" class="mn-session" style="display: none">Reading together</div>
+  <div id="mn-next" class="mn-primary" style="display: none">
+    <ArrowRight class="mn-primary-icon"></ArrowRight>
+    <div id="mn-next-text" class="mn-primary-text">Next</div>
+  </div>
   <div id="mn-new" class="mn-primary">
     <RotateCcw class="mn-primary-icon"></RotateCcw>
     <div class="mn-primary-text">New reading</div>
@@ -113,7 +118,7 @@
   </div>
   <div id="mn-mode" class="mn-link" style="display: none">
     <Shuffle class="mn-link-icon"></Shuffle>
-    <div id="mn-mode-text" class="mn-link-text">Let your guest shuffle</div>
+    <div id="mn-mode-text" class="mn-link-text">Guests watch (change)</div>
   </div>
   <div id="mn-move" class="mn-link" style="display: none">
     <Move class="mn-link-icon"></Move>
