@@ -15,6 +15,9 @@ export const GUEST_MODE_NOTE: Record<Mode, string> = {
   step: 'Press Next to move the reading along, one step at a time: shuffle, lay a card down, turn it over.',
 };
 
+/** When the reader's headset stops answering: taken off, it falls asleep and the reading waits. */
+export const HOST_AWAY = "Your reader's headset seems to be asleep. The reading carries on once they're wearing it again.";
+
 /** What guests do in each mode, in a word or two (the host's switch beside the mat). */
 export const GUESTS_DO: Record<Mode, string> = {
   watch: 'Guests watch',

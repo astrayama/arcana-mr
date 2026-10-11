@@ -40,6 +40,9 @@ const INBOX_LIMIT = 200;
 const INTENT_TIMEOUT_S = 1.5;
 /** Fewest seconds between full states the host sends. */
 const STATE_INTERVAL_S = 0.5;
+/** The host says it's running this often; followers call it away after this long without a word. */
+const BEAT_S = 4;
+const AWAY_S = 10;
 /** In a Press Next room, the fewest seconds between steps, for the whole room. */
 export const NEXT_PACE_S = 3;
 /** Tries at a fresh room code when the one we picked is in use. */
@@ -106,6 +109,9 @@ export class TogetherSystem extends createSystem({}) {
   private lastNextAt = -Infinity;
   /** Follower: until when (performance.now()) the host said the room's Next waits. */
   private pacedUntil = 0;
+  /** Host: when (this.time) it last said it's running. Follower: when (performance.now()) it last heard the host. */
+  private lastBeatAt = -Infinity;
+  private lastHostAt = 0;
   private time = 0;
   private deck!: DeckSystem;
   private grab!: TableGrabSystem;
@@ -182,7 +188,7 @@ export class TogetherSystem extends createSystem({}) {
   requestNext(): boolean {
     const s = session.peek();
     if (this.role !== 'guest' && this.role !== 'viewer') return false;
-    if (s.status !== 'connected' || !s.synced || this.intent) return false;
+    if (s.status !== 'connected' || !s.synced || s.hostAway || this.intent) return false;
     if (allowed(permissionContext(s), 'next') !== 'forward' || performance.now() < s.nextWaitUntil) return false;
     if (!nextStep(app.machine.current)) return false;
     const id = this.nextIntentId++;
@@ -232,10 +238,17 @@ export class TogetherSystem extends createSystem({}) {
         this.send({ t: 'sync-req', why: this.tracker.lastSeq < 0 ? 'join' : 'stale' });
       }
     }
-    // Followers: whether they're in step with the host, for the screens that show it.
+    // Followers: whether they're in step with the host, and whether the host is still answering.
     if (this.role === 'guest' || this.role === 'viewer') {
       const synced = this.tracker.status === 'synced';
       if (s.synced !== synced) this.patchSession({ synced });
+      const away = s.status === 'connected' && s.peerPresent && performance.now() - this.lastHostAt > AWAY_S * 1000;
+      if (s.hostAway !== away) this.patchSession({ hostAway: away });
+    }
+    // The host: a word every few seconds while it's running, so guests can tell when it's asleep.
+    if (this.role === 'host' && this.anyone && this.time - this.lastBeatAt >= BEAT_S) {
+      this.lastBeatAt = this.time;
+      this.send({ t: 'beat' });
     }
     if (this.intent && this.time - this.intent.at > INTENT_TIMEOUT_S) {
       this.intent = null;
@@ -257,7 +270,7 @@ export class TogetherSystem extends createSystem({}) {
     this.end();
     const generation = ++this.generation;
     this.role = role;
-    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, viewers: 0, synced: false, nextWaitUntil: 0, problem: null });
+    this.setSession({ role, mode, code, status: 'preparing', peerPresent: false, viewers: 0, synced: false, nextWaitUntil: 0, hostAway: false, problem: null });
     const room = await deriveRoom(code);
     if (generation !== this.generation) return;
     this.room = room;
@@ -383,7 +396,8 @@ export class TogetherSystem extends createSystem({}) {
 
   /** A guest or viewer hears whether the host is here. */
   private hostChanged(present: boolean): void {
-    this.patchSession({ peerPresent: present, status: present ? 'connected' : 'alone' });
+    this.lastHostAt = performance.now();
+    this.patchSession({ peerPresent: present, status: present ? 'connected' : 'alone', hostAway: false });
     if (!present) {
       this.flushPulls(true);
       this.grab.releaseRemote(true);
@@ -479,6 +493,8 @@ export class TogetherSystem extends createSystem({}) {
   }
 
   private handleAsGuest(msg: Msg): void {
+    // Anything from the host means its app is awake.
+    this.lastHostAt = performance.now();
     switch (msg.t) {
       case 'hello':
         // An older copy of the app on the host's side can't answer us properly.

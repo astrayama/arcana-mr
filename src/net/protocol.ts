@@ -11,7 +11,7 @@ import type { Mode } from './permissions.js';
 import type { PeerRole } from './secure.js';
 
 /** Bumped when messages change in a way older copies of the app can't follow. */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 export type Obj = 'deck' | number;
 export type V3 = [number, number, number];
@@ -48,6 +48,8 @@ export type Msg =
   | { t: 'intent'; id: number; ev: { type: 'SHUFFLE' } | { type: 'NEXT' } }
   /** The host took a Next step: everyone's Next waits this long. */
   | { t: 'paced'; ms: number }
+  /** The host's app is running (sent every few seconds; a headset taken off goes quiet). */
+  | { t: 'beat' }
   | { t: 'nack'; id: number; why: 'not-allowed' | 'not-now' }
   | { t: 'hold'; rn: number; hid: number; obj: Obj; on: boolean; p: V3; q: Q4 }
   | { t: 'pose'; rn: number; hid: number; obj: Obj; p: V3; q: Q4; ts: number }
@@ -178,6 +180,8 @@ export function parseMessage(v: unknown, ctx: ParseContext): Msg | null {
         onlyKeys(v.ev, ['type'])
         ? (v as Msg)
         : null;
+    case 'beat':
+      return onlyKeys(v, ['t']) ? (v as Msg) : null;
     case 'paced':
       return onlyKeys(v, ['t', 'ms']) && isInt(v.ms, 0, 10_000) ? (v as Msg) : null;
     case 'nack':

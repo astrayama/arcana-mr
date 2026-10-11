@@ -57,6 +57,8 @@ const wantsArg = option('wants');
 const wants: Mode = wantsArg === 'shuffle' || wantsArg === 'step' ? wantsArg : 'watch';
 /** As host in a Press Next room: when the last Next step was taken. */
 let lastNextAt = -Infinity;
+/** As host: until when it plays asleep (no beats, no answers), like a headset taken off. */
+let quietUntil = 0;
 /** As host: the table look to share (--back celestial --around fairy-circle). */
 const look = { t: 'look' as const, deck: 'rws-1909', back: option('back') ?? 'deck', around: option('around') ?? 'room' };
 /** --proto 1 pretends to be an older copy of the app. */
@@ -127,6 +129,10 @@ const relay = new RelayClient({
   },
 });
 relay.connect();
+// As host, say "still here" every few seconds, as the app does while it's running.
+if (role === 'host') setInterval(() => {
+  if (peer && Date.now() > quietUntil) void send({ t: 'beat' });
+}, 4000);
 
 function sendState() {
   const holds = openHold ? [{ obj: openHold.obj, hid: openHold.id, p: openHold.p, q: openHold.q }] : [];
@@ -135,6 +141,10 @@ function sendState() {
 
 let poses = 0;
 function handle(msg: Msg) {
+  if (msg.t === 'beat') {
+    dump(); // every few seconds; counted in --out, not worth a log line
+    return;
+  }
   if (msg.t === 'pose') {
     poses++; // too many to log one by one
     return;
@@ -152,6 +162,7 @@ function handle(msg: Msg) {
   );
   if (msg.t === 'hold') poses = 0;
   if (role === 'host') {
+    if (Date.now() < quietUntil) return; // asleep: hears nothing
     if (msg.t === 'hello' && msg.role === 'guest' && msg.wants && msg.wants !== mode) {
       mode = msg.wants;
       void send({ t: 'mode', mode });
@@ -346,6 +357,10 @@ for (const step of steps) {
           await sleep(50);
         }
       }
+      break;
+    case 'quiet':
+      // quiet <ms>: play asleep (a headset taken off): no beats, no answers.
+      quietUntil = Date.now() + Number(a[0]);
       break;
     case 'setmode':
       // setmode <watch|shuffle>: the host changes who shuffles.

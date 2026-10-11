@@ -332,7 +332,9 @@ test('in a Press Next room, guests and viewers can only ask for the next step; t
 test('Next requests, the shared pause, and the Press Next mode are checked', async () => {
   const { PROTOCOL_VERSION } = await import('../src/net/protocol.ts');
   const ctx = { isCardId: () => true };
-  assert.equal(PROTOCOL_VERSION, 3);
+  assert.equal(PROTOCOL_VERSION, 4);
+  assert.ok(parseMessage({ t: 'beat' }, ctx), "the host's still-here beat");
+  assert.equal(parseMessage({ t: 'beat', extra: 1 }, ctx), null);
   assert.ok(parseMessage({ t: 'intent', id: 7, ev: { type: 'NEXT' } }, ctx));
   assert.equal(parseMessage({ t: 'intent', id: 7, ev: { type: 'DRAW' } }, ctx), null);
   assert.ok(parseMessage({ t: 'mode', mode: 'step' }, ctx));

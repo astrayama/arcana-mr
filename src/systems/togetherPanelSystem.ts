@@ -4,7 +4,7 @@ import type { Mode } from '../net/permissions.js';
 import { formatCode, isRoomCode, pressKey, CODE_LENGTH, type KeypadKey } from '../net/roomCode.js';
 import { session } from '../net/session.js';
 import { bindClicks, setText } from '../ui/panels.js';
-import { GUEST_MODE_NOTE, guestStatus, hostStatus, problemText, roomModeNote, viewersLine } from '../ui/togetherCopy.js';
+import { GUEST_MODE_NOTE, guestStatus, HOST_AWAY, hostStatus, problemText, roomModeNote, viewersLine } from '../ui/togetherCopy.js';
 import { HubSystem, type HubPage } from './hubSystem.js';
 import { TogetherSystem } from './togetherSystem.js';
 
@@ -204,7 +204,7 @@ export class TogetherPanelSystem extends createSystem({}) {
             ? 'Reconnecting...'
             : "You're in";
       setText(doc, 'hb-tg-joined-title', title);
-      setText(doc, 'hb-tg-joined-status', guestStatus(s));
+      setText(doc, 'hb-tg-joined-status', s.hostAway ? HOST_AWAY : guestStatus(s));
       setText(doc, 'hb-tg-joined-mode', GUEST_MODE_NOTE[s.mode]);
     }
   }

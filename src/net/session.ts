@@ -41,6 +41,8 @@ export interface Session {
   synced: boolean;
   /** In a Press Next room: when (performance.now(), ms) Next can be pressed again. */
   nextWaitUntil: number;
+  /** Guest or viewer: the host's app has gone quiet (a headset taken off falls asleep). */
+  hostAway: boolean;
   problem: SessionProblem;
 }
 
@@ -53,6 +55,7 @@ export const SOLO: Session = {
   viewers: 0,
   synced: false,
   nextWaitUntil: 0,
+  hostAway: false,
   problem: null,
 };
 

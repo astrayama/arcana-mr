@@ -9,7 +9,7 @@ import { describeNextStep, nextStep } from '../state/nextStep.js';
 import { allowed } from '../net/permissions.js';
 import { formatCode, isRoomCode } from '../net/roomCode.js';
 import { permissionContext, session } from '../net/session.js';
-import { problemText } from '../ui/togetherCopy.js';
+import { HOST_AWAY, problemText } from '../ui/togetherCopy.js';
 import { DECK_BACK } from '../settings/settings.js';
 import { ScreenWatchView } from '../ui/screenWatchView.js';
 import { PlacementSystem } from './placementSystem.js';
@@ -159,7 +159,8 @@ export class ScreenWatchSystem extends createSystem({}) {
 
   /** Whether this screen may ask to shuffle right now. */
   private canShuffle(): boolean {
-    return session.peek().synced && allowed(permissionContext(), 'shuffle') === 'forward' && app.machine.can({ type: 'SHUFFLE' });
+    const s = session.peek();
+    return s.synced && !s.hostAway && allowed(permissionContext(), 'shuffle') === 'forward' && app.machine.can({ type: 'SHUFFLE' });
   }
 
   /** Ask the reader's headset to shuffle (it decides, and everyone sees the riffle). */
@@ -199,6 +200,12 @@ export class ScreenWatchSystem extends createSystem({}) {
     const view = this.view!;
     const s = session.peek();
     const snapshot = app.machine.current;
+    if (s.hostAway) {
+      // The reader's headset is asleep: nothing can happen until it wakes.
+      view.setNext(s.synced && snapshot.state !== 'IDLE' ? 'Reader away' : null, false);
+      view.setTip(null);
+      return;
+    }
     if (!s.synced || snapshot.state === 'IDLE' || snapshot.state === 'REVEALED') {
       view.setNext(null, false);
       view.setTip(s.synced ? describeNextStep(snapshot) : null);
@@ -260,13 +267,15 @@ export class ScreenWatchSystem extends createSystem({}) {
     const text: Partial<Record<typeof s.status, string>> = {
       preparing: `Joining ${room}...`,
       connecting: `Joining ${room}...`,
-      connected: !s.synced
-        ? this.unsyncedFor() > SLOW_SYNC_MS
-          ? 'Still catching up. If this lasts, ask your reader to reload Carta Luna.'
-          : 'Catching up with your reader...'
-        : app.machine.current.spread
-          ? `Watching ${room}`
-          : `Watching ${room}. Your reader will choose a spread.`,
+      connected: s.hostAway
+        ? HOST_AWAY
+        : !s.synced
+          ? this.unsyncedFor() > SLOW_SYNC_MS
+            ? 'Still catching up. If this lasts, ask your reader to reload Carta Luna.'
+            : 'Catching up with your reader...'
+          : app.machine.current.spread
+            ? `Watching ${room}`
+            : `Watching ${room}. Your reader will choose a spread.`,
       reconnecting: 'Reconnecting...',
       alone: 'The reader stepped away. This page catches up when they are back.',
     };

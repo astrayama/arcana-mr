@@ -9,7 +9,7 @@ import type { ReadingSnapshot, ReadingStateName } from '../state/readingMachine.
 import hudTemplate from '../ui/hud.uikitml?raw';
 import { bindClicks, createPanel, panelDocument, setPanelActive, setText } from '../ui/panels.js';
 import { describeNextStep, nextStep } from '../state/nextStep.js';
-import { GUESTS_DO, guestReadingStatus, hostShuffleModeStatus, nextMode, sessionLine } from '../ui/togetherCopy.js';
+import { GUESTS_DO, guestReadingStatus, HOST_AWAY, hostShuffleModeStatus, nextMode, sessionLine } from '../ui/togetherCopy.js';
 import type { CardVisual } from '../visuals/tableVisuals.js';
 import { HubSystem } from './hubSystem.js';
 import { TableGrabSystem } from './tableGrabSystem.js';
@@ -129,8 +129,8 @@ export class ReadingFlowSystem extends createSystem({
     const document = panelDocument(this.menu);
     if (!document) return;
     const wait = Math.ceil((s.nextWaitUntil - performance.now()) / 1000);
-    const ready = s.synced && wait <= 0 && nextStep(app.machine.current) !== null;
-    const label = !s.synced ? 'Catching up...' : wait > 0 ? `Next in ${wait}` : ready ? 'Next' : 'Waiting...';
+    const ready = s.synced && !s.hostAway && wait <= 0 && nextStep(app.machine.current) !== null;
+    const label = s.hostAway ? 'Reader away' : !s.synced ? 'Catching up...' : wait > 0 ? `Next in ${wait}` : ready ? 'Next' : 'Waiting...';
     if (label === this.nextLabel) return;
     this.nextLabel = label;
     setText(document, 'mn-next-text', label);
@@ -169,6 +169,8 @@ export class ReadingFlowSystem extends createSystem({
     setText(document, 'mn-mode-text', `${GUESTS_DO[s.mode]} (change)`);
     show('mn-next', guest && s.mode === 'step' && state !== 'REVEALED');
     if (guest && s.mode === 'step' && state !== 'SHUFFLING') setText(document, 'mn-status', describeNextStep(snapshot));
+    // The reader's headset fell asleep (taken off): say so rather than seeming stuck.
+    if (guest && s.hostAway) setText(document, 'mn-status', HOST_AWAY);
     this.nextLabel = '';
     this.refreshNext();
     show('mn-leave', s.role !== 'solo');
