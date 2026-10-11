@@ -242,13 +242,22 @@ function roundedPanelGeometry(width: number, height: number, radius: number): Sh
   return geometry;
 }
 
-/** A rounded slab of the given thickness, rising from y = 0. */
+/**
+ * A rounded slab of the given thickness, rising from y = 0: only its side
+ * walls. Its top and bottom always sit a hair under a card's face and back
+ * (or the deck's top), and drawing them too makes the two surfaces flicker
+ * through each other from a distance, so they're left out.
+ */
 function roundedSlab(width: number, height: number, radius: number, thickness: number): Mesh {
   const geometry = new ExtrudeGeometry(roundedRect(width, height, radius), {
     depth: thickness,
     bevelEnabled: false,
     curveSegments: 8,
   });
+  // ExtrudeGeometry's groups are [caps, sides]; keep the sides as material 0.
+  const sides = geometry.groups[1];
+  geometry.clearGroups();
+  geometry.addGroup(sides.start, sides.count, 0);
   const slab = new Mesh(geometry);
   slab.rotation.x = -Math.PI / 2;
   return slab;
@@ -310,7 +319,8 @@ export function buildCard(materials: CardMaterials, geometry: CardGeometry): Car
   back.position.y = -(t / 2 + 0.0001);
   back.name = 'CardBack';
 
-  const edge = new Mesh(geometry.edge, materials.edge);
+  // A one-item material list, so only the slab's side walls are drawn (see roundedSlab).
+  const edge = new Mesh(geometry.edge, [materials.edge]);
   edge.rotation.x = -Math.PI / 2;
   edge.position.y = -t / 2;
   edge.name = 'CardEdge';
@@ -344,7 +354,7 @@ export function buildDeckPile(
   group.name = 'DeckPile';
 
   const sides = roundedSlab(widthM, heightM, r, stackHeight);
-  sides.material = materials.edge;
+  sides.material = [materials.edge];
   sides.name = 'DeckPileSides';
 
   const top = new Mesh(roundedPanelGeometry(widthM, heightM, r), materials.back);

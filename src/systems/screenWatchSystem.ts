@@ -152,6 +152,11 @@ export class ScreenWatchSystem extends createSystem({}) {
   private start(code: string): void {
     this.view?.setError('');
     onScreen.value = true;
+    // A screen view never comes closer than ORBIT.minDistance, so a deeper near plane
+    // gives far finer depth: cards and the cloth stop flickering through each other.
+    const camera = this.world.camera;
+    camera.near = 0.02;
+    camera.updateProjectionMatrix();
     this.placement.placeAt(SCREEN_MAT);
     this.listen();
     this.watching = true;
